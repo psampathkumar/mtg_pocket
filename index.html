@@ -25,12 +25,18 @@ select{background:#111;color:#fff;border-radius:8px;padding:.4rem;border:1px sol
 .new-card{outline:3px solid #ffd700}
 .new-card::after{content:'NEW';position:absolute;top:4px;left:4px;background:#ffd700;color:#000;font-weight:700;padding:0 4px;border-radius:4px;font-size:.65rem}
 @keyframes foil{from{background-position:0%}to{background-position:200%}}
+@keyframes cardReveal{
+  0%{transform:perspective(1000px) rotateY(180deg) scale(0.8);opacity:0}
+  50%{transform:perspective(1000px) rotateY(90deg) scale(0.9)}
+  100%{transform:perspective(1000px) rotateY(0deg) scale(1);opacity:1}
+}
 .rarity-common{border:2px solid #999}
 .rarity-uncommon{border:2px solid #1eff00}
 .rarity-rare{border:2px solid #0070dd}
 .rarity-mythic{border:2px solid #ff8000}
 #packModal,#cardViewModal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:1000}
-.packCards{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;max-width:90%}
+.packCards{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;max-width:90%;align-items:center}
+.card-reveal{animation:cardReveal 0.6s ease-out forwards;opacity:0}
 </style>
 </head>
 <body>
@@ -133,11 +139,17 @@ function showPack(pack){
  m.style.display='flex';
  m.innerHTML='<div class="packCards"></div>';
  const c=m.firstChild;
- pack.forEach(card=>{
-  const d=cardEl(card);
-  if(card.isNew) d.classList.add('new-card');
-  c.appendChild(d);
+ 
+ // Reveal cards one by one
+ pack.forEach((card, index)=>{
+  setTimeout(()=>{
+   const d=cardEl(card);
+   if(card.isNew) d.classList.add('new-card');
+   d.classList.add('card-reveal');
+   c.appendChild(d);
+  }, index * 400); // 400ms delay between each card
  });
+ 
  m.onclick=()=>{m.style.display='none';m.innerHTML=''};
 }
 
