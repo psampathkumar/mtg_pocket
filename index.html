@@ -10,7 +10,7 @@ body{margin:0;font-family:Inter,system-ui,Arial;background:radial-gradient(circl
 header{display:flex;justify-content:space-between;align-items:center;padding:clamp(0.5rem,3vw,1rem) clamp(0.75rem,4vw,1.5rem);background:rgba(0,0,0,.6);backdrop-filter:blur(6px);gap:0.5rem;flex-wrap:wrap}
 header h1{font-size:clamp(1.2rem,4vw,1.8rem);margin:0}
 button{background:linear-gradient(135deg,#4facfe,#00f2fe);border:none;border-radius:10px;padding:clamp(0.5rem,2vw,0.6rem) clamp(0.75rem,3vw,1rem);font-weight:600;cursor:pointer;font-size:clamp(0.8rem,2vw,1rem);white-space:nowrap}
-button:disabled{opacity:.4}
+button:disabled{opacity:.4;cursor:not-allowed}
 select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px solid #333;font-size:clamp(0.8rem,2vw,1rem)}
 .controls{display:flex;gap:clamp(0.5rem,2vw,1rem);flex-wrap:wrap;padding:clamp(0.5rem,2vw,1rem);align-items:center;font-size:clamp(0.85rem,2vw,1rem)}
 .stats{padding:clamp(0.5rem,2vw,1rem);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(140px,100%),1fr));gap:clamp(0.5rem,2vw,1rem)}
@@ -32,46 +32,78 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
   50%{transform:perspective(1000px) rotateY(90deg) scale(0.9)}
   100%{transform:perspective(1000px) rotateY(0deg) scale(1);opacity:1}
 }
+@keyframes ripOpen{
+  0%{transform:scale(1) rotateZ(0deg)}
+  25%{transform:scale(1.05) rotateZ(-5deg)}
+  50%{transform:scale(1.1) rotateZ(5deg)}
+  75%{transform:scale(1.15) rotateZ(-3deg)}
+  100%{transform:scale(3) rotateZ(0deg);opacity:0}
+}
 .rarity-common{border:2px solid #999}
 .rarity-uncommon{border:2px solid #1eff00}
 .rarity-rare{border:2px solid #0070dd}
 .rarity-mythic{border:2px solid #ff8000}
+#homeScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:2rem}
+.packImage{position:relative;width:clamp(200px,50vw,400px);height:clamp(280px,70vw,560px);margin:2rem auto;cursor:pointer;transition:transform .2s}
+.packImage:hover{transform:scale(1.05)}
+.packImage img{width:100%;height:100%;object-fit:contain;border-radius:16px;filter:drop-shadow(0 10px 30px rgba(79,172,254,0.4))}
+.packImage.ripping{animation:ripOpen 0.8s ease-out forwards}
+.setDropdown{position:fixed;top:clamp(70px,15vw,90px);right:clamp(0.5rem,2vw,1rem);z-index:100;background:rgba(0,0,0,.8);padding:0.5rem;border-radius:10px;backdrop-filter:blur(10px)}
+.navButtons{display:flex;gap:1rem;margin-top:1rem;flex-wrap:wrap;justify-content:center}
 #packModal,#cardViewModal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:1000;padding:clamp(0.5rem,2vw,1rem)}
 .packCards{display:flex;gap:clamp(0.5rem,2vw,1rem);flex-wrap:wrap;justify-content:center;max-width:100%;align-items:center}
 .packCards .card{width:clamp(100px,25vw,180px);max-width:180px}
 .card-reveal{animation:cardReveal 0.6s ease-out forwards;opacity:0}
+#collectionView{display:none}
 @media (max-width:768px){
   .packCards .card{width:clamp(120px,35vw,160px)}
+  .packImage{width:clamp(180px,60vw,300px);height:clamp(252px,84vw,420px)}
 }
 @media (max-width:480px){
   header{flex-direction:column;text-align:center}
   .packCards{gap:0.75rem}
   .packCards .card{width:clamp(100px,40vw,140px)}
+  .navButtons{gap:0.5rem}
 }
 </style>
 </head>
 <body>
 <header>
   <h1>MTG Pocket</h1>
-  <div>Points: <b id="points">0</b> <button id="openPack">Open Pack (6)</button></div>
+  <div>Points: <b id="points">0</b></div>
 </header>
 
-<div class="controls">
-  <label><input type="checkbox" id="freeMode"> Free Packs</label>
-  <label>Set: <select id="setSelect"></select></label>
-  <div id="countdown">Next point in: --:--</div>
+<div class="setDropdown">
+  <label style="font-size:0.85rem">Set: <select id="setSelect"></select></label>
 </div>
 
-<div class="stats" id="stats"></div>
-<div id="collection" class="cards"></div>
+<div id="homeScreen">
+  <div class="packImage" id="packImage">
+    <img src="" alt="Pack" id="packImg">
+  </div>
+  <button id="openPackHome" style="font-size:1.2rem;padding:1rem 2rem">Open Pack (6)</button>
+  <div style="margin-top:1rem;font-size:0.9rem" id="countdown">Next point in: --:--</div>
+  <div style="margin-top:1rem"><label><input type="checkbox" id="freeMode"> Free Packs</label></div>
+  <div class="navButtons">
+    <button id="viewCollection">View Collection</button>
+  </div>
+</div>
+
+<div id="collectionView">
+  <div class="controls">
+    <button id="backHome">← Back to Home</button>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div id="collection" class="cards"></div>
+</div>
 
 <div id="packModal"></div>
 <div id="cardViewModal"></div>
 
 <script>
 const PACK_COST=6,INTERVAL=3600000,FOIL_CHANCE=0.03;
-let data=JSON.parse(localStorage.getItem('mtgPocket'))||{points:0,last:Date.now(),cards:{}};
-let allCards=[],currentSet=null,setSize=0,activeRarity='all';
+let data=JSON.parse(localStorage.getItem('mtgPocket'))||{points:0,last:Date.now(),cards:{},lastPack:null};
+let allCards=[],currentSet=null,setSize=0,activeRarity='all',setData={};
 
 function save(){localStorage.setItem('mtgPocket',JSON.stringify(data))}
 
@@ -95,12 +127,19 @@ function enableTilt(el){
 async function loadSets(){
  const r=await fetch('https://api.scryfall.com/sets');
  const j=await r.json();
- let sets=j.data.filter(s=>s.released_at&&s.card_count>100&&!s.name.toLowerCase().includes('jumpstart')&&!s.name.toLowerCase().includes('promo')&&!/Commander\s*$/i.test(s.name));
+ let sets=j.data.filter(s=>s.released_at&&s.card_count>100&&s.icon_svg_uri&&!s.name.toLowerCase().includes('jumpstart')&&!s.name.toLowerCase().includes('promo')&&!/Commander\s*$/i.test(s.name));
  sets.sort((a,b)=>new Date(b.released_at)-new Date(a.released_at));
  const sel=document.getElementById('setSelect');
  sel.innerHTML='';
- sets.forEach(s=>{const o=document.createElement('option');o.value=s.code;o.textContent=s.name;sel.appendChild(o)});
- currentSet=sel.value;
+ sets.forEach(s=>{
+  const o=document.createElement('option');
+  o.value=s.code;
+  o.textContent=s.name;
+  sel.appendChild(o);
+  setData[s.code]={name:s.name,icon:s.icon_svg_uri};
+ });
+ currentSet=data.lastPack||sel.value;
+ sel.value=currentSet;
  loadSet();
 }
 
@@ -109,7 +148,17 @@ async function loadSet(){
  const j=await res.json();
  allCards=j.data.filter(c=>c.image_uris&&['common','uncommon','rare','mythic'].includes(c.rarity));
  setSize=allCards.length;
+ updatePackImage();
  render();updateStats();
+}
+
+function updatePackImage(){
+ const img=document.getElementById('packImg');
+ // Use a card from the set as pack image
+ if(allCards.length>0){
+  const randomCard=allCards[Math.floor(Math.random()*allCards.length)];
+  img.src=randomCard.image_uris.normal;
+ }
 }
 
 function roll(){let r=Math.random()*100;if(r<1)return'mythic';if(r<10)return'rare';if(r<30)return'uncommon';return'common'}
@@ -128,8 +177,17 @@ function tick(){
 async function openPack(){
  const free=document.getElementById('freeMode').checked;
  if(!free&&data.points<PACK_COST) return;
+ 
+ // Rip animation
+ const packImg=document.getElementById('packImage');
+ packImg.classList.add('ripping');
+ 
+ await new Promise(resolve=>setTimeout(resolve,800));
+ packImg.classList.remove('ripping');
+ 
  if(!free) data.points-=PACK_COST;
  data.cards[currentSet]=data.cards[currentSet]||{};
+ data.lastPack=currentSet;
  let pack=[];
  for(let i=0;i<5;i++){
   const rarity=roll();
@@ -142,7 +200,10 @@ async function openPack(){
   data.cards[currentSet][id].count++;
   pack.push({...data.cards[currentSet][id],isNew});
  }
- save();showPack(pack);update();
+ save();
+ updatePackImage();
+ showPack(pack);
+ update();
 }
 
 function showPack(pack){
@@ -151,14 +212,13 @@ function showPack(pack){
  m.innerHTML='<div class="packCards"></div>';
  const c=m.firstChild;
  
- // Reveal cards one by one
  pack.forEach((card, index)=>{
   setTimeout(()=>{
    const d=cardEl(card);
    if(card.isNew) d.classList.add('new-card');
    d.classList.add('card-reveal');
    c.appendChild(d);
-  }, index * 400); // 400ms delay between each card
+  }, index * 400);
  });
  
  m.onclick=()=>{m.style.display='none';m.innerHTML=''};
@@ -217,12 +277,25 @@ function updateStats(){
 
 function update(){
  document.getElementById('points').textContent=data.points;
- document.getElementById('openPack').disabled=!document.getElementById('freeMode').checked&&data.points<PACK_COST;
+ const btn=document.getElementById('openPackHome');
+ btn.disabled=!document.getElementById('freeMode').checked&&data.points<PACK_COST;
  render();updateStats();
 }
 
-openPackBtn=document.getElementById('openPack');
-openPackBtn.onclick=openPack;
+function showHome(){
+ document.getElementById('homeScreen').style.display='flex';
+ document.getElementById('collectionView').style.display='none';
+}
+
+function showCollection(){
+ document.getElementById('homeScreen').style.display='none';
+ document.getElementById('collectionView').style.display='block';
+}
+
+document.getElementById('openPackHome').onclick=openPack;
+document.getElementById('packImage').onclick=openPack;
+document.getElementById('viewCollection').onclick=showCollection;
+document.getElementById('backHome').onclick=showHome;
 document.getElementById('setSelect').onchange=e=>{currentSet=e.target.value;loadSet()};
 document.getElementById('freeMode').onchange=update;
 
