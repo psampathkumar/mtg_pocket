@@ -5,25 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>MTG Pocket – Holo Tilt</title>
 <style>
-body{margin:0;font-family:Inter,system-ui,Arial;background:radial-gradient(circle at top,#1b1b2f,#05050a);color:#fff}
-header{display:flex;justify-content:space-between;align-items:center;padding:1rem 1.5rem;background:rgba(0,0,0,.6);backdrop-filter:blur(6px)}
-button{background:linear-gradient(135deg,#4facfe,#00f2fe);border:none;border-radius:10px;padding:.6rem 1rem;font-weight:600;cursor:pointer}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,Arial;background:radial-gradient(circle at top,#1b1b2f,#05050a);color:#fff;min-height:100vh;overflow-x:hidden}
+header{display:flex;justify-content:space-between;align-items:center;padding:clamp(0.5rem,3vw,1rem) clamp(0.75rem,4vw,1.5rem);background:rgba(0,0,0,.6);backdrop-filter:blur(6px);gap:0.5rem;flex-wrap:wrap}
+header h1{font-size:clamp(1.2rem,4vw,1.8rem);margin:0}
+button{background:linear-gradient(135deg,#4facfe,#00f2fe);border:none;border-radius:10px;padding:clamp(0.5rem,2vw,0.6rem) clamp(0.75rem,3vw,1rem);font-weight:600;cursor:pointer;font-size:clamp(0.8rem,2vw,1rem);white-space:nowrap}
 button:disabled{opacity:.4}
-select{background:#111;color:#fff;border-radius:8px;padding:.4rem;border:1px solid #333}
-.controls{display:flex;gap:1rem;flex-wrap:wrap;padding:1rem;align-items:center}
-.stats{padding:1rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem}
-.statBox{background:#111;padding:1rem;border-radius:12px;cursor:pointer;text-align:center}
+select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px solid #333;font-size:clamp(0.8rem,2vw,1rem)}
+.controls{display:flex;gap:clamp(0.5rem,2vw,1rem);flex-wrap:wrap;padding:clamp(0.5rem,2vw,1rem);align-items:center;font-size:clamp(0.85rem,2vw,1rem)}
+.stats{padding:clamp(0.5rem,2vw,1rem);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(140px,100%),1fr));gap:clamp(0.5rem,2vw,1rem)}
+.statBox{background:#111;padding:clamp(0.75rem,2vw,1rem);border-radius:12px;cursor:pointer;text-align:center;font-size:clamp(0.85rem,2vw,1rem)}
 .statBox.active{outline:2px solid #4facfe}
 .progress{height:8px;background:#222;border-radius:6px;overflow:hidden;margin-top:6px}
 .progress div{height:100%;background:linear-gradient(90deg,#4facfe,#00f2fe)}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:1rem;padding:1rem}
-.card{position:relative;background:#111;border-radius:16px;overflow:hidden;cursor:pointer;transform-style:preserve-3d;transition:transform .15s,filter .2s,box-shadow .2s}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(120px,45vw),1fr));gap:clamp(0.5rem,2vw,1rem);padding:clamp(0.5rem,2vw,1rem)}
+.card{position:relative;background:#111;border-radius:clamp(12px,3vw,16px);overflow:hidden;cursor:pointer;transform-style:preserve-3d;transition:transform .15s,filter .2s,box-shadow .2s}
 .card img{width:100%;display:block}
 .card:hover{box-shadow:0 20px 40px rgba(0,0,0,.6)}
-.count{position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.7);padding:2px 6px;border-radius:8px;font-size:.75rem}
+.count{position:absolute;bottom:clamp(4px,1vw,6px);right:clamp(4px,1vw,6px);background:rgba(0,0,0,.7);padding:2px 6px;border-radius:8px;font-size:clamp(0.7rem,2vw,0.75rem)}
 .foil{position:absolute;inset:0;background:linear-gradient(120deg,transparent 20%,rgba(255,255,255,.35),transparent 80%);mix-blend-mode:screen;animation:foil 3s linear infinite}
-.new-card{outline:3px solid #ffd700}
-.new-card::after{content:'NEW';position:absolute;top:4px;left:4px;background:#ffd700;color:#000;font-weight:700;padding:0 4px;border-radius:4px;font-size:.65rem}
+.new-card{outline:clamp(2px,0.5vw,3px) solid #ffd700}
+.new-card::after{content:'NEW';position:absolute;top:4px;left:4px;background:#ffd700;color:#000;font-weight:700;padding:0 4px;border-radius:4px;font-size:clamp(0.6rem,1.5vw,0.65rem)}
 @keyframes foil{from{background-position:0%}to{background-position:200%}}
 @keyframes cardReveal{
   0%{transform:perspective(1000px) rotateY(180deg) scale(0.8);opacity:0}
@@ -34,9 +36,18 @@ select{background:#111;color:#fff;border-radius:8px;padding:.4rem;border:1px sol
 .rarity-uncommon{border:2px solid #1eff00}
 .rarity-rare{border:2px solid #0070dd}
 .rarity-mythic{border:2px solid #ff8000}
-#packModal,#cardViewModal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:1000}
-.packCards{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;max-width:90%;align-items:center}
+#packModal,#cardViewModal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:1000;padding:clamp(0.5rem,2vw,1rem)}
+.packCards{display:flex;gap:clamp(0.5rem,2vw,1rem);flex-wrap:wrap;justify-content:center;max-width:100%;align-items:center}
+.packCards .card{width:clamp(100px,25vw,180px);max-width:180px}
 .card-reveal{animation:cardReveal 0.6s ease-out forwards;opacity:0}
+@media (max-width:768px){
+  .packCards .card{width:clamp(120px,35vw,160px)}
+}
+@media (max-width:480px){
+  header{flex-direction:column;text-align:center}
+  .packCards{gap:0.75rem}
+  .packCards .card{width:clamp(100px,40vw,140px)}
+}
 </style>
 </head>
 <body>
