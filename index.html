@@ -23,8 +23,15 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 .card img{width:100%;display:block}
 .card:hover{box-shadow:0 20px 40px rgba(0,0,0,.6)}
 .count{position:absolute;bottom:clamp(4px,1vw,6px);right:clamp(4px,1vw,6px);background:rgba(0,0,0,.7);padding:2px 6px;border-radius:8px;font-size:clamp(0.7rem,2vw,0.75rem)}
-.fullart-badge{position:absolute;top:4px;right:4px;background:linear-gradient(135deg,#ff6b6b,#ee5a6f);color:#fff;font-weight:700;padding:2px 6px;border-radius:4px;font-size:clamp(0.6rem,1.5vw,0.65rem)}
 .new-card{outline:clamp(2px,0.5vw,3px) solid #ffd700}
+.bonus-card{animation:bonusReveal 1.2s ease-out forwards;opacity:0}
+@keyframes bonusReveal{
+  0%{transform:perspective(1000px) rotateY(180deg) scale(0.5) translateY(-100px);opacity:0;filter:brightness(3)}
+  30%{transform:perspective(1000px) rotateY(90deg) scale(0.7) translateY(-50px)}
+  60%{transform:perspective(1000px) rotateY(0deg) scale(1.3) translateY(0);filter:brightness(2)}
+  80%{transform:scale(1.1);filter:brightness(1.5)}
+  100%{transform:scale(1);opacity:1;filter:brightness(1)}
+}
 .new-card::after{content:'NEW';position:absolute;top:4px;left:4px;background:#ffd700;color:#000;font-weight:700;padding:0 4px;border-radius:4px;font-size:clamp(0.6rem,1.5vw,0.65rem)}
 @keyframes foil{from{background-position:0%}to{background-position:200%}}
 @keyframes cardReveal{
@@ -40,10 +47,15 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
   100%{transform:scale(3) rotateZ(0deg);opacity:0}
 }
 @keyframes godpack{
-  0%,100%{box-shadow:0 0 20px rgba(255,215,0,0.5)}
-  50%{box-shadow:0 0 40px rgba(255,215,0,0.9)}
+  0%,100%{box-shadow:0 0 20px rgba(255,215,0,0.5),0 0 40px rgba(255,215,0,0.3)}
+  50%{box-shadow:0 0 40px rgba(255,215,0,0.9),0 0 80px rgba(255,215,0,0.5)}
 }
 .godpack{animation:godpack 1s ease-in-out infinite;border:3px solid gold !important}
+.bonus-glow{position:absolute;inset:-10px;background:radial-gradient(circle,rgba(255,107,107,0.4),transparent 70%);border-radius:inherit;z-index:-1;animation:pulseGlow 2s ease-in-out infinite}
+@keyframes pulseGlow{
+  0%,100%{opacity:0.5;transform:scale(1)}
+  50%{opacity:1;transform:scale(1.1)}
+}
 .rarity-common{border:2px solid #999}
 .rarity-uncommon{border:2px solid #1eff00}
 .rarity-rare{border:2px solid #0070dd}
@@ -277,15 +289,44 @@ function showPack(pack,isGodPack){
  }
  const c=m.querySelector('.packCards');
  
- pack.forEach((card, index)=>{
+ const regularCards=pack.filter(card=>!card.isBonus);
+ const bonusCards=pack.filter(card=>card.isBonus);
+ 
+ // Show regular cards first
+ regularCards.forEach((card, index)=>{
   setTimeout(()=>{
    const d=cardEl(card);
    if(card.isNew) d.classList.add('new-card');
-   if(card.isGodPack||card.isBonus) d.classList.add('godpack');
+   if(card.isGodPack) d.classList.add('godpack');
    d.classList.add('card-reveal');
    c.appendChild(d);
   }, index * 400);
  });
+ 
+ // Show bonus card with special effect after regular cards
+ if(bonusCards.length>0){
+  setTimeout(()=>{
+   // Add dramatic text before bonus card
+   const bonusText=document.createElement('div');
+   bonusText.style.cssText='width:100%;text-align:center;font-size:1.5rem;color:#ff6b6b;font-weight:bold;text-shadow:0 0 10px rgba(255,107,107,0.8);margin:1rem 0';
+   bonusText.textContent='✨ BONUS CARD! ✨';
+   c.appendChild(bonusText);
+   
+   setTimeout(()=>{
+    bonusCards.forEach(card=>{
+     const d=cardEl(card);
+     if(card.isNew) d.classList.add('new-card');
+     d.classList.add('bonus-card');
+     d.classList.add('godpack');
+     const glowDiv=document.createElement('div');
+     glowDiv.className='bonus-glow';
+     d.style.position='relative';
+     d.appendChild(glowDiv);
+     c.appendChild(d);
+    });
+   }, 500);
+  }, regularCards.length * 400 + 200);
+ }
  
  m.onclick=()=>{m.style.display='none';m.innerHTML=''};
 }
