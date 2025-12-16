@@ -23,7 +23,7 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 .card img{width:100%;display:block}
 .card:hover{box-shadow:0 20px 40px rgba(0,0,0,.6)}
 .count{position:absolute;bottom:clamp(4px,1vw,6px);right:clamp(4px,1vw,6px);background:rgba(0,0,0,.7);padding:2px 6px;border-radius:8px;font-size:clamp(0.7rem,2vw,0.75rem)}
-.foil{position:absolute;inset:0;background:linear-gradient(120deg,transparent 20%,rgba(255,255,255,.35),transparent 80%);mix-blend-mode:screen;animation:foil 3s linear infinite}
+.fullart-badge{position:absolute;top:4px;right:4px;background:linear-gradient(135deg,#ff6b6b,#ee5a6f);color:#fff;font-weight:700;padding:2px 6px;border-radius:4px;font-size:clamp(0.6rem,1.5vw,0.65rem)}
 .new-card{outline:clamp(2px,0.5vw,3px) solid #ffd700}
 .new-card::after{content:'NEW';position:absolute;top:4px;left:4px;background:#ffd700;color:#000;font-weight:700;padding:0 4px;border-radius:4px;font-size:clamp(0.6rem,1.5vw,0.65rem)}
 @keyframes foil{from{background-position:0%}to{background-position:200%}}
@@ -39,6 +39,11 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
   75%{transform:scale(1.15) rotateZ(-3deg)}
   100%{transform:scale(3) rotateZ(0deg);opacity:0}
 }
+@keyframes godpack{
+  0%,100%{box-shadow:0 0 20px rgba(255,215,0,0.5)}
+  50%{box-shadow:0 0 40px rgba(255,215,0,0.9)}
+}
+.godpack{animation:godpack 1s ease-in-out infinite;border:3px solid gold !important}
 .rarity-common{border:2px solid #999}
 .rarity-uncommon{border:2px solid #1eff00}
 .rarity-rare{border:2px solid #0070dd}
@@ -53,7 +58,7 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 .packContent{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:1.5rem}
 .setDropdown{position:fixed;top:clamp(70px,15vw,90px);right:clamp(0.5rem,2vw,1rem);z-index:100;background:rgba(0,0,0,.8);padding:0.5rem;border-radius:10px;backdrop-filter:blur(10px)}
 .navButtons{display:flex;gap:1rem;margin-top:1rem;flex-wrap:wrap;justify-content:center}
-#packModal,#cardViewModal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:1000;padding:clamp(0.5rem,2vw,1rem)}
+#packModal,#cardViewModal{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:1000;padding:clamp(0.5rem,2vw,1rem);flex-direction:column}
 .packCards{display:flex;gap:clamp(0.5rem,2vw,1rem);flex-wrap:wrap;justify-content:center;max-width:100%;align-items:center}
 .packCards .card{width:clamp(100px,25vw,180px);max-width:180px}
 .card-reveal{animation:cardReveal 0.6s ease-out forwards;opacity:0}
@@ -110,9 +115,9 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 <div id="cardViewModal"></div>
 
 <script>
-const PACK_COST=6,INTERVAL=3600000,FOIL_CHANCE=0.03;
+const PACK_COST=6,INTERVAL=3600000,FULLART_BONUS_CHANCE=0.05,GODPACK_CHANCE=0.005;
 let data=JSON.parse(localStorage.getItem('mtgPocket'))||{points:0,last:Date.now(),cards:{},lastPack:null};
-let allCards=[],currentSet=null,setSize=0,activeRarity='all',setData={};
+let allCards=[],fullArtCards=[],currentSet=null,setSize=0,activeRarity='all',setData={};
 
 function save(){localStorage.setItem('mtgPocket',JSON.stringify(data))}
 
@@ -156,6 +161,16 @@ async function loadSet(){
  const res=await fetch(`https://api.scryfall.com/cards/search?q=set:${currentSet}+game:paper&unique=cards`);
  const j=await res.json();
  allCards=j.data.filter(c=>c.image_uris&&['common','uncommon','rare','mythic'].includes(c.rarity));
+ 
+ // Load full art cards
+ try{
+  const faRes=await fetch(`https://api.scryfall.com/cards/search?q=set:${currentSet}+game:paper+(is:extended+OR+is:fullart)&unique=cards`);
+  const faJson=await faRes.json();
+  fullArtCards=faJson.data.filter(c=>c.image_uris);
+ }catch(e){
+  fullArtCards=[];
+ }
+ 
  setSize=allCards.length;
  updatePackImage();
  render();updateStats();
@@ -206,34 +221,67 @@ async function openPack(){
  if(!free) data.points-=PACK_COST;
  data.cards[currentSet]=data.cards[currentSet]||{};
  data.lastPack=currentSet;
+ 
+ // Check for god pack (0.5% chance)
+ const isGodPack=Math.random()<GODPACK_CHANCE&&fullArtCards.length>0;
+ 
  let pack=[];
- for(let i=0;i<5;i++){
-  const rarity=roll();
-  const pool=allCards.filter(c=>c.rarity===rarity);
-  const card=pool[Math.floor(Math.random()*pool.length)];
-  const id=card.id+(Math.random()<FOIL_CHANCE?'_foil':'');
-  const foil=id.endsWith('_foil');
-  const isNew=!data.cards[currentSet][id];
-  data.cards[currentSet][id]=data.cards[currentSet][id]||{name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,foil};
-  data.cards[currentSet][id].count++;
-  pack.push({...data.cards[currentSet][id],isNew});
+ 
+ if(isGodPack){
+  // God pack - all full art cards
+  for(let i=0;i<5;i++){
+   const card=fullArtCards[Math.floor(Math.random()*fullArtCards.length)];
+   const id=card.id+'_fullart';
+   const isNew=!data.cards[currentSet][id];
+   data.cards[currentSet][id]=data.cards[currentSet][id]||{name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:true};
+   data.cards[currentSet][id].count++;
+   pack.push({...data.cards[currentSet][id],isNew,isGodPack:true});
+  }
+ }else{
+  // Normal pack
+  for(let i=0;i<5;i++){
+   const rarity=roll();
+   const pool=allCards.filter(c=>c.rarity===rarity);
+   const card=pool[Math.floor(Math.random()*pool.length)];
+   const id=card.id;
+   const isNew=!data.cards[currentSet][id];
+   data.cards[currentSet][id]=data.cards[currentSet][id]||{name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:false};
+   data.cards[currentSet][id].count++;
+   pack.push({...data.cards[currentSet][id],isNew});
+  }
+  
+  // 5% chance for bonus full art card
+  if(Math.random()<FULLART_BONUS_CHANCE&&fullArtCards.length>0){
+   const card=fullArtCards[Math.floor(Math.random()*fullArtCards.length)];
+   const id=card.id+'_fullart';
+   const isNew=!data.cards[currentSet][id];
+   data.cards[currentSet][id]=data.cards[currentSet][id]||{name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:true};
+   data.cards[currentSet][id].count++;
+   pack.push({...data.cards[currentSet][id],isNew,isBonus:true});
+  }
  }
+ 
  save();
  updatePackImage();
- showPack(pack);
+ showPack(pack,isGodPack);
  update();
 }
 
-function showPack(pack){
+function showPack(pack,isGodPack){
  const m=document.getElementById('packModal');
  m.style.display='flex';
- m.innerHTML='<div class="packCards"></div>';
- const c=m.firstChild;
+ if(isGodPack){
+  m.innerHTML='<div style="text-align:center;margin-bottom:1rem"><h2 style="color:#ffd700;font-size:2rem;text-shadow:0 0 20px rgba(255,215,0,0.8)">🌟 GOD PACK! 🌟</h2></div><div class="packCards"></div>';
+ }else{
+  m.innerHTML='<div class="packCards"></div>';
+ }
+ const c=m.querySelector('.packCards');
  
  pack.forEach((card, index)=>{
   setTimeout(()=>{
    const d=cardEl(card);
    if(card.isNew) d.classList.add('new-card');
+   if(card.isGodPack||card.isBonus) d.classList.add('godpack');
    d.classList.add('card-reveal');
    c.appendChild(d);
   }, index * 400);
@@ -246,7 +294,7 @@ function cardEl(card){
  const d=document.createElement('div');
  d.className=`card rarity-${card.rarity}`;
  d.innerHTML=`<img src="${card.img}"><div class="count">x${card.count}</div>`;
- if(card.foil) d.innerHTML+='<div class="foil"></div>';
+ if(card.fullart) d.innerHTML+=`<div class="fullart-badge">FULL ART</div>`;
  enableTilt(d);
  d.onclick=e=>{e.stopPropagation();showCard(card)};
  return d;
@@ -267,7 +315,11 @@ function render(){
  col.innerHTML='';
  if(!data.cards[currentSet]) return;
  Object.values(data.cards[currentSet]).forEach(c=>{
-  if(activeRarity!=='all'&&c.rarity!==activeRarity) return;
+  if(activeRarity==='fullart'){
+   if(!c.fullart) return;
+  }else if(activeRarity!=='all'&&c.rarity!==activeRarity){
+   return;
+  }
   col.appendChild(cardEl(c));
  });
 }
@@ -276,10 +328,16 @@ function updateStats(){
  const statsEl=document.getElementById('stats');
  if(!currentSet) return;
  const owned=data.cards[currentSet]||{};
- const counts={common:0,uncommon:0,rare:0,mythic:0};
- Object.values(owned).forEach(c=>counts[c.rarity]+=c.count);
+ const counts={common:0,uncommon:0,rare:0,mythic:0,fullart:0};
+ Object.values(owned).forEach(c=>{
+  counts[c.rarity]+=c.count;
+  if(c.fullart) counts.fullart+=c.count;
+ });
  const totals={common:0,uncommon:0,rare:0,mythic:0};
  allCards.forEach(c=>totals[c.rarity]++);
+ const fullartTotal=fullArtCards.length;
+ const fullartOwned=Object.values(owned).filter(c=>c.fullart).length;
+ 
  statsEl.innerHTML=`
   <div class='statBox' data-rarity='all'><b>All Cards</b><div class='progress'><div style='width:${Math.min(100,Object.keys(owned).length/setSize*100)}%'></div></div></div>
   ${['common','uncommon','rare','mythic'].map(r=>`
@@ -287,9 +345,18 @@ function updateStats(){
      <b>${r.toUpperCase()}</b> ${counts[r]}/${totals[r]}
      <div class='progress'><div style='width:${totals[r]?counts[r]/totals[r]*100:0}%'></div></div>
    </div>`).join('')}
+  <div class='statBox' data-rarity='fullart' style='background:linear-gradient(135deg,#2a2a3e,#1a1a2e);border:2px solid #ff6b6b'>
+    <b>FULL ART</b> ${fullartOwned}/${fullartTotal}
+    <div class='progress'><div style='width:${fullartTotal?fullartOwned/fullartTotal*100:0}%;background:linear-gradient(90deg,#ff6b6b,#ee5a6f)'></div></div>
+  </div>
  `;
  statsEl.querySelectorAll('.statBox').forEach(box=>{
-  box.onclick=()=>{activeRarity=box.dataset.rarity;render();};
+  box.onclick=()=>{
+   activeRarity=box.dataset.rarity;
+   statsEl.querySelectorAll('.statBox').forEach(b=>b.classList.remove('active'));
+   box.classList.add('active');
+   render();
+  };
  });
 }
 
