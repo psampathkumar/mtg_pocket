@@ -23,14 +23,12 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 .card img{width:100%;display:block}
 .card:hover{box-shadow:0 20px 40px rgba(0,0,0,.6)}
 .count{position:absolute;bottom:clamp(4px,1vw,6px);right:clamp(4px,1vw,6px);background:rgba(0,0,0,.7);padding:2px 6px;border-radius:8px;font-size:clamp(0.7rem,2vw,0.75rem)}
-.new-card::after{content:'NEW';position:absolute;top:4px;left:4px;background:#ffd700;color:#000;font-weight:700;padding:0 4px;border-radius:4px;font-size:clamp(0.6rem,1.5vw,0.65rem)}
-.bonus-card{animation:bonusReveal 1.2s ease-out forwards;opacity:0}
+.new-card::after{content:'NEW';position:absolute;top:6px;left:6px;background:#ffd700;color:#000;font-weight:700;padding:2px 6px;border-radius:4px;font-size:clamp(0.65rem,2vw,0.75rem);z-index:10}
+.bonus-card{animation:bonusReveal 0.8s ease-out forwards;opacity:0}
 @keyframes bonusReveal{
-  0%{transform:perspective(1000px) rotateY(180deg) scale(0.5) translateY(-100px);opacity:0;filter:brightness(3) drop-shadow(0 0 30px rgba(255,107,107,0.8))}
-  30%{transform:perspective(1000px) rotateY(90deg) scale(0.7) translateY(-50px);filter:brightness(2.5) drop-shadow(0 0 40px rgba(255,107,107,0.9))}
-  60%{transform:perspective(1000px) rotateY(0deg) scale(1.3) translateY(0);filter:brightness(2) drop-shadow(0 0 50px rgba(255,107,107,1))}
-  80%{transform:scale(1.1);filter:brightness(1.5) drop-shadow(0 0 40px rgba(255,107,107,0.8))}
-  100%{transform:scale(1);opacity:1;filter:brightness(1) drop-shadow(0 0 20px rgba(255,107,107,0.5))}
+  0%{transform:perspective(1000px) rotateY(180deg) scale(0.8);opacity:0;filter:brightness(2) drop-shadow(0 0 30px rgba(255,107,107,0.8))}
+  50%{transform:perspective(1000px) rotateY(90deg) scale(0.9);filter:brightness(2) drop-shadow(0 0 40px rgba(255,107,107,0.9))}
+  100%{transform:perspective(1000px) rotateY(0deg) scale(1);opacity:1;filter:brightness(1) drop-shadow(0 0 20px rgba(255,107,107,0.5))}
 }
 .new-card::after{content:'NEW';position:absolute;top:4px;left:4px;background:#ffd700;color:#000;font-weight:700;padding:0 4px;border-radius:4px;font-size:clamp(0.6rem,1.5vw,0.65rem)}
 @keyframes foil{from{background-position:0%}to{background-position:200%}}
@@ -75,7 +73,7 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 .setDropdown{position:fixed;top:clamp(70px,15vw,90px);right:clamp(0.5rem,2vw,1rem);z-index:100;background:rgba(0,0,0,.8);padding:0.5rem;border-radius:10px;backdrop-filter:blur(10px)}
 .navButtons{display:flex;gap:1rem;margin-top:1rem;flex-wrap:wrap;justify-content:center}
 #packModal,#cardViewModal{position:fixed;inset:0;background:rgba(0,0,0,.95);display:none;align-items:center;justify-content:center;z-index:1000;padding:clamp(0.5rem,2vw,1rem);flex-direction:column}
-.singleCardView{display:flex;align-items:center;justify-content:center;width:100%;height:100%;cursor:pointer}
+.singleCardView{display:flex;align-items:center;justify-content:center;width:100%;height:100%;cursor:pointer;perspective:1000px}
 .singleCardView .card{width:clamp(250px,60vw,400px);max-width:90vw;box-shadow:0 30px 80px rgba(0,0,0,0.8)}
 .allCardsView{display:none}
 .packCards{display:flex;gap:clamp(0.5rem,2vw,1rem);flex-wrap:wrap;justify-content:center;max-width:100%;align-items:center}
@@ -241,7 +239,7 @@ async function openPack(){
  data.cards[currentSet]=data.cards[currentSet]||{};
  data.lastPack=currentSet;
  
- // Check for god pack (0.5% chance)
+ // Check for god pack (1.5% chance)
  const isGodPack=Math.random()<GODPACK_CHANCE&&fullArtCards.length>0;
  
  let pack=[];
@@ -269,7 +267,7 @@ async function openPack(){
    pack.push({...data.cards[currentSet][id],isNew});
   }
   
-  // 5% chance for bonus full art card
+  // 10% chance for bonus full art card
   if(Math.random()<FULLART_BONUS_CHANCE&&fullArtCards.length>0){
    const card=fullArtCards[Math.floor(Math.random()*fullArtCards.length)];
    const id=card.id+'_fullart';
@@ -314,10 +312,10 @@ function showPack(pack,isGodPack){
  
  function showNextCard(){
   if(currentIndex<allCards.length){
-   singleView.innerHTML='';
    const card=allCards[currentIndex];
    const isBonus=card.isBonus;
    
+   singleView.innerHTML='';
    const d=cardEl(card,true);
    if(card.isNew) d.classList.add('new-card');
    if(card.isGodPack) d.classList.add('godpack');
