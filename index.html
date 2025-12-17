@@ -20,6 +20,7 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 .progress div{height:100%;background:linear-gradient(90deg,#4facfe,#00f2fe)}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(120px,45vw),1fr));gap:clamp(0.5rem,2vw,1rem);padding:clamp(0.5rem,2vw,1rem)}
 .card{position:relative;background:#111;border-radius:clamp(12px,3vw,16px);overflow:hidden;cursor:pointer}
+.card-placeholder{position:relative;background:#1a1a2a;border:2px dashed #333;border-radius:clamp(12px,3vw,16px);overflow:hidden;display:flex;align-items:center;justify-content:center;aspect-ratio:2.5/3.5;color:#666;font-size:clamp(0.8rem,2vw,1rem);font-weight:600}
 .card img{width:100%;display:block;position:relative;z-index:1}
 .card:hover{box-shadow:0 20px 40px rgba(0,0,0,.6)}
 .count{position:absolute;bottom:clamp(4px,1vw,6px);right:clamp(4px,1vw,6px);background:rgba(0,0,0,.7);padding:2px 6px;border-radius:8px;font-size:clamp(0.7rem,2vw,0.75rem);z-index:2}
@@ -410,15 +411,52 @@ function showCard(card){
 function render(){
  const col=document.getElementById('collection');
  col.innerHTML='';
- if(!data.cards[currentSet]) return;
- Object.values(data.cards[currentSet]).forEach(c=>{
+ if(!allCards.length) return;
+ 
+ // Create a map of owned cards
+ const owned=data.cards[currentSet]||{};
+ const ownedMap={};
+ Object.values(owned).forEach(c=>{
+  ownedMap[c.name]=c;
+ });
+ 
+ // Show all cards from the set
+ allCards.forEach((card,index)=>{
+  // Check filter
   if(activeRarity==='fullart'){
-   if(!c.fullart) return;
-  }else if(activeRarity!=='all'&&c.rarity!==activeRarity){
+   // For fullart filter, only show if owned and is fullart
+   const ownedCard=ownedMap[card.name];
+   if(!ownedCard||!ownedCard.fullart) return;
+  }else if(activeRarity!=='all'&&card.rarity!==activeRarity){
    return;
   }
-  col.appendChild(cardEl(c));
+  
+  const ownedCard=ownedMap[card.name];
+  
+  if(ownedCard){
+   // Show owned card
+   col.appendChild(cardEl(ownedCard));
+  }else{
+   // Show placeholder
+   const placeholder=document.createElement('div');
+   placeholder.className='card-placeholder';
+   placeholder.textContent=`#${index+1}`;
+   col.appendChild(placeholder);
+  }
  });
+ 
+ // Also show full art cards that are owned but not in regular set
+ if(activeRarity==='fullart'||activeRarity==='all'){
+  Object.values(owned).forEach(c=>{
+   if(c.fullart){
+    // Check if this card is already shown (exists in allCards)
+    const inSet=allCards.some(setCard=>setCard.name===c.name);
+    if(!inSet){
+     col.appendChild(cardEl(c));
+    }
+   }
+  });
+ }
 }
 
 function updateStats(){
