@@ -19,24 +19,16 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 .progress{height:8px;background:#222;border-radius:6px;overflow:hidden;margin-top:6px}
 .progress div{height:100%;background:linear-gradient(90deg,#4facfe,#00f2fe)}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(120px,45vw),1fr));gap:clamp(0.5rem,2vw,1rem);padding:clamp(0.5rem,2vw,1rem)}
-.card{position:relative;background:#111;border-radius:clamp(12px,3vw,16px);overflow:hidden;cursor:pointer;transform-style:preserve-3d;transition:transform .15s,filter .2s,box-shadow .2s}
-.card img{width:100%;display:block}
+.card{position:relative;background:#111;border-radius:clamp(12px,3vw,16px);overflow:hidden;cursor:pointer}
+.card img{width:100%;display:block;position:relative;z-index:1}
 .card:hover{box-shadow:0 20px 40px rgba(0,0,0,.6)}
-.count{position:absolute;bottom:clamp(4px,1vw,6px);right:clamp(4px,1vw,6px);background:rgba(0,0,0,.7);padding:2px 6px;border-radius:8px;font-size:clamp(0.7rem,2vw,0.75rem)}
+.count{position:absolute;bottom:clamp(4px,1vw,6px);right:clamp(4px,1vw,6px);background:rgba(0,0,0,.7);padding:2px 6px;border-radius:8px;font-size:clamp(0.7rem,2vw,0.75rem);z-index:2}
 .new-card::after{content:'NEW';position:absolute;top:6px;left:6px;background:#ffd700;color:#000;font-weight:700;padding:2px 6px;border-radius:4px;font-size:clamp(0.65rem,2vw,0.75rem);z-index:10}
-.bonus-card{animation:bonusReveal 0.8s ease-out forwards;opacity:0}
-@keyframes bonusReveal{
-  0%{transform:perspective(1000px) rotateY(180deg) scale(0.8);opacity:0;filter:brightness(2) drop-shadow(0 0 30px rgba(255,107,107,0.8))}
-  50%{transform:perspective(1000px) rotateY(90deg) scale(0.9);filter:brightness(2) drop-shadow(0 0 40px rgba(255,107,107,0.9))}
-  100%{transform:perspective(1000px) rotateY(0deg) scale(1);opacity:1;filter:brightness(1) drop-shadow(0 0 20px rgba(255,107,107,0.5))}
-}
-.new-card::after{content:'NEW';position:absolute;top:4px;left:4px;background:#ffd700;color:#000;font-weight:700;padding:0 4px;border-radius:4px;font-size:clamp(0.6rem,1.5vw,0.65rem)}
-@keyframes foil{from{background-position:0%}to{background-position:200%}}
-@keyframes cardReveal{
-  0%{transform:perspective(1000px) rotateY(180deg) scale(0.8);opacity:0}
-  50%{transform:perspective(1000px) rotateY(90deg) scale(0.9)}
-  100%{transform:perspective(1000px) rotateY(0deg) scale(1);opacity:1}
-}
+.rarity-common{border:2px solid #999}
+.rarity-uncommon{border:2px solid #1eff00}
+.rarity-rare{border:2px solid #0070dd}
+.rarity-mythic{border:2px solid #ff8000}
+
 @keyframes ripOpen{
   0%{transform:scale(1) rotateZ(0deg);filter:brightness(1)}
   20%{transform:scale(1.05) rotateZ(-2deg);filter:brightness(1.2)}
@@ -45,6 +37,10 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
   70%{clip-path:polygon(0 0,60% 0,40% 100%,0 100%);transform:scale(1.3) rotateZ(-5deg)}
   80%{clip-path:polygon(0 0,40% 0,20% 100%,0 100%);transform:scale(1.5) rotateZ(-10deg);opacity:0.7}
   100%{clip-path:polygon(0 0,0 0,0 100%,0 100%);transform:scale(2) rotateZ(-15deg);opacity:0}
+}
+@keyframes cardExit{
+  0%{transform:translateX(0) rotateY(0deg);opacity:1}
+  100%{transform:translateX(100vw) rotateY(270deg);opacity:0}
 }
 @keyframes godpack{
   0%,100%{box-shadow:0 0 20px rgba(255,215,0,0.5),0 0 40px rgba(255,215,0,0.3)}
@@ -56,12 +52,7 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
   0%,100%{opacity:0.5;transform:scale(1)}
   50%{opacity:1;transform:scale(1.1)}
 }
-.card img{width:100%;display:block;position:relative;z-index:1}
-.count{position:absolute;bottom:clamp(4px,1vw,6px);right:clamp(4px,1vw,6px);background:rgba(0,0,0,.7);padding:2px 6px;border-radius:8px;font-size:clamp(0.7rem,2vw,0.75rem);z-index:2}
-.rarity-common{border:2px solid #999}
-.rarity-uncommon{border:2px solid #1eff00}
-.rarity-rare{border:2px solid #0070dd}
-.rarity-mythic{border:2px solid #ff8000}
+
 #homeScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:2rem}
 .packImage{position:relative;width:clamp(250px,40vw,350px);height:clamp(400px,64vw,560px);margin:2rem auto;cursor:pointer;transition:transform .2s;background:linear-gradient(145deg,#2a2a3e,#1a1a2e);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;gap:1.5rem;border:3px solid rgba(79,172,254,0.3)}
 .packImage:hover{transform:scale(1.05)}
@@ -72,14 +63,15 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 .packContent{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:1.5rem}
 .setDropdown{position:fixed;top:clamp(70px,15vw,90px);right:clamp(0.5rem,2vw,1rem);z-index:100;background:rgba(0,0,0,.8);padding:0.5rem;border-radius:10px;backdrop-filter:blur(10px)}
 .navButtons{display:flex;gap:1rem;margin-top:1rem;flex-wrap:wrap;justify-content:center}
+
 #packModal,#cardViewModal{position:fixed;inset:0;background:rgba(0,0,0,.95);display:none;align-items:center;justify-content:center;z-index:1000;padding:clamp(0.5rem,2vw,1rem);flex-direction:column}
 .singleCardView{display:flex;align-items:center;justify-content:center;width:100%;height:100%;cursor:pointer;perspective:1000px}
 .singleCardView .card{width:clamp(250px,60vw,400px);max-width:90vw;box-shadow:0 30px 80px rgba(0,0,0,0.8)}
 .allCardsView{display:none}
 .packCards{display:flex;gap:clamp(0.5rem,2vw,1rem);flex-wrap:wrap;justify-content:center;max-width:100%;align-items:center}
 .packCards .card{width:clamp(100px,25vw,180px);max-width:180px}
-.card-reveal{animation:cardReveal 0.6s ease-out forwards;opacity:0}
 #collectionView{display:none}
+
 @media (max-width:768px){
   .packCards .card{width:clamp(120px,35vw,160px)}
   .packImage{width:clamp(220px,50vw,300px);height:clamp(352px,80vw,480px)}
@@ -179,7 +171,6 @@ async function loadSet(){
  const j=await res.json();
  allCards=j.data.filter(c=>c.image_uris&&['common','uncommon','rare','mythic'].includes(c.rarity));
  
- // Load full art cards
  try{
   const faRes=await fetch(`https://api.scryfall.com/cards/search?q=set:${currentSet}+game:paper+(is:extended+OR+is:fullart)&unique=cards`);
   const faJson=await faRes.json();
@@ -197,12 +188,10 @@ function updatePackImage(){
  const logo=document.getElementById('packLogo');
  const icon=document.getElementById('packIcon');
  
- // Set logo from mtgpics.com
  logo.src=`https://www.mtgpics.com/graph/sets/logos_big/${currentSet}.png`;
  logo.onerror=()=>{logo.style.display='none'};
  logo.onload=()=>{logo.style.display='block'};
  
- // Set icon from Scryfall
  if(setData[currentSet]&&setData[currentSet].icon){
   icon.src=setData[currentSet].icon;
   icon.style.display='block';
@@ -228,7 +217,6 @@ async function openPack(){
  const free=document.getElementById('freeMode').checked;
  if(!free&&data.points<PACK_COST) return;
  
- // Rip animation
  const packImg=document.getElementById('packImage');
  packImg.classList.add('ripping');
  
@@ -239,13 +227,11 @@ async function openPack(){
  data.cards[currentSet]=data.cards[currentSet]||{};
  data.lastPack=currentSet;
  
- // Check for god pack (1.5% chance)
  const isGodPack=Math.random()<GODPACK_CHANCE&&fullArtCards.length>0;
  
  let pack=[];
  
  if(isGodPack){
-  // God pack - all full art cards
   for(let i=0;i<5;i++){
    const card=fullArtCards[Math.floor(Math.random()*fullArtCards.length)];
    const id=card.id+'_fullart';
@@ -255,7 +241,6 @@ async function openPack(){
    pack.push({...data.cards[currentSet][id],isNew,isGodPack:true});
   }
  }else{
-  // Normal pack
   for(let i=0;i<5;i++){
    const rarity=roll();
    const pool=allCards.filter(c=>c.rarity===rarity);
@@ -267,7 +252,6 @@ async function openPack(){
    pack.push({...data.cards[currentSet][id],isNew});
   }
   
-  // 10% chance for bonus full art card
   if(Math.random()<FULLART_BONUS_CHANCE&&fullArtCards.length>0){
    const card=fullArtCards[Math.floor(Math.random()*fullArtCards.length)];
    const id=card.id+'_fullart';
@@ -300,7 +284,7 @@ function showPack(pack,isGodPack){
  
  const regularCards=pack.filter(card=>!card.isBonus);
  const bonusCards=pack.filter(card=>card.isBonus);
- const allCards=[...regularCards,...bonusCards];
+ const allPackCards=[...regularCards,...bonusCards];
  let currentIndex=0;
  let allCardsShown=false;
  
@@ -311,82 +295,106 @@ function showPack(pack,isGodPack){
  }
  
  function showNextCard(){
-  if(currentIndex<allCards.length){
-   const card=allCards[currentIndex];
+  if(currentIndex<allPackCards.length){
+   const card=allPackCards[currentIndex];
    const isBonus=card.isBonus;
    
-   singleView.innerHTML='';
-   const d=cardEl(card,true);
-   if(card.isNew) d.classList.add('new-card');
-   if(card.isGodPack) d.classList.add('godpack');
-   
-   // Special effects for bonus card
-   if(isBonus){
-    d.classList.add('bonus-card');
-    d.classList.add('godpack');
-    addBonusGlow(d);
+   // Exit animation for existing card
+   if(singleView.children.length>0){
+    const existingCard=singleView.children[0];
+    existingCard.style.animation='cardExit 0.5s ease-in forwards';
+    
+    setTimeout(()=>{
+     showCardInternal(card,isBonus);
+    },500);
    }else{
-    d.classList.add('card-reveal');
+    showCardInternal(card,isBonus);
    }
-   
-   singleView.appendChild(d);
-   
-   // Add to all cards container (hidden)
-   const dSmall=cardEl(card,false);
-   if(card.isNew) dSmall.classList.add('new-card');
-   if(card.isGodPack) dSmall.classList.add('godpack');
-   if(isBonus){
-    dSmall.classList.add('godpack');
-    addBonusGlow(dSmall);
-   }
-   allCardsContainer.appendChild(dSmall);
-   
-   currentIndex++;
   }else{
-   // Show all cards together
-   singleView.style.display='none';
-   allView.style.display='block';
-   allCardsShown=true;
-   
-   // Remove single view click handler
-   singleView.onclick=null;
+   // Exit the last card before showing all
+   if(singleView.children.length>0){
+    const existingCard=singleView.children[0];
+    existingCard.style.animation='cardExit 0.5s ease-in forwards';
+    
+    setTimeout(()=>{
+     singleView.style.display='none';
+     allView.style.display='block';
+     allCardsShown=true;
+     singleView.onclick=null;
+    },500);
+   }else{
+    singleView.style.display='none';
+    allView.style.display='block';
+    allCardsShown=true;
+    singleView.onclick=null;
+   }
   }
  }
  
- showNextCard();
+ function showCardInternal(card,isBonus){
+  singleView.innerHTML='';
+  
+  const d=document.createElement('div');
+  d.className=`card rarity-${card.rarity}`;
+  d.innerHTML=`<img src="${card.img}"><div class="count">x${card.count}</div>`;
+  
+  if(card.isNew) d.classList.add('new-card');
+  if(card.isGodPack) d.classList.add('godpack');
+  
+  if(isBonus){
+   d.classList.add('godpack');
+   d.style.filter='brightness(1.3) drop-shadow(0 0 20px rgba(255,107,107,0.8))';
+   const glowDiv=document.createElement('div');
+   glowDiv.className='bonus-glow';
+   d.insertBefore(glowDiv,d.firstChild);
+  }
+  
+  singleView.appendChild(d);
+  
+  // Add to all cards container
+  const dSmall=cardEl(card,false);
+  if(card.isNew) dSmall.classList.add('new-card');
+  if(card.isGodPack) dSmall.classList.add('godpack');
+  if(isBonus){
+   dSmall.classList.add('godpack');
+   addBonusGlow(dSmall);
+  }
+  allCardsContainer.appendChild(dSmall);
+  
+  currentIndex++;
+ }
  
+ showNextCard();
  singleView.onclick=showNextCard;
  
- // Handle clicks on the modal background to close
  m.onclick=(e)=>{
-  if(allCardsShown && e.target===m){
+  if(allCardsShown&&e.target===m){
    closeModal();
   }
  };
  
- // Handle clicks on all cards view
  allView.onclick=(e)=>{
-  if(e.target===allView || e.target.closest('.packCards')===allCardsContainer){
+  if(e.target===allView||e.target.closest('.packCards')===allCardsContainer){
    closeModal();
   }
  };
+}
+
+function addBonusGlow(cardElement){
+ const glowDiv=document.createElement('div');
+ glowDiv.className='bonus-glow';
+ cardElement.insertBefore(glowDiv,cardElement.firstChild);
 }
 
 function cardEl(card,isRevealing){
  const d=document.createElement('div');
  d.className=`card rarity-${card.rarity}`;
  d.innerHTML=`<img src="${card.img}"><div class="count">x${card.count}</div>`;
- enableTilt(d);
  if(!isRevealing){
+  enableTilt(d);
   d.onclick=e=>{e.stopPropagation();showCard(card)};
  }
  return d;
-}
-
-function addBonusGlow(cardElement){
- const glowDiv=document.createElement('div');
- glowDiv.className='bonus-glow';
- cardElement.insertBefore(glowDiv, cardElement.firstChild);
 }
 
 function showCard(card){
