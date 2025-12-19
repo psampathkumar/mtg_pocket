@@ -125,9 +125,9 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 <div id="cardViewModal"></div>
 
 <script>
-const PACK_COST=6,INTERVAL=3600000,FULLART_BONUS_CHANCE=0.10,GODPACK_CHANCE=0.015;
+const PACK_COST=6,INTERVAL=3600000,FULLART_BONUS_CHANCE=0.50,GODPACK_CHANCE=0.015,MASTERPIECE_CHANCE=0.50;
 let data=JSON.parse(localStorage.getItem('mtgPocket'))||{points:0,last:Date.now(),cards:{},lastPack:null};
-let allCards=[],fullArtCards=[],currentSet=null,setSize=0,activeRarity='all',setData={};
+let allCards=[],fullArtCards=[],masterpieceCards=[],currentSet=null,setSize=0,activeRarity='all',setData={};
 
 function migrateData(){
  Object.keys(data.cards).forEach(setCode=>{
@@ -152,11 +152,15 @@ function enableTilt(el){
 async function loadSets(){
  const r=await fetch('https://api.scryfall.com/sets');
  const j=await r.json();
- let sets=j.data.filter(s=>s.released_at&&s.card_count>100&&s.icon_svg_uri&&!s.name.toLowerCase().includes('jumpstart')&&!s.name.toLowerCase().includes('promo')&&!/Commander\s*$/i.test(s.name));
+ let sets=j.data.filter(s=>s.released_at&&s.card_count>100&&s.icon_svg_uri&&!s.parent_set_code&&!s.name.toLowerCase().includes('jumpstart')&&!s.name.toLowerCase().includes('promo')&&!/Commander\s*$/i.test(s.name));
  sets.sort((a,b)=>new Date(b.released_at)-new Date(a.released_at));
  const sel=document.getElementById('setSelect');
  sel.innerHTML='';
  sets.forEach(s=>{const o=document.createElement('option');o.value=s.code;o.textContent=s.name;sel.appendChild(o);setData[s.code]={name:s.name,icon:s.icon_svg_uri}});
+ 
+ // Also store all sets (including child sets) for masterpiece lookup
+ j.data.forEach(s=>{if(!setData[s.code]){setData[s.code]={name:s.name,icon:s.icon_svg_uri,parent:s.parent_set_code,type:s.set_type}}});
+ 
  currentSet=data.lastPack||sel.value;
  sel.value=currentSet;
  loadSet();
@@ -167,6 +171,21 @@ async function loadSet(){
  const j=await res.json();
  allCards=j.data.filter(c=>c.image_uris&&['common','uncommon','rare','mythic'].includes(c.rarity));
  try{const faRes=await fetch(`https://api.scryfall.com/cards/search?q=set:${currentSet}+game:paper+(is:extended+OR+is:fullart)&unique=cards`);const faJson=await faRes.json();fullArtCards=faJson.data.filter(c=>c.image_uris)}catch(e){fullArtCards=[]}
+ 
+ // Load masterpieces from child sets
+ masterpieceCards=[];
+ const allSetCodes=Object.keys(setData);
+ const childMasterpieceSets=allSetCodes.filter(code=>setData[code].parent===currentSet&&setData[code].type==='masterpiece');
+ if(childMasterpieceSets.length>0){
+  for(const childCode of childMasterpieceSets){
+   try{
+    const mpRes=await fetch(`https://api.scryfall.com/cards/search?q=set:${childCode}+game:paper&unique=cards`);
+    const mpJson=await mpRes.json();
+    masterpieceCards.push(...mpJson.data.filter(c=>c.image_uris));
+   }catch(e){}
+  }
+ }
+ 
  setSize=allCards.length;
  updatePackImage();
  render();
@@ -227,6 +246,9 @@ async function openPack(){
    data.cards[currentSet][id].count++;
    pack.push({...data.cards[currentSet][id],isNew});
   }
+  
+  // 6th card: Full art bonus
+  let got6thCard=false;
   if(Math.random()<FULLART_BONUS_CHANCE&&fullArtCards.length>0){
    const card=fullArtCards[Math.floor(Math.random()*fullArtCards.length)];
    const id=card.id+'_fullart';
@@ -234,6 +256,17 @@ async function openPack(){
    if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:true}}
    data.cards[currentSet][id].count++;
    pack.push({...data.cards[currentSet][id],isNew,isBonus:true});
+   got6thCard=true;
+  }
+  
+  // 7th card: Masterpiece (only if 6th card appeared)
+  if(got6thCard && Math.random()<MASTERPIECE_CHANCE&&masterpieceCards.length>0){
+   const card=masterpieceCards[Math.floor(Math.random()*masterpieceCards.length)];
+   const id=card.id+'_masterpiece';
+   const isNew=!data.cards[currentSet][id];
+   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,masterpiece:true}}
+   data.cards[currentSet][id].count++;
+   pack.push({...data.cards[currentSet][id],isNew,isSecret:true});
   }
  }
  save();
@@ -249,9 +282,10 @@ function showPack(pack,isGodPack){
  const singleView=m.querySelector('.singleCardView');
  const allView=m.querySelector('.allCardsView');
  const allCardsContainer=m.querySelector('.packCards');
- const regularCards=pack.filter(card=>!card.isBonus);
+ const regularCards=pack.filter(card=>!card.isBonus&&!card.isSecret);
  const bonusCards=pack.filter(card=>card.isBonus);
- const allPackCards=[...regularCards,...bonusCards];
+ const secretCards=pack.filter(card=>card.isSecret);
+ const allPackCards=[...regularCards,...bonusCards,...secretCards];
  let currentIndex=0;
  let allCardsShown=false;
  function closeModal(){m.style.display='none';m.innerHTML='';render()}
@@ -259,24 +293,57 @@ function showPack(pack,isGodPack){
   if(currentIndex<allPackCards.length){
    const card=allPackCards[currentIndex];
    const isBonus=card.isBonus;
-   if(singleView.children.length>0){const existingCard=singleView.children[0];existingCard.style.animation='cardExit 0.5s ease-in forwards';setTimeout(()=>{showCardInternal(card,isBonus)},500)}else{showCardInternal(card,isBonus)}
+   const isSecret=card.isSecret;
+   if(singleView.children.length>0){const existingCard=singleView.children[0];existingCard.style.animation='cardExit 0.5s ease-in forwards';setTimeout(()=>{showCardInternal(card,isBonus,isSecret)},500)}else{showCardInternal(card,isBonus,isSecret)}
   }else{
    if(singleView.children.length>0){const existingCard=singleView.children[0];existingCard.style.animation='cardExit 0.5s ease-in forwards';setTimeout(()=>{singleView.style.display='none';allView.style.display='block';allCardsShown=true;singleView.onclick=null},500)}else{singleView.style.display='none';allView.style.display='block';allCardsShown=true;singleView.onclick=null}
   }
  }
- function showCardInternal(card,isBonus){
+ function showCardInternal(card,isBonus,isSecret){
   singleView.innerHTML='';
   const d=document.createElement('div');
   d.className=`card rarity-${card.rarity}`;
   d.innerHTML=`<img src="${card.img}"><div class="count">x${card.count}</div>`;
   if(card.isNew) d.classList.add('new-card');
   if(card.isGodPack) d.classList.add('godpack');
-  if(isBonus){d.classList.add('godpack');d.style.filter='brightness(1.3) drop-shadow(0 0 20px rgba(255,107,107,0.8))';const glowDiv=document.createElement('div');glowDiv.className='bonus-glow';d.insertBefore(glowDiv,d.firstChild)}
+  
+  console.log('Showing card:', card.name, 'masterpiece:', card.masterpiece, 'isSecret:', isSecret);
+  
+  // Masterpiece cards ALWAYS get purple glow (check both property and flag)
+  if(card.masterpiece===true || isSecret===true){
+   console.log('Applying purple masterpiece glow');
+   d.classList.add('godpack');
+   d.style.filter='brightness(1.5) drop-shadow(0 0 30px rgba(155,89,182,0.9))';
+   const glowDiv=document.createElement('div');
+   glowDiv.className='bonus-glow';
+   glowDiv.style.background='radial-gradient(circle,rgba(155,89,182,0.6),transparent 70%)';
+   d.insertBefore(glowDiv,d.firstChild);
+  }else if(isBonus===true){
+   console.log('Applying red fullart glow');
+   d.classList.add('godpack');
+   d.style.filter='brightness(1.3) drop-shadow(0 0 20px rgba(255,107,107,0.8))';
+   const glowDiv=document.createElement('div');
+   glowDiv.className='bonus-glow';
+   d.insertBefore(glowDiv,d.firstChild);
+  }
+  
   singleView.appendChild(d);
   const dSmall=cardEl(card,false);
   if(card.isNew) dSmall.classList.add('new-card');
   if(card.isGodPack) dSmall.classList.add('godpack');
-  if(isBonus){dSmall.classList.add('godpack');addBonusGlow(dSmall)}
+  
+  // Masterpiece cards ALWAYS get purple glow in final view too
+  if(card.masterpiece===true || isSecret===true){
+   dSmall.classList.add('godpack');
+   const glowDiv=document.createElement('div');
+   glowDiv.className='bonus-glow';
+   glowDiv.style.background='radial-gradient(circle,rgba(155,89,182,0.6),transparent 70%)';
+   dSmall.insertBefore(glowDiv,dSmall.firstChild);
+  }else if(isBonus===true){
+   dSmall.classList.add('godpack');
+   addBonusGlow(dSmall);
+  }
+  
   allCardsContainer.appendChild(dSmall);
   currentIndex++;
  }
@@ -305,12 +372,20 @@ function render(){
  const owned=data.cards[currentSet]||{};
  const ownedMap={};
  Object.values(owned).forEach(c=>{ownedMap[c.name]=c});
- allCards.forEach((card,index)=>{
-  if(activeRarity==='fullart'){const ownedCard=ownedMap[card.name];if(!ownedCard||!ownedCard.fullart) return}else if(activeRarity!=='all'&&card.rarity!==activeRarity){return}
-  const ownedCard=ownedMap[card.name];
-  if(ownedCard){col.appendChild(cardEl(ownedCard))}else{const placeholder=document.createElement('div');placeholder.className='card-placeholder';placeholder.textContent=`#${index+1}`;col.appendChild(placeholder)}
- });
- if(activeRarity==='fullart'||activeRarity==='all'){Object.values(owned).forEach(c=>{if(c.fullart){const inSet=allCards.some(setCard=>setCard.name===c.name);if(!inSet){col.appendChild(cardEl(c))}}})}
+ 
+ if(activeRarity==='secrets'){
+  // Show only masterpiece/secret cards
+  Object.values(owned).forEach(c=>{
+   if(c.masterpiece){col.appendChild(cardEl(c))}
+  });
+ }else{
+  allCards.forEach((card,index)=>{
+   if(activeRarity==='fullart'){const ownedCard=ownedMap[card.name];if(!ownedCard||!ownedCard.fullart) return}else if(activeRarity!=='all'&&card.rarity!==activeRarity){return}
+   const ownedCard=ownedMap[card.name];
+   if(ownedCard){col.appendChild(cardEl(ownedCard))}else{const placeholder=document.createElement('div');placeholder.className='card-placeholder';placeholder.textContent=`#${index+1}`;col.appendChild(placeholder)}
+  });
+  if(activeRarity==='fullart'||activeRarity==='all'){Object.values(owned).forEach(c=>{if(c.fullart){const inSet=allCards.some(setCard=>setCard.name===c.name);if(!inSet){col.appendChild(cardEl(c))}}})}
+ }
 }
 
 function updateStats(){
@@ -332,8 +407,10 @@ function updateStats(){
  console.log('setSize:', setSize);
  const fullartTotal=fullArtCards.length;
  const fullartOwned=Object.values(owned).filter(c=>c.fullart===true).length;
+ const masterpieceOwned=Object.values(owned).filter(c=>c.masterpiece===true).length;
  console.log('Full art owned/total:', fullartOwned, '/', fullartTotal);
- statsEl.innerHTML=`<div class='statBox' data-rarity='all'><b>All Cards</b> ${ownedNames.size}/${setSize}<div class='progress'><div style='width:${Math.min(100,ownedNames.size/setSize*100)}%'></div></div></div>${['common','uncommon','rare','mythic'].map(r=>`<div class='statBox' data-rarity='${r}'><b>${r.toUpperCase()}</b> ${uniqueOwned[r]}/${totals[r]}<div class='progress'><div style='width:${totals[r]?uniqueOwned[r]/totals[r]*100:0}%'></div></div></div>`).join('')}<div class='statBox' data-rarity='fullart' style='background:linear-gradient(135deg,#2a2a3e,#1a1a2e);border:2px solid #ff6b6b'><b>FULL ART</b> ${fullartOwned}/${fullartTotal}<div class='progress'><div style='width:${fullartTotal?fullartOwned/fullartTotal*100:0}%;background:linear-gradient(90deg,#ff6b6b,#ee5a6f)'></div></div></div>`;
+ console.log('Masterpiece owned/total:', masterpieceOwned, '/', masterpieceCards.length);
+ statsEl.innerHTML=`<div class='statBox' data-rarity='all'><b>All Cards</b> ${ownedNames.size}/${setSize}<div class='progress'><div style='width:${Math.min(100,ownedNames.size/setSize*100)}%'></div></div></div>${['common','uncommon','rare','mythic'].map(r=>`<div class='statBox' data-rarity='${r}'><b>${r.toUpperCase()}</b> ${uniqueOwned[r]}/${totals[r]}<div class='progress'><div style='width:${totals[r]?uniqueOwned[r]/totals[r]*100:0}%'></div></div></div>`).join('')}<div class='statBox' data-rarity='fullart' style='background:linear-gradient(135deg,#2a2a3e,#1a1a2e);border:2px solid #ff6b6b'><b>FULL ART</b> ${fullartOwned}/${fullartTotal}<div class='progress'><div style='width:${fullartTotal?fullartOwned/fullartTotal*100:0}%;background:linear-gradient(90deg,#ff6b6b,#ee5a6f)'></div></div></div>${masterpieceCards.length>0?`<div class='statBox' data-rarity='secrets' style='background:linear-gradient(135deg,#3a1a5e,#1a0a2e);border:2px solid #9b59b6'><b>SECRETS</b> ${masterpieceOwned}/${masterpieceCards.length}<div class='progress'><div style='width:${masterpieceCards.length?masterpieceOwned/masterpieceCards.length*100:0}%;background:linear-gradient(90deg,#9b59b6,#8e44ad)'></div></div></div>`:''}`;
  statsEl.querySelectorAll('.statBox').forEach(box=>{box.onclick=()=>{activeRarity=box.dataset.rarity;statsEl.querySelectorAll('.statBox').forEach(b=>b.classList.remove('active'));box.classList.add('active');render()}});
 }
 
@@ -341,15 +418,15 @@ function update(){
  document.getElementById('points').textContent=data.points;
  const btn=document.getElementById('openPackHome');
  btn.disabled=!document.getElementById('freeMode').checked&&data.points<PACK_COST;
- // Only update collection if it's visible
- if(document.getElementById('collectionView').style.display==='block'){
-  render();
-  updateStats();
- }
 }
 
 function showHome(){document.getElementById('homeScreen').style.display='flex';document.getElementById('collectionView').style.display='none'}
-function showCollection(){document.getElementById('homeScreen').style.display='none';document.getElementById('collectionView').style.display='block'}
+function showCollection(){
+ document.getElementById('homeScreen').style.display='none';
+ document.getElementById('collectionView').style.display='block';
+ render();
+ updateStats();
+}
 
 document.getElementById('openPackHome').onclick=openPack;
 document.getElementById('packImage').onclick=openPack;
