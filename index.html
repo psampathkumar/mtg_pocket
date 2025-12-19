@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MTG Pocket – Holo Tilt</title>
+<title>MTG Pocket</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,system-ui,Arial;background:radial-gradient(circle at top,#1b1b2f,#05050a);color:#fff;min-height:100vh;overflow-x:hidden}
@@ -20,11 +20,11 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 .progress div{height:100%;background:linear-gradient(90deg,#4facfe,#00f2fe)}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(120px,45vw),1fr));gap:clamp(0.5rem,2vw,1rem);padding:clamp(0.5rem,2vw,1rem)}
 .card{position:relative;background:#111;border-radius:clamp(12px,3vw,16px);overflow:hidden;cursor:pointer}
-.card-placeholder{position:relative;background:#1a1a2a;border:2px dashed #333;border-radius:clamp(12px,3vw,16px);overflow:hidden;display:flex;align-items:center;justify-content:center;aspect-ratio:2.5/3.5;color:#666;font-size:clamp(0.8rem,2vw,1rem);font-weight:600}
 .card img{width:100%;display:block;position:relative;z-index:1}
 .card:hover{box-shadow:0 20px 40px rgba(0,0,0,.6)}
 .count{position:absolute;bottom:clamp(4px,1vw,6px);right:clamp(4px,1vw,6px);background:rgba(0,0,0,.7);padding:2px 6px;border-radius:8px;font-size:clamp(0.7rem,2vw,0.75rem);z-index:2}
 .new-card::after{content:'NEW';position:absolute;top:6px;left:6px;background:#ffd700;color:#000;font-weight:700;padding:2px 6px;border-radius:4px;font-size:clamp(0.65rem,2vw,0.75rem);z-index:10}
+.card-placeholder{position:relative;background:#1a1a2a;border:2px dashed #333;border-radius:clamp(12px,3vw,16px);overflow:hidden;display:flex;align-items:center;justify-content:center;aspect-ratio:2.5/3.5;color:#666;font-size:clamp(0.8rem,2vw,1rem);font-weight:600}
 .rarity-common{border:2px solid #999}
 .rarity-uncommon{border:2px solid #1eff00}
 .rarity-rare{border:2px solid #0070dd}
@@ -129,22 +129,23 @@ const PACK_COST=6,INTERVAL=3600000,FULLART_BONUS_CHANCE=0.10,GODPACK_CHANCE=0.01
 let data=JSON.parse(localStorage.getItem('mtgPocket'))||{points:0,last:Date.now(),cards:{},lastPack:null};
 let allCards=[],fullArtCards=[],currentSet=null,setSize=0,activeRarity='all',setData={};
 
+function migrateData(){
+ Object.keys(data.cards).forEach(setCode=>{
+  Object.keys(data.cards[setCode]).forEach(cardId=>{
+   const card=data.cards[setCode][cardId];
+   if(card.fullart===undefined){card.fullart=cardId.endsWith('_fullart')}
+  });
+ });
+ save();
+}
+migrateData();
+
 function save(){localStorage.setItem('mtgPocket',JSON.stringify(data))}
 
 function enableTilt(el){
- el.onmousemove=e=>{
-  const r=el.getBoundingClientRect();
-  const x=(e.clientX-r.left)/r.width-.5;
-  const y=(e.clientY-r.top)/r.height-.5;
-  el.style.transform=`perspective(800px) rotateX(${-y*15}deg) rotateY(${x*15}deg) scale(1.05)`;
- };
+ el.onmousemove=e=>{const r=el.getBoundingClientRect();const x=(e.clientX-r.left)/r.width-.5;const y=(e.clientY-r.top)/r.height-.5;el.style.transform=`perspective(800px) rotateX(${-y*15}deg) rotateY(${x*15}deg) scale(1.05)`};
  el.onmouseleave=()=>el.style.transform='';
- el.ontouchmove=e=>{
-  const t=e.touches[0];const r=el.getBoundingClientRect();
-  const x=(t.clientX-r.left)/r.width-.5;
-  const y=(t.clientY-r.top)/r.height-.5;
-  el.style.transform=`perspective(800px) rotateX(${-y*15}deg) rotateY(${x*15}deg) scale(1.05)`;
- };
+ el.ontouchmove=e=>{const t=e.touches[0];const r=el.getBoundingClientRect();const x=(t.clientX-r.left)/r.width-.5;const y=(t.clientY-r.top)/r.height-.5;el.style.transform=`perspective(800px) rotateX(${-y*15}deg) rotateY(${x*15}deg) scale(1.05)`};
  el.ontouchend=()=>el.style.transform='';
 }
 
@@ -155,13 +156,7 @@ async function loadSets(){
  sets.sort((a,b)=>new Date(b.released_at)-new Date(a.released_at));
  const sel=document.getElementById('setSelect');
  sel.innerHTML='';
- sets.forEach(s=>{
-  const o=document.createElement('option');
-  o.value=s.code;
-  o.textContent=s.name;
-  sel.appendChild(o);
-  setData[s.code]={name:s.name,icon:s.icon_svg_uri};
- });
+ sets.forEach(s=>{const o=document.createElement('option');o.value=s.code;o.textContent=s.name;sel.appendChild(o);setData[s.code]={name:s.name,icon:s.icon_svg_uri}});
  currentSet=data.lastPack||sel.value;
  sel.value=currentSet;
  loadSet();
@@ -171,34 +166,20 @@ async function loadSet(){
  const res=await fetch(`https://api.scryfall.com/cards/search?q=set:${currentSet}+game:paper&unique=cards`);
  const j=await res.json();
  allCards=j.data.filter(c=>c.image_uris&&['common','uncommon','rare','mythic'].includes(c.rarity));
- 
- try{
-  const faRes=await fetch(`https://api.scryfall.com/cards/search?q=set:${currentSet}+game:paper+(is:extended+OR+is:fullart)&unique=cards`);
-  const faJson=await faRes.json();
-  fullArtCards=faJson.data.filter(c=>c.image_uris);
- }catch(e){
-  fullArtCards=[];
- }
- 
+ try{const faRes=await fetch(`https://api.scryfall.com/cards/search?q=set:${currentSet}+game:paper+(is:extended+OR+is:fullart)&unique=cards`);const faJson=await faRes.json();fullArtCards=faJson.data.filter(c=>c.image_uris)}catch(e){fullArtCards=[]}
  setSize=allCards.length;
  updatePackImage();
- render();updateStats();
+ render();
+ updateStats();
 }
 
 function updatePackImage(){
  const logo=document.getElementById('packLogo');
  const icon=document.getElementById('packIcon');
- 
  logo.src=`https://www.mtgpics.com/graph/sets/logos_big/${currentSet}.png`;
  logo.onerror=()=>{logo.style.display='none'};
  logo.onload=()=>{logo.style.display='block'};
- 
- if(setData[currentSet]&&setData[currentSet].icon){
-  icon.src=setData[currentSet].icon;
-  icon.style.display='block';
- }else{
-  icon.style.display='none';
- }
+ if(setData[currentSet]&&setData[currentSet].icon){icon.src=setData[currentSet].icon;icon.style.display='block'}else{icon.style.display='none'}
 }
 
 function roll(){let r=Math.random()*100;if(r<1)return'mythic';if(r<10)return'rare';if(r<30)return'uncommon';return'common'}
@@ -217,27 +198,21 @@ function tick(){
 async function openPack(){
  const free=document.getElementById('freeMode').checked;
  if(!free&&data.points<PACK_COST) return;
- 
  const packImg=document.getElementById('packImage');
  packImg.classList.add('ripping');
- 
  await new Promise(resolve=>setTimeout(resolve,800));
  packImg.classList.remove('ripping');
- 
  if(!free) data.points-=PACK_COST;
  data.cards[currentSet]=data.cards[currentSet]||{};
  data.lastPack=currentSet;
- 
  const isGodPack=Math.random()<GODPACK_CHANCE&&fullArtCards.length>0;
- 
  let pack=[];
- 
  if(isGodPack){
   for(let i=0;i<5;i++){
    const card=fullArtCards[Math.floor(Math.random()*fullArtCards.length)];
    const id=card.id+'_fullart';
    const isNew=!data.cards[currentSet][id];
-   data.cards[currentSet][id]=data.cards[currentSet][id]||{name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:true};
+   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:true}}
    data.cards[currentSet][id].count++;
    pack.push({...data.cards[currentSet][id],isNew,isGodPack:true});
   }
@@ -248,21 +223,19 @@ async function openPack(){
    const card=pool[Math.floor(Math.random()*pool.length)];
    const id=card.id;
    const isNew=!data.cards[currentSet][id];
-   data.cards[currentSet][id]=data.cards[currentSet][id]||{name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:false};
+   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:false}}
    data.cards[currentSet][id].count++;
    pack.push({...data.cards[currentSet][id],isNew});
   }
-  
   if(Math.random()<FULLART_BONUS_CHANCE&&fullArtCards.length>0){
    const card=fullArtCards[Math.floor(Math.random()*fullArtCards.length)];
    const id=card.id+'_fullart';
    const isNew=!data.cards[currentSet][id];
-   data.cards[currentSet][id]=data.cards[currentSet][id]||{name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:true};
+   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:true}}
    data.cards[currentSet][id].count++;
    pack.push({...data.cards[currentSet][id],isNew,isBonus:true});
   }
  }
- 
  save();
  updatePackImage();
  showPack(pack,isGodPack);
@@ -272,245 +245,111 @@ async function openPack(){
 function showPack(pack,isGodPack){
  const m=document.getElementById('packModal');
  m.style.display='flex';
- 
- if(isGodPack){
-  m.innerHTML='<div style="text-align:center;margin-bottom:1rem"><h2 style="color:#ffd700;font-size:2rem;text-shadow:0 0 20px rgba(255,215,0,0.8)">🌟 GOD PACK! 🌟</h2></div><div class="singleCardView"></div><div class="allCardsView"><div class="packCards"></div></div>';
- }else{
-  m.innerHTML='<div class="singleCardView"></div><div class="allCardsView"><div class="packCards"></div></div>';
- }
- 
+ if(isGodPack){m.innerHTML='<div style="text-align:center;margin-bottom:1rem"><h2 style="color:#ffd700;font-size:2rem;text-shadow:0 0 20px rgba(255,215,0,0.8)">🌟 GOD PACK! 🌟</h2></div><div class="singleCardView"></div><div class="allCardsView"><div class="packCards"></div></div>'}else{m.innerHTML='<div class="singleCardView"></div><div class="allCardsView"><div class="packCards"></div></div>'}
  const singleView=m.querySelector('.singleCardView');
  const allView=m.querySelector('.allCardsView');
  const allCardsContainer=m.querySelector('.packCards');
- 
  const regularCards=pack.filter(card=>!card.isBonus);
  const bonusCards=pack.filter(card=>card.isBonus);
  const allPackCards=[...regularCards,...bonusCards];
  let currentIndex=0;
  let allCardsShown=false;
- 
- function closeModal(){
-  m.style.display='none';
-  m.innerHTML='';
-  render();
- }
- 
+ function closeModal(){m.style.display='none';m.innerHTML='';render()}
  function showNextCard(){
   if(currentIndex<allPackCards.length){
    const card=allPackCards[currentIndex];
    const isBonus=card.isBonus;
-   
-   // Exit animation for existing card
-   if(singleView.children.length>0){
-    const existingCard=singleView.children[0];
-    existingCard.style.animation='cardExit 0.5s ease-in forwards';
-    
-    setTimeout(()=>{
-     showCardInternal(card,isBonus);
-    },500);
-   }else{
-    showCardInternal(card,isBonus);
-   }
+   if(singleView.children.length>0){const existingCard=singleView.children[0];existingCard.style.animation='cardExit 0.5s ease-in forwards';setTimeout(()=>{showCardInternal(card,isBonus)},500)}else{showCardInternal(card,isBonus)}
   }else{
-   // Exit the last card before showing all
-   if(singleView.children.length>0){
-    const existingCard=singleView.children[0];
-    existingCard.style.animation='cardExit 0.5s ease-in forwards';
-    
-    setTimeout(()=>{
-     singleView.style.display='none';
-     allView.style.display='block';
-     allCardsShown=true;
-     singleView.onclick=null;
-    },500);
-   }else{
-    singleView.style.display='none';
-    allView.style.display='block';
-    allCardsShown=true;
-    singleView.onclick=null;
-   }
+   if(singleView.children.length>0){const existingCard=singleView.children[0];existingCard.style.animation='cardExit 0.5s ease-in forwards';setTimeout(()=>{singleView.style.display='none';allView.style.display='block';allCardsShown=true;singleView.onclick=null},500)}else{singleView.style.display='none';allView.style.display='block';allCardsShown=true;singleView.onclick=null}
   }
  }
- 
  function showCardInternal(card,isBonus){
   singleView.innerHTML='';
-  
   const d=document.createElement('div');
   d.className=`card rarity-${card.rarity}`;
   d.innerHTML=`<img src="${card.img}"><div class="count">x${card.count}</div>`;
-  
   if(card.isNew) d.classList.add('new-card');
   if(card.isGodPack) d.classList.add('godpack');
-  
-  if(isBonus){
-   d.classList.add('godpack');
-   d.style.filter='brightness(1.3) drop-shadow(0 0 20px rgba(255,107,107,0.8))';
-   const glowDiv=document.createElement('div');
-   glowDiv.className='bonus-glow';
-   d.insertBefore(glowDiv,d.firstChild);
-  }
-  
+  if(isBonus){d.classList.add('godpack');d.style.filter='brightness(1.3) drop-shadow(0 0 20px rgba(255,107,107,0.8))';const glowDiv=document.createElement('div');glowDiv.className='bonus-glow';d.insertBefore(glowDiv,d.firstChild)}
   singleView.appendChild(d);
-  
-  // Add to all cards container
   const dSmall=cardEl(card,false);
   if(card.isNew) dSmall.classList.add('new-card');
   if(card.isGodPack) dSmall.classList.add('godpack');
-  if(isBonus){
-   dSmall.classList.add('godpack');
-   addBonusGlow(dSmall);
-  }
+  if(isBonus){dSmall.classList.add('godpack');addBonusGlow(dSmall)}
   allCardsContainer.appendChild(dSmall);
-  
   currentIndex++;
  }
- 
  showNextCard();
  singleView.onclick=showNextCard;
- 
- m.onclick=(e)=>{
-  if(allCardsShown&&e.target===m){
-   closeModal();
-  }
- };
- 
- allView.onclick=(e)=>{
-  if(e.target===allView||e.target.closest('.packCards')===allCardsContainer){
-   closeModal();
-  }
- };
+ m.onclick=(e)=>{if(allCardsShown&&e.target===m){closeModal()}};
+ allView.onclick=(e)=>{if(e.target===allView||e.target.closest('.packCards')===allCardsContainer){closeModal()}};
 }
 
-function addBonusGlow(cardElement){
- const glowDiv=document.createElement('div');
- glowDiv.className='bonus-glow';
- cardElement.insertBefore(glowDiv,cardElement.firstChild);
-}
+function addBonusGlow(cardElement){const glowDiv=document.createElement('div');glowDiv.className='bonus-glow';cardElement.insertBefore(glowDiv,cardElement.firstChild)}
 
 function cardEl(card,isRevealing){
  const d=document.createElement('div');
  d.className=`card rarity-${card.rarity}`;
  d.innerHTML=`<img src="${card.img}"><div class="count">x${card.count}</div>`;
- if(!isRevealing){
-  enableTilt(d);
-  d.onclick=e=>{e.stopPropagation();showCard(card)};
- }
+ if(!isRevealing){enableTilt(d);d.onclick=e=>{e.stopPropagation();showCard(card)}}
  return d;
 }
 
-function showCard(card){
- const m=document.getElementById('cardViewModal');
- m.style.display='flex';
- m.innerHTML='';
- const d=cardEl(card);
- d.style.maxWidth='300px';
- m.appendChild(d);
- m.onclick=()=>{m.style.display='none';m.innerHTML=''};
-}
+function showCard(card){const m=document.getElementById('cardViewModal');m.style.display='flex';m.innerHTML='';const d=cardEl(card);d.style.maxWidth='300px';m.appendChild(d);m.onclick=()=>{m.style.display='none';m.innerHTML=''}}
 
 function render(){
  const col=document.getElementById('collection');
  col.innerHTML='';
  if(!allCards.length) return;
- 
- // Create a map of owned cards
  const owned=data.cards[currentSet]||{};
  const ownedMap={};
- Object.values(owned).forEach(c=>{
-  ownedMap[c.name]=c;
- });
- 
- // Show all cards from the set
+ Object.values(owned).forEach(c=>{ownedMap[c.name]=c});
  allCards.forEach((card,index)=>{
-  // Check filter
-  if(activeRarity==='fullart'){
-   // For fullart filter, only show if owned and is fullart
-   const ownedCard=ownedMap[card.name];
-   if(!ownedCard||!ownedCard.fullart) return;
-  }else if(activeRarity!=='all'&&card.rarity!==activeRarity){
-   return;
-  }
-  
+  if(activeRarity==='fullart'){const ownedCard=ownedMap[card.name];if(!ownedCard||!ownedCard.fullart) return}else if(activeRarity!=='all'&&card.rarity!==activeRarity){return}
   const ownedCard=ownedMap[card.name];
-  
-  if(ownedCard){
-   // Show owned card
-   col.appendChild(cardEl(ownedCard));
-  }else{
-   // Show placeholder
-   const placeholder=document.createElement('div');
-   placeholder.className='card-placeholder';
-   placeholder.textContent=`#${index+1}`;
-   col.appendChild(placeholder);
-  }
+  if(ownedCard){col.appendChild(cardEl(ownedCard))}else{const placeholder=document.createElement('div');placeholder.className='card-placeholder';placeholder.textContent=`#${index+1}`;col.appendChild(placeholder)}
  });
- 
- // Also show full art cards that are owned but not in regular set
- if(activeRarity==='fullart'||activeRarity==='all'){
-  Object.values(owned).forEach(c=>{
-   if(c.fullart){
-    // Check if this card is already shown (exists in allCards)
-    const inSet=allCards.some(setCard=>setCard.name===c.name);
-    if(!inSet){
-     col.appendChild(cardEl(c));
-    }
-   }
-  });
- }
+ if(activeRarity==='fullart'||activeRarity==='all'){Object.values(owned).forEach(c=>{if(c.fullart){const inSet=allCards.some(setCard=>setCard.name===c.name);if(!inSet){col.appendChild(cardEl(c))}}})}
 }
 
 function updateStats(){
+ console.log('### updateStats called ###');
  const statsEl=document.getElementById('stats');
- if(!currentSet) return;
+ if(!currentSet){console.log('No currentSet, returning');return}
  const owned=data.cards[currentSet]||{};
- const counts={common:0,uncommon:0,rare:0,mythic:0,fullart:0};
+ console.log('Total owned entries:', Object.keys(owned).length);
+ const uniqueOwned={common:0,uncommon:0,rare:0,mythic:0};
+ const ownedNames=new Set();
  Object.values(owned).forEach(c=>{
-  counts[c.rarity]+=c.count;
-  if(c.fullart) counts.fullart+=c.count;
+  if(c.fullart===false && !ownedNames.has(c.name)){uniqueOwned[c.rarity]++;ownedNames.add(c.name)}
  });
+ console.log('Unique owned (fullart===false):', uniqueOwned);
+ console.log('Unique names count:', ownedNames.size);
  const totals={common:0,uncommon:0,rare:0,mythic:0};
  allCards.forEach(c=>totals[c.rarity]++);
+ console.log('Totals per rarity:', totals);
+ console.log('setSize:', setSize);
  const fullartTotal=fullArtCards.length;
- const fullartOwned=Object.values(owned).filter(c=>c.fullart).length;
- 
- statsEl.innerHTML=`
-  <div class='statBox' data-rarity='all'><b>All Cards</b><div class='progress'><div style='width:${Math.min(100,Object.keys(owned).length/setSize*100)}%'></div></div></div>
-  ${['common','uncommon','rare','mythic'].map(r=>`
-   <div class='statBox' data-rarity='${r}'>
-     <b>${r.toUpperCase()}</b> ${counts[r]}/${totals[r]}
-     <div class='progress'><div style='width:${totals[r]?counts[r]/totals[r]*100:0}%'></div></div>
-   </div>`).join('')}
-  <div class='statBox' data-rarity='fullart' style='background:linear-gradient(135deg,#2a2a3e,#1a1a2e);border:2px solid #ff6b6b'>
-    <b>FULL ART</b> ${fullartOwned}/${fullartTotal}
-    <div class='progress'><div style='width:${fullartTotal?fullartOwned/fullartTotal*100:0}%;background:linear-gradient(90deg,#ff6b6b,#ee5a6f)'></div></div>
-  </div>
- `;
- statsEl.querySelectorAll('.statBox').forEach(box=>{
-  box.onclick=()=>{
-   activeRarity=box.dataset.rarity;
-   statsEl.querySelectorAll('.statBox').forEach(b=>b.classList.remove('active'));
-   box.classList.add('active');
-   render();
-  };
- });
+ const fullartOwned=Object.values(owned).filter(c=>c.fullart===true).length;
+ console.log('Full art owned/total:', fullartOwned, '/', fullartTotal);
+ statsEl.innerHTML=`<div class='statBox' data-rarity='all'><b>All Cards</b> ${ownedNames.size}/${setSize}<div class='progress'><div style='width:${Math.min(100,ownedNames.size/setSize*100)}%'></div></div></div>${['common','uncommon','rare','mythic'].map(r=>`<div class='statBox' data-rarity='${r}'><b>${r.toUpperCase()}</b> ${uniqueOwned[r]}/${totals[r]}<div class='progress'><div style='width:${totals[r]?uniqueOwned[r]/totals[r]*100:0}%'></div></div></div>`).join('')}<div class='statBox' data-rarity='fullart' style='background:linear-gradient(135deg,#2a2a3e,#1a1a2e);border:2px solid #ff6b6b'><b>FULL ART</b> ${fullartOwned}/${fullartTotal}<div class='progress'><div style='width:${fullartTotal?fullartOwned/fullartTotal*100:0}%;background:linear-gradient(90deg,#ff6b6b,#ee5a6f)'></div></div></div>`;
+ statsEl.querySelectorAll('.statBox').forEach(box=>{box.onclick=()=>{activeRarity=box.dataset.rarity;statsEl.querySelectorAll('.statBox').forEach(b=>b.classList.remove('active'));box.classList.add('active');render()}});
 }
 
 function update(){
  document.getElementById('points').textContent=data.points;
  const btn=document.getElementById('openPackHome');
  btn.disabled=!document.getElementById('freeMode').checked&&data.points<PACK_COST;
- render();updateStats();
+ // Only update collection if it's visible
+ if(document.getElementById('collectionView').style.display==='block'){
+  render();
+  updateStats();
+ }
 }
 
-function showHome(){
- document.getElementById('homeScreen').style.display='flex';
- document.getElementById('collectionView').style.display='none';
-}
-
-function showCollection(){
- document.getElementById('homeScreen').style.display='none';
- document.getElementById('collectionView').style.display='block';
-}
+function showHome(){document.getElementById('homeScreen').style.display='flex';document.getElementById('collectionView').style.display='none'}
+function showCollection(){document.getElementById('homeScreen').style.display='none';document.getElementById('collectionView').style.display='block'}
 
 document.getElementById('openPackHome').onclick=openPack;
 document.getElementById('packImage').onclick=openPack;
