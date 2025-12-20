@@ -24,6 +24,7 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 .card:hover{box-shadow:0 20px 40px rgba(0,0,0,.6)}
 .count{position:absolute;bottom:clamp(4px,1vw,6px);right:clamp(4px,1vw,6px);background:rgba(0,0,0,.7);padding:2px 6px;border-radius:8px;font-size:clamp(0.7rem,2vw,0.75rem);z-index:2}
 .new-card::after{content:'NEW';position:absolute;top:6px;left:6px;background:#ffd700;color:#000;font-weight:700;padding:2px 6px;border-radius:4px;font-size:clamp(0.65rem,2vw,0.75rem);z-index:10}
+.story-card::before{content:'STORY';position:absolute;top:6px;right:6px;background:#3498db;color:#fff;font-weight:700;padding:2px 6px;border-radius:4px;font-size:clamp(0.65rem,2vw,0.75rem);z-index:10}
 .card-placeholder{position:relative;background:#1a1a2a;border:2px dashed #333;border-radius:clamp(12px,3vw,16px);overflow:hidden;display:flex;align-items:center;justify-content:center;aspect-ratio:2.5/3.5;color:#666;font-size:clamp(0.8rem,2vw,1rem);font-weight:600}
 .rarity-common{border:2px solid #999}
 .rarity-uncommon{border:2px solid #1eff00}
@@ -170,6 +171,14 @@ async function loadSet(){
  const res=await fetch(`https://api.scryfall.com/cards/search?q=set:${currentSet}+game:paper&unique=cards`);
  const j=await res.json();
  allCards=j.data.filter(c=>c.image_uris&&['common','uncommon','rare','mythic'].includes(c.rarity));
+ 
+ // Sort by collector number
+ allCards.sort((a,b)=>{
+  const numA=parseInt(a.collector_number)||0;
+  const numB=parseInt(b.collector_number)||0;
+  return numA-numB;
+ });
+ 
  try{const faRes=await fetch(`https://api.scryfall.com/cards/search?q=set:${currentSet}+game:paper+(is:extended+OR+is:fullart)&unique=cards`);const faJson=await faRes.json();fullArtCards=faJson.data.filter(c=>c.image_uris)}catch(e){fullArtCards=[]}
  
  // Load masterpieces from child sets
@@ -192,6 +201,11 @@ async function loadSet(){
   const ssRes=await fetch(`https://api.scryfall.com/cards/search?q=set:${currentSet}+is:spotlight&unique=cards`);
   const ssJson=await ssRes.json();
   storySpotlightCards=ssJson.data.filter(c=>c.image_uris);
+  storySpotlightCards.sort((a,b)=>{
+   const numA=parseInt(a.collector_number)||0;
+   const numB=parseInt(b.collector_number)||0;
+   return numA-numB;
+  });
  }catch(e){}
  
  setSize=allCards.length;
@@ -239,7 +253,7 @@ async function openPack(){
    const card=fullArtCards[Math.floor(Math.random()*fullArtCards.length)];
    const id=card.id+'_fullart';
    const isNew=!data.cards[currentSet][id];
-   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:true}}
+   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:true,collectorNum:card.collector_number}}
    data.cards[currentSet][id].count++;
    pack.push({...data.cards[currentSet][id],isNew,isGodPack:true});
   }
@@ -254,7 +268,7 @@ async function openPack(){
    // Check if this card is a story spotlight
    const isSpotlight=storySpotlightCards.some(sc=>sc.id===card.id);
    
-   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:false,spotlight:isSpotlight}}
+   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:false,spotlight:isSpotlight,collectorNum:card.collector_number}}
    data.cards[currentSet][id].count++;
    pack.push({...data.cards[currentSet][id],isNew});
   }
@@ -265,7 +279,7 @@ async function openPack(){
    const card=fullArtCards[Math.floor(Math.random()*fullArtCards.length)];
    const id=card.id+'_fullart';
    const isNew=!data.cards[currentSet][id];
-   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:true}}
+   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:true,collectorNum:card.collector_number}}
    data.cards[currentSet][id].count++;
    pack.push({...data.cards[currentSet][id],isNew,isBonus:true});
    got6thCard=true;
@@ -276,7 +290,7 @@ async function openPack(){
    const card=masterpieceCards[Math.floor(Math.random()*masterpieceCards.length)];
    const id=card.id+'_masterpiece';
    const isNew=!data.cards[currentSet][id];
-   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,masterpiece:true}}
+   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,masterpiece:true,collectorNum:card.collector_number}}
    data.cards[currentSet][id].count++;
    pack.push({...data.cards[currentSet][id],isNew,isSecret:true});
   }
@@ -317,6 +331,7 @@ function showPack(pack,isGodPack){
   d.className=`card rarity-${card.rarity}`;
   d.innerHTML=`<img src="${card.img}"><div class="count">x${card.count}</div>`;
   if(card.isNew) d.classList.add('new-card');
+  if(card.spotlight===true) d.classList.add('story-card');
   if(card.isGodPack) d.classList.add('godpack');
   
   console.log('Showing card:', card.name, 'masterpiece:', card.masterpiece, 'isSecret:', isSecret);
@@ -342,6 +357,7 @@ function showPack(pack,isGodPack){
   singleView.appendChild(d);
   const dSmall=cardEl(card,false);
   if(card.isNew) dSmall.classList.add('new-card');
+  if(card.spotlight===true) dSmall.classList.add('story-card');
   if(card.isGodPack) dSmall.classList.add('godpack');
   
   // Masterpiece cards ALWAYS get purple glow in final view too
@@ -386,30 +402,71 @@ function render(){
  Object.values(owned).forEach(c=>{ownedMap[c.name]=c});
  
  if(activeRarity==='secrets'){
-  // Show only masterpiece/secret cards
-  Object.values(owned).forEach(c=>{
-   if(c.masterpiece){col.appendChild(cardEl(c))}
+  // Show only masterpiece/secret cards, sorted by collector number
+  const masterpieceList=Object.values(owned).filter(c=>c.masterpiece);
+  masterpieceList.sort((a,b)=>{
+   const numA=parseInt(a.collectorNum)||0;
+   const numB=parseInt(b.collectorNum)||0;
+   return numA-numB;
   });
+  masterpieceList.forEach(c=>{col.appendChild(cardEl(c))});
  }else if(activeRarity==='spotlight'){
-  // Show only story spotlight cards - with placeholders
-  storySpotlightCards.forEach((card,index)=>{
+  // Show story spotlight cards with placeholders
+  storySpotlightCards.forEach((card)=>{
    const ownedCard=ownedMap[card.name];
    if(ownedCard&&ownedCard.spotlight){
     col.appendChild(cardEl(ownedCard));
    }else{
     const placeholder=document.createElement('div');
     placeholder.className='card-placeholder';
-    placeholder.textContent=`#${index+1}`;
+    placeholder.textContent=`#${card.collector_number}`;
     col.appendChild(placeholder);
    }
   });
- }else{
-  allCards.forEach((card,index)=>{
-   if(activeRarity==='fullart'){const ownedCard=ownedMap[card.name];if(!ownedCard||!ownedCard.fullart) return}else if(activeRarity!=='all'&&card.rarity!==activeRarity){return}
-   const ownedCard=ownedMap[card.name];
-   if(ownedCard){col.appendChild(cardEl(ownedCard))}else{const placeholder=document.createElement('div');placeholder.className='card-placeholder';placeholder.textContent=`#${index+1}`;col.appendChild(placeholder)}
+ }else if(activeRarity==='fullart'){
+  // Show only fullart cards, sorted
+  const fullartList=Object.values(owned).filter(c=>c.fullart);
+  fullartList.sort((a,b)=>{
+   const numA=parseInt(a.collectorNum)||0;
+   const numB=parseInt(b.collectorNum)||0;
+   return numA-numB;
   });
-  if(activeRarity==='fullart'||activeRarity==='all'){Object.values(owned).forEach(c=>{if(c.fullart){const inSet=allCards.some(setCard=>setCard.name===c.name);if(!inSet){col.appendChild(cardEl(c))}}})}
+  fullartList.forEach(c=>{col.appendChild(cardEl(c))});
+ }else if(activeRarity==='all'){
+  // Show all regular cards with placeholders, then fullart extras
+  allCards.forEach((card)=>{
+   const ownedCard=ownedMap[card.name];
+   if(ownedCard){
+    col.appendChild(cardEl(ownedCard));
+   }else{
+    const placeholder=document.createElement('div');
+    placeholder.className='card-placeholder';
+    placeholder.textContent=`#${card.collector_number}`;
+    col.appendChild(placeholder);
+   }
+  });
+  // Add fullart variants not in main set
+  const fullartExtras=Object.values(owned).filter(c=>c.fullart&&!allCards.some(setCard=>setCard.name===c.name));
+  fullartExtras.sort((a,b)=>{
+   const numA=parseInt(a.collectorNum)||0;
+   const numB=parseInt(b.collectorNum)||0;
+   return numA-numB;
+  });
+  fullartExtras.forEach(c=>{col.appendChild(cardEl(c))});
+ }else{
+  // Show specific rarity with placeholders
+  allCards.forEach((card)=>{
+   if(card.rarity!==activeRarity) return;
+   const ownedCard=ownedMap[card.name];
+   if(ownedCard){
+    col.appendChild(cardEl(ownedCard));
+   }else{
+    const placeholder=document.createElement('div');
+    placeholder.className='card-placeholder';
+    placeholder.textContent=`#${card.collector_number}`;
+    col.appendChild(placeholder);
+   }
+  });
  }
 }
 
