@@ -394,80 +394,102 @@ function cardEl(card,isRevealing){
 function showCard(card){const m=document.getElementById('cardViewModal');m.style.display='flex';m.innerHTML='';const d=cardEl(card);d.style.maxWidth='300px';m.appendChild(d);m.onclick=()=>{m.style.display='none';m.innerHTML=''}}
 
 function render(){
+ console.log('=== RENDER DEBUG ===');
  const col=document.getElementById('collection');
  col.innerHTML='';
- if(!allCards.length) return;
+ if(!allCards.length){
+  console.log('No cards loaded yet');
+  return;
+ }
+ 
  const owned=data.cards[currentSet]||{};
- const ownedMap={};
- Object.values(owned).forEach(c=>{ownedMap[c.name]=c});
+ console.log('Total owned entries:', Object.keys(owned).length);
+ 
+ // Create a map by card name for quick lookup
+ const ownedByName={};
+ Object.values(owned).forEach(c=>{
+  if(!ownedByName[c.name]){
+   ownedByName[c.name]=[];
+  }
+  ownedByName[c.name].push(c);
+ });
+ 
+ console.log('Active rarity filter:', activeRarity);
+ console.log('Total cards in set:', allCards.length);
  
  if(activeRarity==='secrets'){
-  // Show only masterpiece/secret cards, sorted by collector number
-  const masterpieceList=Object.values(owned).filter(c=>c.masterpiece);
+  console.log('Rendering secrets/masterpieces');
+  const masterpieceList=Object.values(owned).filter(c=>c.masterpiece===true);
   masterpieceList.sort((a,b)=>{
    const numA=parseInt(a.collectorNum)||0;
    const numB=parseInt(b.collectorNum)||0;
    return numA-numB;
   });
+  console.log('Masterpieces found:', masterpieceList.length);
   masterpieceList.forEach(c=>{col.appendChild(cardEl(c))});
+  
  }else if(activeRarity==='spotlight'){
-  // Show story spotlight cards with placeholders
+  console.log('Rendering story spotlight cards');
+  console.log('Total spotlight cards in set:', storySpotlightCards.length);
   storySpotlightCards.forEach((card)=>{
-   const ownedCard=ownedMap[card.name];
-   if(ownedCard&&ownedCard.spotlight){
-    col.appendChild(cardEl(ownedCard));
+   const variants=ownedByName[card.name]||[];
+   const ownedSpotlight=variants.find(v=>v.spotlight===true);
+   if(ownedSpotlight){
+    console.log(`Spotlight owned: ${card.name} (#${card.collector_number})`);
+    col.appendChild(cardEl(ownedSpotlight));
    }else{
+    console.log(`Spotlight missing: ${card.name} (#${card.collector_number})`);
     const placeholder=document.createElement('div');
     placeholder.className='card-placeholder';
     placeholder.textContent=`#${card.collector_number}`;
     col.appendChild(placeholder);
    }
   });
+  
  }else if(activeRarity==='fullart'){
-  // Show only fullart cards, sorted
-  const fullartList=Object.values(owned).filter(c=>c.fullart);
+  console.log('Rendering fullart cards only');
+  const fullartList=Object.values(owned).filter(c=>c.fullart===true);
   fullartList.sort((a,b)=>{
    const numA=parseInt(a.collectorNum)||0;
    const numB=parseInt(b.collectorNum)||0;
    return numA-numB;
   });
+  console.log('Fullart cards found:', fullartList.length);
   fullartList.forEach(c=>{col.appendChild(cardEl(c))});
- }else if(activeRarity==='all'){
-  // Show all regular cards with placeholders, then fullart extras
-  allCards.forEach((card)=>{
-   const ownedCard=ownedMap[card.name];
-   if(ownedCard){
-    col.appendChild(cardEl(ownedCard));
-   }else{
-    const placeholder=document.createElement('div');
-    placeholder.className='card-placeholder';
-    placeholder.textContent=`#${card.collector_number}`;
-    col.appendChild(placeholder);
-   }
-  });
-  // Add fullart variants not in main set
-  const fullartExtras=Object.values(owned).filter(c=>c.fullart&&!allCards.some(setCard=>setCard.name===c.name));
-  fullartExtras.sort((a,b)=>{
-   const numA=parseInt(a.collectorNum)||0;
-   const numB=parseInt(b.collectorNum)||0;
-   return numA-numB;
-  });
-  fullartExtras.forEach(c=>{col.appendChild(cardEl(c))});
+  
  }else{
-  // Show specific rarity with placeholders
-  allCards.forEach((card)=>{
-   if(card.rarity!==activeRarity) return;
-   const ownedCard=ownedMap[card.name];
-   if(ownedCard){
-    col.appendChild(cardEl(ownedCard));
+  // For 'all' or specific rarity filters, show main set cards only
+  console.log('Rendering main set cards');
+  let displayCount=0;
+  
+  allCards.forEach((card,idx)=>{
+   // Skip if filtering by specific rarity
+   if(activeRarity!=='all'&&card.rarity!==activeRarity){
+    return;
+   }
+   
+   // Look for the REGULAR (non-fullart) version of this card
+   const variants=ownedByName[card.name]||[];
+   const regularCard=variants.find(v=>v.fullart===false);
+   
+   if(regularCard){
+    console.log(`Card ${idx}: ${card.name} (#${card.collector_number}) - OWNED`);
+    col.appendChild(cardEl(regularCard));
+    displayCount++;
    }else{
+    console.log(`Card ${idx}: ${card.name} (#${card.collector_number}) - PLACEHOLDER`);
     const placeholder=document.createElement('div');
     placeholder.className='card-placeholder';
     placeholder.textContent=`#${card.collector_number}`;
     col.appendChild(placeholder);
+    displayCount++;
    }
   });
+  
+  console.log(`Displayed ${displayCount} cards for filter: ${activeRarity}`);
  }
+ 
+ console.log('=== RENDER COMPLETE ===');
 }
 
 function updateStats(){
