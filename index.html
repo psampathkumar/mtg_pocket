@@ -159,7 +159,6 @@ async function loadSets(){
  sel.innerHTML='';
  sets.forEach(s=>{const o=document.createElement('option');o.value=s.code;o.textContent=s.name;sel.appendChild(o);setData[s.code]={name:s.name,icon:s.icon_svg_uri}});
  
- // Also store all sets (including child sets) for masterpiece lookup
  j.data.forEach(s=>{if(!setData[s.code]){setData[s.code]={name:s.name,icon:s.icon_svg_uri,parent:s.parent_set_code,type:s.set_type}}});
  
  currentSet=data.lastPack||sel.value;
@@ -172,7 +171,6 @@ async function loadSet(){
  const j=await res.json();
  allCards=j.data.filter(c=>c.image_uris&&['common','uncommon','rare','mythic'].includes(c.rarity));
  
- // Sort by collector number
  allCards.sort((a,b)=>{
   const numA=parseInt(a.collector_number)||0;
   const numB=parseInt(b.collector_number)||0;
@@ -181,7 +179,6 @@ async function loadSet(){
  
  try{const faRes=await fetch(`https://api.scryfall.com/cards/search?q=set:${currentSet}+game:paper+(is:extended+OR+is:fullart)&unique=cards`);const faJson=await faRes.json();fullArtCards=faJson.data.filter(c=>c.image_uris)}catch(e){fullArtCards=[]}
  
- // Load masterpieces from child sets
  masterpieceCards=[];
  const allSetCodes=Object.keys(setData);
  const childMasterpieceSets=allSetCodes.filter(code=>setData[code].parent===currentSet&&setData[code].type==='masterpiece');
@@ -195,7 +192,6 @@ async function loadSet(){
   }
  }
  
- // Load story spotlight cards
  storySpotlightCards=[];
  try{
   const ssRes=await fetch(`https://api.scryfall.com/cards/search?q=set:${currentSet}+is:spotlight&unique=cards`);
@@ -265,7 +261,6 @@ async function openPack(){
    const id=card.id;
    const isNew=!data.cards[currentSet][id];
    
-   // Check if this card is a story spotlight
    const isSpotlight=storySpotlightCards.some(sc=>sc.id===card.id);
    
    if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:false,spotlight:isSpotlight,collectorNum:card.collector_number}}
@@ -273,7 +268,6 @@ async function openPack(){
    pack.push({...data.cards[currentSet][id],isNew});
   }
   
-  // 6th card: Full art bonus
   let got6thCard=false;
   if(Math.random()<FULLART_BONUS_CHANCE&&fullArtCards.length>0){
    const card=fullArtCards[Math.floor(Math.random()*fullArtCards.length)];
@@ -285,7 +279,6 @@ async function openPack(){
    got6thCard=true;
   }
   
-  // 7th card: Masterpiece (only if 6th card appeared)
   if(got6thCard && Math.random()<MASTERPIECE_CHANCE&&masterpieceCards.length>0){
    const card=masterpieceCards[Math.floor(Math.random()*masterpieceCards.length)];
    const id=card.id+'_masterpiece';
@@ -334,11 +327,7 @@ function showPack(pack,isGodPack){
   if(card.spotlight===true) d.classList.add('story-card');
   if(card.isGodPack) d.classList.add('godpack');
   
-  console.log('Showing card:', card.name, 'masterpiece:', card.masterpiece, 'isSecret:', isSecret);
-  
-  // Masterpiece cards ALWAYS get purple glow (check both property and flag)
   if(card.masterpiece===true || isSecret===true){
-   console.log('Applying purple masterpiece glow');
    d.classList.add('godpack');
    d.style.filter='brightness(1.5) drop-shadow(0 0 30px rgba(155,89,182,0.9))';
    const glowDiv=document.createElement('div');
@@ -346,7 +335,6 @@ function showPack(pack,isGodPack){
    glowDiv.style.background='radial-gradient(circle,rgba(155,89,182,0.6),transparent 70%)';
    d.insertBefore(glowDiv,d.firstChild);
   }else if(isBonus===true){
-   console.log('Applying red fullart glow');
    d.classList.add('godpack');
    d.style.filter='brightness(1.3) drop-shadow(0 0 20px rgba(255,107,107,0.8))';
    const glowDiv=document.createElement('div');
@@ -360,7 +348,6 @@ function showPack(pack,isGodPack){
   if(card.spotlight===true) dSmall.classList.add('story-card');
   if(card.isGodPack) dSmall.classList.add('godpack');
   
-  // Masterpiece cards ALWAYS get purple glow in final view too
   if(card.masterpiece===true || isSecret===true){
    dSmall.classList.add('godpack');
    const glowDiv=document.createElement('div');
@@ -394,51 +381,34 @@ function cardEl(card,isRevealing){
 function showCard(card){const m=document.getElementById('cardViewModal');m.style.display='flex';m.innerHTML='';const d=cardEl(card);d.style.maxWidth='300px';m.appendChild(d);m.onclick=()=>{m.style.display='none';m.innerHTML=''}}
 
 function render(){
- console.log('=== RENDER DEBUG ===');
  const col=document.getElementById('collection');
  col.innerHTML='';
- if(!allCards.length){
-  console.log('No cards loaded yet');
-  return;
- }
+ if(!allCards.length){return}
  
  const owned=data.cards[currentSet]||{};
- console.log('Total owned entries:', Object.keys(owned).length);
  
- // Create a map by card name for quick lookup
  const ownedByName={};
  Object.values(owned).forEach(c=>{
-  if(!ownedByName[c.name]){
-   ownedByName[c.name]=[];
-  }
+  if(!ownedByName[c.name]){ownedByName[c.name]=[]}
   ownedByName[c.name].push(c);
  });
  
- console.log('Active rarity filter:', activeRarity);
- console.log('Total cards in set:', allCards.length);
- 
  if(activeRarity==='secrets'){
-  console.log('Rendering secrets/masterpieces');
   const masterpieceList=Object.values(owned).filter(c=>c.masterpiece===true);
   masterpieceList.sort((a,b)=>{
    const numA=parseInt(a.collectorNum)||0;
    const numB=parseInt(b.collectorNum)||0;
    return numA-numB;
   });
-  console.log('Masterpieces found:', masterpieceList.length);
   masterpieceList.forEach(c=>{col.appendChild(cardEl(c))});
   
  }else if(activeRarity==='spotlight'){
-  console.log('Rendering story spotlight cards');
-  console.log('Total spotlight cards in set:', storySpotlightCards.length);
   storySpotlightCards.forEach((card)=>{
    const variants=ownedByName[card.name]||[];
    const ownedSpotlight=variants.find(v=>v.spotlight===true);
    if(ownedSpotlight){
-    console.log(`Spotlight owned: ${card.name} (#${card.collector_number})`);
     col.appendChild(cardEl(ownedSpotlight));
    }else{
-    console.log(`Spotlight missing: ${card.name} (#${card.collector_number})`);
     const placeholder=document.createElement('div');
     placeholder.className='card-placeholder';
     placeholder.textContent=`#${card.collector_number}`;
@@ -447,77 +417,86 @@ function render(){
   });
   
  }else if(activeRarity==='fullart'){
-  console.log('Rendering fullart cards only');
   const fullartList=Object.values(owned).filter(c=>c.fullart===true);
   fullartList.sort((a,b)=>{
    const numA=parseInt(a.collectorNum)||0;
    const numB=parseInt(b.collectorNum)||0;
    return numA-numB;
   });
-  console.log('Fullart cards found:', fullartList.length);
   fullartList.forEach(c=>{col.appendChild(cardEl(c))});
   
- }else{
-  // For 'all' or specific rarity filters, show main set cards only
-  console.log('Rendering main set cards');
-  let displayCount=0;
-  
-  allCards.forEach((card,idx)=>{
-   // Skip if filtering by specific rarity
-   if(activeRarity!=='all'&&card.rarity!==activeRarity){
-    return;
-   }
-   
-   // Look for the REGULAR (non-fullart) version of this card
+ }else if(activeRarity==='all'){
+  allCards.forEach((card)=>{
    const variants=ownedByName[card.name]||[];
    const regularCard=variants.find(v=>v.fullart===false);
-   
    if(regularCard){
-    console.log(`Card ${idx}: ${card.name} (#${card.collector_number}) - OWNED`);
     col.appendChild(cardEl(regularCard));
-    displayCount++;
    }else{
-    console.log(`Card ${idx}: ${card.name} (#${card.collector_number}) - PLACEHOLDER`);
     const placeholder=document.createElement('div');
     placeholder.className='card-placeholder';
     placeholder.textContent=`#${card.collector_number}`;
     col.appendChild(placeholder);
-    displayCount++;
    }
   });
   
-  console.log(`Displayed ${displayCount} cards for filter: ${activeRarity}`);
+  const fullartList=Object.values(owned).filter(c=>c.fullart===true);
+  fullartList.sort((a,b)=>{
+   const numA=parseInt(a.collectorNum)||0;
+   const numB=parseInt(b.collectorNum)||0;
+   return numA-numB;
+  });
+  fullartList.forEach(c=>{col.appendChild(cardEl(c))});
+  
+  const spotlightList=Object.values(owned).filter(c=>c.spotlight===true);
+  spotlightList.sort((a,b)=>{
+   const numA=parseInt(a.collectorNum)||0;
+   const numB=parseInt(b.collectorNum)||0;
+   return numA-numB;
+  });
+  spotlightList.forEach(c=>{col.appendChild(cardEl(c))});
+  
+  const masterpieceList=Object.values(owned).filter(c=>c.masterpiece===true);
+  masterpieceList.sort((a,b)=>{
+   const numA=parseInt(a.collectorNum)||0;
+   const numB=parseInt(b.collectorNum)||0;
+   return numA-numB;
+  });
+  masterpieceList.forEach(c=>{col.appendChild(cardEl(c))});
+  
+ }else{
+  allCards.forEach((card)=>{
+   if(card.rarity!==activeRarity){return}
+   const variants=ownedByName[card.name]||[];
+   const regularCard=variants.find(v=>v.fullart===false);
+   if(regularCard){
+    col.appendChild(cardEl(regularCard));
+   }else{
+    const placeholder=document.createElement('div');
+    placeholder.className='card-placeholder';
+    placeholder.textContent=`#${card.collector_number}`;
+    col.appendChild(placeholder);
+   }
+  });
  }
- 
- console.log('=== RENDER COMPLETE ===');
 }
 
 function updateStats(){
- console.log('### updateStats called ###');
  const statsEl=document.getElementById('stats');
- if(!currentSet){console.log('No currentSet, returning');return}
+ if(!currentSet){return}
  const owned=data.cards[currentSet]||{};
- console.log('Total owned entries:', Object.keys(owned).length);
  const uniqueOwned={common:0,uncommon:0,rare:0,mythic:0};
  const ownedNames=new Set();
  Object.values(owned).forEach(c=>{
   if(c.fullart===false && !ownedNames.has(c.name)){uniqueOwned[c.rarity]++;ownedNames.add(c.name)}
  });
- console.log('Unique owned (fullart===false):', uniqueOwned);
- console.log('Unique names count:', ownedNames.size);
  const totals={common:0,uncommon:0,rare:0,mythic:0};
  allCards.forEach(c=>totals[c.rarity]++);
- console.log('Totals per rarity:', totals);
- console.log('setSize:', setSize);
  const fullartTotal=fullArtCards.length;
  const fullartOwned=Object.values(owned).filter(c=>c.fullart===true).length;
  const masterpieceOwned=Object.values(owned).filter(c=>c.masterpiece===true).length;
  const storySpotlightOwned=Object.values(owned).filter(c=>c.spotlight===true).length;
  const storySpotlightTotal=storySpotlightCards.length;
- console.log('Full art owned/total:', fullartOwned, '/', fullartTotal);
- console.log('Masterpiece owned:', masterpieceOwned);
- console.log('Story spotlight owned/total:', storySpotlightOwned, '/', storySpotlightTotal);
- statsEl.innerHTML=`<div class='statBox' data-rarity='all'><b>All Cards</b> ${ownedNames.size}/${setSize}<div class='progress'><div style='width:${Math.min(100,ownedNames.size/setSize*100)}%'></div></div></div>${['common','uncommon','rare','mythic'].map(r=>`<div class='statBox' data-rarity='${r}'><b>${r.toUpperCase()}</b> ${uniqueOwned[r]}/${totals[r]}<div class='progress'><div style='width:${totals[r]?uniqueOwned[r]/totals[r]*100:0}%'></div></div></div>`).join('')}<div class='statBox' data-rarity='fullart' style='background:linear-gradient(135deg,#2a2a3e,#1a1a2e);border:2px solid #ff6b6b'><b>FULL ART</b> ${fullartOwned}/${fullartTotal}<div class='progress'><div style='width:${fullartTotal?fullartOwned/fullartTotal*100:0}%;background:linear-gradient(90deg,#ff6b6b,#ee5a6f)'></div></div></div>${storySpotlightTotal>0?`<div class='statBox' data-rarity='spotlight' style='background:linear-gradient(135deg,#2a3a4e,#1a2a3e);border:2px solid #3498db'><b>STORY SPOTLIGHT</b> ${storySpotlightOwned}/${storySpotlightTotal}<div class='progress'><div style='width:${storySpotlightTotal?storySpotlightOwned/storySpotlightTotal*100:0}%;background:linear-gradient(90deg,#3498db,#2980b9)'></div></div></div>`:''}${masterpieceCards.length>0?`<div class='statBox' data-rarity='secrets' style='background:linear-gradient(135deg,#3a1a5e,#1a0a2e);border:2px solid #9b59b6'><b>SECRETS</b> ${masterpieceOwned}<div class='progress'><div style='width:100%;background:linear-gradient(90deg,#9b59b6,#8e44ad)'></div></div></div>`:''}`;
+ statsEl.innerHTML=`<div class='statBox' data-rarity='all'><b>All Cards</b> ${ownedNames.size}/${setSize}</div>${['common','uncommon','rare','mythic'].map(r=>`<div class='statBox' data-rarity='${r}'><b>${r.toUpperCase()}</b> ${uniqueOwned[r]}/${totals[r]}<div class='progress'><div style='width:${totals[r]?uniqueOwned[r]/totals[r]*100:0}%'></div></div></div>`).join('')}<div class='statBox' data-rarity='fullart' style='background:linear-gradient(135deg,#2a2a3e,#1a1a2e);border:2px solid #ff6b6b'><b>FULL ART</b> ${fullartOwned}/${fullartTotal}<div class='progress'><div style='width:${fullartTotal?fullartOwned/fullartTotal*100:0}%;background:linear-gradient(90deg,#ff6b6b,#ee5a6f)'></div></div></div>${storySpotlightTotal>0?`<div class='statBox' data-rarity='spotlight' style='background:linear-gradient(135deg,#2a3a4e,#1a2a3e);border:2px solid #3498db'><b>STORY SPOTLIGHT</b> ${storySpotlightOwned}/${storySpotlightTotal}<div class='progress'><div style='width:${storySpotlightTotal?storySpotlightOwned/storySpotlightTotal*100:0}%;background:linear-gradient(90deg,#3498db,#2980b9)'></div></div></div>`:''}${masterpieceCards.length>0?`<div class='statBox' data-rarity='secrets' style='background:linear-gradient(135deg,#3a1a5e,#1a0a2e);border:2px solid #9b59b6'><b>SECRETS</b> ${masterpieceOwned}<div class='progress'><div style='width:100%;background:linear-gradient(90deg,#9b59b6,#8e44ad)'></div></div></div>`:''}`;
  statsEl.querySelectorAll('.statBox').forEach(box=>{box.onclick=()=>{activeRarity=box.dataset.rarity;statsEl.querySelectorAll('.statBox').forEach(b=>b.classList.remove('active'));box.classList.add('active');render()}});
 }
 
