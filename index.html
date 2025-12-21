@@ -33,6 +33,9 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
   transform-style:preserve-3d;
   transition:transform 0.6s;
 }
+.card .card-inner.no-transition{
+  transition:none;
+}
 .card-front,
 .card-back{
   position:absolute;
@@ -139,8 +142,12 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
   }
 }
 @keyframes cardExit{
-  0%{transform:translateX(0) rotateY(0deg);opacity:1}
-  100%{transform:translateX(100vw) rotateY(270deg);opacity:0}
+  0%{transform:translateX(0);opacity:1}
+  100%{transform:translateX(100vw);opacity:0}
+}
+@keyframes cardFlipExit{
+  0%{transform:rotateY(0deg)}
+  100%{transform:rotateY(270deg)}
 }
 @keyframes godpack{
   0%,100%{box-shadow:0 0 20px rgba(255,215,0,0.5),0 0 40px rgba(255,215,0,0.3)}
@@ -201,8 +208,7 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 
 #packModal,#cardViewModal{position:fixed;inset:0;background:rgba(0,0,0,.95);display:none;align-items:center;justify-content:center;z-index:1000;padding:clamp(0.5rem,2vw,1rem);flex-direction:column}
 .singleCardView{display:flex;align-items:center;justify-content:center;width:100%;height:100%;cursor:pointer;perspective:1000px}
-.singleCardView .card{width:clamp(250px,60vw,400px);max-width:90vw;box-shadow:0 30px 80px rgba(0,0,0,0.8);max-height:80vh}
-.singleCardView .card > div{padding-bottom:140% !important}
+.singleCardView .card{width:clamp(250px,60vw,400px);max-width:90vw;box-shadow:0 30px 80px rgba(0,0,0,0.8)}
 #cardViewModal .card{perspective:1000px}
 .allCardsView{display:none}
 .packCards{display:flex;gap:clamp(0.5rem,2vw,1rem);flex-wrap:wrap;justify-content:center;max-width:100%;align-items:center}
@@ -252,12 +258,9 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
           <span>Free Packs</span>
         </label>
       </div>
-      <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.75rem">
+      <div style="display:flex;gap:0.5rem;align-items:center">
         <input type="text" id="collectorInput" placeholder="Collector #" style="flex:1;padding:0.5rem;background:#222;border:1px solid #444;border-radius:6px;color:#fff;font-size:0.9rem">
         <button id="addCardBtn" style="padding:0.5rem 1rem;font-size:0.9rem">Add Card</button>
-      </div>
-      <div>
-        <button id="testFlipBtn" style="padding:0.5rem 1rem;font-size:0.9rem;width:100%">🧪 Test Flip</button>
       </div>
     </div>
   </div>
@@ -534,9 +537,31 @@ function showPack(pack,isGodPack){
    const card=allPackCards[currentIndex];
    const isBonus=card.isBonus;
    const isSecret=card.isSecret;
-   if(singleView.children.length>0){const existingCard=singleView.children[0];existingCard.style.animation='cardExit 0.5s ease-in forwards';setTimeout(()=>{showCardInternal(card,isBonus,isSecret)},500)}else{showCardInternal(card,isBonus,isSecret)}
+   if(singleView.children.length>0){
+    const existingCard=singleView.children[0];
+    const existingInner=existingCard.querySelector('.card-inner');
+    existingCard.style.animation='cardExit 0.5s ease-in forwards';
+    if(existingInner){
+     existingInner.classList.add('no-transition');
+     existingInner.style.animation='cardFlipExit 0.5s ease-in forwards';
+    }
+    setTimeout(()=>{showCardInternal(card,isBonus,isSecret)},500);
+   }else{
+    showCardInternal(card,isBonus,isSecret);
+   }
   }else{
-   if(singleView.children.length>0){const existingCard=singleView.children[0];existingCard.style.animation='cardExit 0.5s ease-in forwards';setTimeout(()=>{singleView.style.display='none';allView.style.display='block';allCardsShown=true;singleView.onclick=null},500)}else{singleView.style.display='none';allView.style.display='block';allCardsShown=true;singleView.onclick=null}
+   if(singleView.children.length>0){
+    const existingCard=singleView.children[0];
+    const existingInner=existingCard.querySelector('.card-inner');
+    existingCard.style.animation='cardExit 0.5s ease-in forwards';
+    if(existingInner){
+     existingInner.classList.add('no-transition');
+     existingInner.style.animation='cardFlipExit 0.5s ease-in forwards';
+    }
+    setTimeout(()=>{singleView.style.display='none';allView.style.display='block';allCardsShown=true;singleView.onclick=null},500);
+   }else{
+    singleView.style.display='none';allView.style.display='block';allCardsShown=true;singleView.onclick=null;
+   }
   }
  }
  function showCardInternal(card,isBonus,isSecret){
@@ -544,6 +569,7 @@ function showPack(pack,isGodPack){
   
   const cardDiv=document.createElement('div');
   cardDiv.className=`card rarity-${card.rarity}`;
+  cardDiv.style.cssText='width:100%;max-width:400px';
   
   const innerDiv=document.createElement('div');
   innerDiv.className='card-inner';
@@ -581,12 +607,14 @@ function showPack(pack,isGodPack){
    const glowDiv=document.createElement('div');
    glowDiv.className='bonus-glow';
    glowDiv.style.background='radial-gradient(circle,rgba(155,89,182,0.6),transparent 70%)';
+   glowDiv.style.pointerEvents='none';
    cardDiv.insertBefore(glowDiv,cardDiv.firstChild);
   }else if(isBonus===true){
    cardDiv.classList.add('godpack');
    cardDiv.style.filter='brightness(1.3) drop-shadow(0 0 20px rgba(255,107,107,0.8))';
    const glowDiv=document.createElement('div');
    glowDiv.className='bonus-glow';
+   glowDiv.style.pointerEvents='none';
    cardDiv.insertBefore(glowDiv,cardDiv.firstChild);
   }
   
@@ -602,6 +630,7 @@ function showPack(pack,isGodPack){
    const glowDiv=document.createElement('div');
    glowDiv.className='bonus-glow';
    glowDiv.style.background='radial-gradient(circle,rgba(155,89,182,0.6),transparent 70%)';
+   glowDiv.style.pointerEvents='none';
    smallCard.insertBefore(glowDiv,smallCard.firstChild);
   }else if(isBonus===true){
    smallCard.classList.add('godpack');
@@ -874,67 +903,6 @@ document.getElementById('freeMode').onchange=update;
 document.getElementById('devToggle').onclick=()=>{
  const panel=document.getElementById('devPanel');
  panel.style.display=panel.style.display==='none'?'block':'none';
-};
-
-document.getElementById('testFlipBtn').onclick=()=>{
- const modal=document.getElementById('cardViewModal');
- modal.style.display='flex';
- modal.innerHTML='';
- 
- const container=document.createElement('div');
- container.style.cssText='display:flex;flex-direction:column;align-items:center;gap:1.5rem';
- 
- const perspectiveDiv=document.createElement('div');
- perspectiveDiv.style.cssText='perspective:1000px;width:300px;height:420px';
- 
- const cardDiv=document.createElement('div');
- cardDiv.className='card';
- cardDiv.style.cssText='width:100%;height:100%';
- 
- const innerDiv=document.createElement('div');
- innerDiv.className='card-inner';
- innerDiv.style.cssText='width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 0.6s';
- 
- const frontDiv=document.createElement('div');
- frontDiv.className='card-front';
- frontDiv.style.cssText='position:absolute;width:100%;height:100%;backface-visibility:hidden;background:red;display:flex;align-items:center;justify-content:center;font-size:3rem;color:white;border-radius:12px';
- frontDiv.textContent='FRONT';
- 
- const backDiv=document.createElement('div');
- backDiv.className='card-back';
- backDiv.style.cssText='position:absolute;width:100%;height:100%;backface-visibility:hidden;background:blue;display:flex;align-items:center;justify-content:center;font-size:3rem;color:white;transform:rotateY(180deg);border-radius:12px';
- backDiv.textContent='BACK';
- 
- innerDiv.appendChild(frontDiv);
- innerDiv.appendChild(backDiv);
- cardDiv.appendChild(innerDiv);
- perspectiveDiv.appendChild(cardDiv);
- 
- const flipBtn=document.createElement('button');
- flipBtn.textContent='🔄 Flip Test Card';
- flipBtn.style.cssText='padding:0.75rem 1.5rem;font-size:1rem';
- flipBtn.onclick=()=>{
-  const isFlipped=innerDiv.style.transform==='rotateY(180deg)';
-  innerDiv.style.transform=isFlipped?'rotateY(0deg)':'rotateY(180deg)';
- };
- 
- const closeBtn=document.createElement('button');
- closeBtn.textContent='Close';
- closeBtn.style.cssText='padding:0.5rem 1rem;font-size:0.9rem;background:#666';
- closeBtn.onclick=()=>{
-  modal.style.display='none';
- };
- 
- container.appendChild(perspectiveDiv);
- container.appendChild(flipBtn);
- container.appendChild(closeBtn);
- modal.appendChild(container);
- 
- modal.onclick=(e)=>{
-  if(e.target===modal){
-   modal.style.display='none';
-  }
- };
 };
 
 document.getElementById('addCardBtn').onclick=()=>{
