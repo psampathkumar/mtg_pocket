@@ -19,8 +19,45 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 .progress{height:8px;background:#222;border-radius:6px;overflow:hidden;margin-top:6px}
 .progress div{height:100%;background:linear-gradient(90deg,#4facfe,#00f2fe)}
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(120px,45vw),1fr));gap:clamp(0.5rem,2vw,1rem);padding:clamp(0.5rem,2vw,1rem)}
-.card{position:relative;background:#111;border-radius:clamp(12px,3vw,16px);overflow:hidden;cursor:pointer}
-.card img{width:100%;display:block;position:relative;z-index:1}
+.card{
+  position:relative;
+  background:#111;
+  border-radius:clamp(12px,3vw,16px);
+  cursor:pointer;
+  transform-style:preserve-3d;
+  transition:transform 0.6s;
+}
+.card .card-front,
+.card .card-back{
+  width:100%;
+  height:100%;
+  position:absolute;
+  top:0;
+  left:0;
+  backface-visibility:hidden;
+  -webkit-backface-visibility:hidden;
+}
+.card .card-front{
+  z-index:2;
+  transform:rotateY(0deg);
+}
+.card .card-back{
+  transform:rotateY(180deg);
+}
+.card .card-front img,
+.card .card-back img{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+  border-radius:clamp(12px,3vw,16px);
+}
+.card.flipped .card-front{
+  transform:rotateY(180deg);
+}
+.card.flipped .card-back{
+  transform:rotateY(0deg);
+}
 .card:hover{box-shadow:0 20px 40px rgba(0,0,0,.6)}
 .count{position:absolute;bottom:clamp(4px,1vw,6px);right:clamp(4px,1vw,6px);background:rgba(0,0,0,.7);padding:2px 6px;border-radius:8px;font-size:clamp(0.7rem,2vw,0.75rem);z-index:2}
 .new-card::after{content:'NEW';position:absolute;top:6px;left:6px;background:#ffd700;color:#000;font-weight:700;padding:2px 6px;border-radius:4px;font-size:clamp(0.65rem,2vw,0.75rem);z-index:10}
@@ -163,7 +200,9 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 
 #packModal,#cardViewModal{position:fixed;inset:0;background:rgba(0,0,0,.95);display:none;align-items:center;justify-content:center;z-index:1000;padding:clamp(0.5rem,2vw,1rem);flex-direction:column}
 .singleCardView{display:flex;align-items:center;justify-content:center;width:100%;height:100%;cursor:pointer;perspective:1000px}
-.singleCardView .card{width:clamp(250px,60vw,400px);max-width:90vw;box-shadow:0 30px 80px rgba(0,0,0,0.8)}
+.singleCardView .card{width:clamp(250px,60vw,400px);max-width:90vw;box-shadow:0 30px 80px rgba(0,0,0,0.8);max-height:80vh}
+.singleCardView .card > div{padding-bottom:140% !important}
+#cardViewModal .card{perspective:1000px}
 .allCardsView{display:none}
 .packCards{display:flex;gap:clamp(0.5rem,2vw,1rem);flex-wrap:wrap;justify-content:center;max-width:100%;align-items:center}
 .packCards .card{width:clamp(100px,25vw,180px);max-width:180px}
@@ -222,6 +261,7 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 
 <script>
 const PACK_COST=6,INTERVAL=3600000,FULLART_BONUS_CHANCE=0.10,GODPACK_CHANCE=0.015,MASTERPIECE_CHANCE=0.25;
+const MTG_CARD_BACK='https://files.mtg.wiki/Magic_card_back.jpg';
 let data=JSON.parse(localStorage.getItem('mtgPocket'))||{points:0,last:Date.now(),cards:{},lastPack:null};
 let allCards=[],fullArtCards=[],masterpieceCards=[],storySpotlightCards=[],currentSet=null,setSize=0,activeRarity='all',setData={};
 
@@ -230,6 +270,7 @@ function migrateData(){
   Object.keys(data.cards[setCode]).forEach(cardId=>{
    const card=data.cards[setCode][cardId];
    if(card.fullart===undefined){card.fullart=cardId.endsWith('_fullart')}
+   if(card.backImg===undefined){card.backImg=MTG_CARD_BACK}
   });
  });
  save();
@@ -237,6 +278,22 @@ function migrateData(){
 migrateData();
 
 function save(){localStorage.setItem('mtgPocket',JSON.stringify(data))}
+
+async function fetchAllPages(url){
+ let allData=[];
+ let nextUrl=url;
+ while(nextUrl){
+  const res=await fetch(nextUrl);
+  const json=await res.json();
+  allData.push(...json.data);
+  nextUrl=json.next_page||null;
+  if(nextUrl){
+   console.log('Fetching next page:', nextUrl);
+   await new Promise(resolve=>setTimeout(resolve,100)); // Small delay to respect rate limits
+  }
+ }
+ return allData;
+}
 
 function enableTilt(el){
  el.onmousemove=e=>{const r=el.getBoundingClientRect();const x=(e.clientX-r.left)/r.width-.5;const y=(e.clientY-r.top)/r.height-.5;el.style.transform=`perspective(800px) rotateX(${-y*15}deg) rotateY(${x*15}deg) scale(1.05)`};
@@ -246,15 +303,14 @@ function enableTilt(el){
 }
 
 async function loadSets(){
- const r=await fetch('https://api.scryfall.com/sets');
- const j=await r.json();
- let sets=j.data.filter(s=>s.released_at&&s.card_count>100&&s.icon_svg_uri&&!s.parent_set_code&&!s.name.toLowerCase().includes('jumpstart')&&!s.name.toLowerCase().includes('promo')&&!/Commander\s*$/i.test(s.name));
+ const allData=await fetchAllPages('https://api.scryfall.com/sets');
+ let sets=allData.filter(s=>s.released_at&&s.card_count>100&&s.icon_svg_uri&&!s.parent_set_code&&!s.name.toLowerCase().includes('jumpstart')&&!s.name.toLowerCase().includes('promo')&&!/Commander\s*$/i.test(s.name));
  sets.sort((a,b)=>new Date(b.released_at)-new Date(a.released_at));
  const sel=document.getElementById('setSelect');
  sel.innerHTML='';
  sets.forEach(s=>{const o=document.createElement('option');o.value=s.code;o.textContent=s.name;sel.appendChild(o);setData[s.code]={name:s.name,icon:s.icon_svg_uri}});
  
- j.data.forEach(s=>{if(!setData[s.code]){setData[s.code]={name:s.name,icon:s.icon_svg_uri,parent:s.parent_set_code,type:s.set_type}}});
+ allData.forEach(s=>{if(!setData[s.code]){setData[s.code]={name:s.name,icon:s.icon_svg_uri,parent:s.parent_set_code,type:s.set_type}}});
  
  currentSet=data.lastPack||sel.value;
  sel.value=currentSet;
@@ -262,9 +318,23 @@ async function loadSets(){
 }
 
 async function loadSet(){
- const res=await fetch(`https://api.scryfall.com/cards/search?q=set:${currentSet}+game:paper&unique=cards`);
- const j=await res.json();
- allCards=j.data.filter(c=>c.image_uris&&['common','uncommon','rare','mythic'].includes(c.rarity));
+ console.log('=== LOAD SET DEBUG ===');
+ 
+ const allData=await fetchAllPages(`https://api.scryfall.com/cards/search?q=set:${currentSet}+game:paper&unique=cards`);
+ console.log('Total cards from API (all pages):', allData.length);
+ 
+ // Include both single-faced cards AND multi-faced cards
+ allCards=allData.filter(c=>{
+  const hasRarity=['common','uncommon','rare','mythic'].includes(c.rarity);
+  if(!hasRarity) return false;
+  
+  const hasTopLevelImage=c.image_uris;
+  const hasCardFaceImage=c.card_faces&&c.card_faces.length>0&&c.card_faces[0].image_uris;
+  
+  return hasTopLevelImage||hasCardFaceImage;
+ });
+ 
+ console.log('Filtered allCards:', allCards.length);
  
  allCards.sort((a,b)=>{
   const numA=parseInt(a.collector_number)||0;
@@ -272,7 +342,11 @@ async function loadSet(){
   return numA-numB;
  });
  
- try{const faRes=await fetch(`https://api.scryfall.com/cards/search?q=set:${currentSet}+game:paper+(is:extended+OR+is:fullart)&unique=cards`);const faJson=await faRes.json();fullArtCards=faJson.data.filter(c=>c.image_uris)}catch(e){fullArtCards=[]}
+ try{
+  const faData=await fetchAllPages(`https://api.scryfall.com/cards/search?q=set:${currentSet}+game:paper+(is:extended+OR+is:fullart)&unique=cards`);
+  fullArtCards=faData.filter(c=>c.image_uris||c.card_faces);
+  console.log('Full art cards:', fullArtCards.length);
+ }catch(e){fullArtCards=[]}
  
  masterpieceCards=[];
  const allSetCodes=Object.keys(setData);
@@ -280,26 +354,28 @@ async function loadSet(){
  if(childMasterpieceSets.length>0){
   for(const childCode of childMasterpieceSets){
    try{
-    const mpRes=await fetch(`https://api.scryfall.com/cards/search?q=set:${childCode}+game:paper&unique=cards`);
-    const mpJson=await mpRes.json();
-    masterpieceCards.push(...mpJson.data.filter(c=>c.image_uris));
+    const mpData=await fetchAllPages(`https://api.scryfall.com/cards/search?q=set:${childCode}+game:paper&unique=cards`);
+    masterpieceCards.push(...mpData.filter(c=>c.image_uris||c.card_faces));
    }catch(e){}
   }
  }
+ console.log('Masterpiece cards:', masterpieceCards.length);
  
  storySpotlightCards=[];
  try{
-  const ssRes=await fetch(`https://api.scryfall.com/cards/search?q=set:${currentSet}+is:spotlight&unique=cards`);
-  const ssJson=await ssRes.json();
-  storySpotlightCards=ssJson.data.filter(c=>c.image_uris);
+  const ssData=await fetchAllPages(`https://api.scryfall.com/cards/search?q=set:${currentSet}+is:spotlight&unique=cards`);
+  storySpotlightCards=ssData.filter(c=>c.image_uris||c.card_faces);
   storySpotlightCards.sort((a,b)=>{
    const numA=parseInt(a.collector_number)||0;
    const numB=parseInt(b.collector_number)||0;
    return numA-numB;
   });
+  console.log('Story spotlight cards:', storySpotlightCards.length);
  }catch(e){}
  
  setSize=allCards.length;
+ console.log('Final setSize:', setSize);
+ console.log('=== END LOAD SET DEBUG ===');
  updatePackImage();
  render();
  updateStats();
@@ -339,12 +415,36 @@ async function openPack(){
  data.lastPack=currentSet;
  const isGodPack=Math.random()<GODPACK_CHANCE&&fullArtCards.length>0;
  let pack=[];
+ 
+ console.log('=== OPEN PACK DEBUG ===');
+ 
+ function getCardImages(card){
+  console.log('Getting images for:', card.name);
+  console.log('Has image_uris:', !!card.image_uris);
+  console.log('Has card_faces:', !!card.card_faces);
+  
+  if(card.image_uris){
+   const front=card.image_uris.normal;
+   const back=card.card_faces&&card.card_faces.length>1&&card.card_faces[1].image_uris?card.card_faces[1].image_uris.normal:MTG_CARD_BACK;
+   console.log('Single-face - Front:', front, 'Back:', back);
+   return {front,back};
+  }else if(card.card_faces&&card.card_faces.length>0){
+   const front=card.card_faces[0].image_uris?card.card_faces[0].image_uris.normal:MTG_CARD_BACK;
+   const back=card.card_faces.length>1&&card.card_faces[1].image_uris?card.card_faces[1].image_uris.normal:MTG_CARD_BACK;
+   console.log('Multi-face - Front:', front, 'Back:', back);
+   return {front,back};
+  }
+  console.log('ERROR: No images found!');
+  return {front:MTG_CARD_BACK,back:MTG_CARD_BACK};
+ }
+ 
  if(isGodPack){
   for(let i=0;i<5;i++){
    const card=fullArtCards[Math.floor(Math.random()*fullArtCards.length)];
    const id=card.id+'_fullart';
    const isNew=!data.cards[currentSet][id];
-   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:true,collectorNum:card.collector_number}}
+   const imgs=getCardImages(card);
+   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:imgs.front,backImg:imgs.back,count:0,fullart:true,collectorNum:card.collector_number}}
    data.cards[currentSet][id].count++;
    pack.push({...data.cards[currentSet][id],isNew,isGodPack:true});
   }
@@ -352,13 +452,15 @@ async function openPack(){
   for(let i=0;i<5;i++){
    const rarity=roll();
    const pool=allCards.filter(c=>c.rarity===rarity);
+   console.log('Pool for', rarity, ':', pool.length);
    const card=pool[Math.floor(Math.random()*pool.length)];
    const id=card.id;
    const isNew=!data.cards[currentSet][id];
    
    const isSpotlight=storySpotlightCards.some(sc=>sc.id===card.id);
+   const imgs=getCardImages(card);
    
-   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:false,spotlight:isSpotlight,collectorNum:card.collector_number}}
+   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:imgs.front,backImg:imgs.back,count:0,fullart:false,spotlight:isSpotlight,collectorNum:card.collector_number}}
    data.cards[currentSet][id].count++;
    pack.push({...data.cards[currentSet][id],isNew});
   }
@@ -368,7 +470,8 @@ async function openPack(){
    const card=fullArtCards[Math.floor(Math.random()*fullArtCards.length)];
    const id=card.id+'_fullart';
    const isNew=!data.cards[currentSet][id];
-   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,fullart:true,collectorNum:card.collector_number}}
+   const imgs=getCardImages(card);
+   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:imgs.front,backImg:imgs.back,count:0,fullart:true,collectorNum:card.collector_number}}
    data.cards[currentSet][id].count++;
    pack.push({...data.cards[currentSet][id],isNew,isBonus:true});
    got6thCard=true;
@@ -378,11 +481,16 @@ async function openPack(){
    const card=masterpieceCards[Math.floor(Math.random()*masterpieceCards.length)];
    const id=card.id+'_masterpiece';
    const isNew=!data.cards[currentSet][id];
-   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:card.image_uris.normal,count:0,masterpiece:true,collectorNum:card.collector_number}}
+   const imgs=getCardImages(card);
+   if(!data.cards[currentSet][id]){data.cards[currentSet][id]={name:card.name,rarity:card.rarity,img:imgs.front,backImg:imgs.back,count:0,masterpiece:true,collectorNum:card.collector_number}}
    data.cards[currentSet][id].count++;
    pack.push({...data.cards[currentSet][id],isNew,isSecret:true});
   }
  }
+ 
+ console.log('Pack contents:', pack);
+ console.log('=== END OPEN PACK DEBUG ===');
+ 
  save();
  updatePackImage();
  showPack(pack,isGodPack);
@@ -415,29 +523,59 @@ function showPack(pack,isGodPack){
  }
  function showCardInternal(card,isBonus,isSecret){
   singleView.innerHTML='';
+  
   const d=document.createElement('div');
   d.className=`card rarity-${card.rarity}`;
-  d.innerHTML=`<img src="${card.img}"><div class="count">x${card.count}</div>`;
+  
+  const aspectWrapper=document.createElement('div');
+  aspectWrapper.style.cssText='position:relative;width:100%;padding-bottom:140%;overflow:hidden;border-radius:clamp(12px,3vw,16px);transform-style:preserve-3d';
+  
+  const frontDiv=document.createElement('div');
+  frontDiv.className='card-front';
+  const frontImg=document.createElement('img');
+  frontImg.src=card.img;
+  console.log('Card reveal - Front image:', card.img);
+  frontDiv.appendChild(frontImg);
+  
+  const backDiv=document.createElement('div');
+  backDiv.className='card-back';
+  const backImg=document.createElement('img');
+  backImg.src=card.backImg||MTG_CARD_BACK;
+  console.log('Card reveal - Back image:', card.backImg||MTG_CARD_BACK);
+  backDiv.appendChild(backImg);
+  
+  const countDiv=document.createElement('div');
+  countDiv.className='count';
+  countDiv.textContent=`x${card.count}`;
+  countDiv.style.position='absolute';
+  countDiv.style.zIndex='10';
+  
+  aspectWrapper.appendChild(frontDiv);
+  aspectWrapper.appendChild(backDiv);
+  aspectWrapper.appendChild(countDiv);
+  d.appendChild(aspectWrapper);
+  
   if(card.isNew) d.classList.add('new-card');
   if(card.spotlight===true) d.classList.add('story-card');
   if(card.isGodPack) d.classList.add('godpack');
   
   if(card.masterpiece===true || isSecret===true){
    d.classList.add('godpack');
-   d.style.filter='brightness(1.5) drop-shadow(0 0 30px rgba(155,89,182,0.9))';
+   aspectWrapper.style.filter='brightness(1.5) drop-shadow(0 0 30px rgba(155,89,182,0.9))';
    const glowDiv=document.createElement('div');
    glowDiv.className='bonus-glow';
    glowDiv.style.background='radial-gradient(circle,rgba(155,89,182,0.6),transparent 70%)';
-   d.insertBefore(glowDiv,d.firstChild);
+   aspectWrapper.insertBefore(glowDiv,aspectWrapper.firstChild);
   }else if(isBonus===true){
    d.classList.add('godpack');
-   d.style.filter='brightness(1.3) drop-shadow(0 0 20px rgba(255,107,107,0.8))';
+   aspectWrapper.style.filter='brightness(1.3) drop-shadow(0 0 20px rgba(255,107,107,0.8))';
    const glowDiv=document.createElement('div');
    glowDiv.className='bonus-glow';
-   d.insertBefore(glowDiv,d.firstChild);
+   aspectWrapper.insertBefore(glowDiv,aspectWrapper.firstChild);
   }
   
   singleView.appendChild(d);
+  
   const dSmall=cardEl(card,false);
   if(card.isNew) dSmall.classList.add('new-card');
   if(card.spotlight===true) dSmall.classList.add('story-card');
@@ -468,12 +606,109 @@ function addBonusGlow(cardElement){const glowDiv=document.createElement('div');g
 function cardEl(card,isRevealing){
  const d=document.createElement('div');
  d.className=`card rarity-${card.rarity}`;
- d.innerHTML=`<img src="${card.img}"><div class="count">x${card.count}</div>`;
- if(!isRevealing){enableTilt(d);d.onclick=e=>{e.stopPropagation();showCard(card)}}
+ d.style.transformStyle='preserve-3d';
+ 
+ // Create wrapper div to establish aspect ratio
+ const aspectWrapper=document.createElement('div');
+ aspectWrapper.style.cssText='position:relative;width:100%;padding-bottom:140%;overflow:hidden;border-radius:clamp(12px,3vw,16px)';
+ 
+ const frontDiv=document.createElement('div');
+ frontDiv.className='card-front';
+ const frontImg=document.createElement('img');
+ frontImg.src=card.img;
+ frontDiv.appendChild(frontImg);
+ 
+ const backDiv=document.createElement('div');
+ backDiv.className='card-back';
+ const backImg=document.createElement('img');
+ backImg.src=card.backImg||MTG_CARD_BACK;
+ backDiv.appendChild(backImg);
+ 
+ const countDiv=document.createElement('div');
+ countDiv.className='count';
+ countDiv.textContent=`x${card.count}`;
+ countDiv.style.position='absolute';
+ countDiv.style.zIndex='10';
+ 
+ aspectWrapper.appendChild(frontDiv);
+ aspectWrapper.appendChild(backDiv);
+ aspectWrapper.appendChild(countDiv);
+ d.appendChild(aspectWrapper);
+ 
+ if(!isRevealing){
+  enableTilt(d);
+  d.onclick=e=>{
+   e.stopPropagation();
+   if(e.target.closest('.card')===d){
+    showCard(card);
+   }
+  };
+ }
  return d;
 }
 
-function showCard(card){const m=document.getElementById('cardViewModal');m.style.display='flex';m.innerHTML='';const d=cardEl(card);d.style.maxWidth='300px';m.appendChild(d);m.onclick=()=>{m.style.display='none';m.innerHTML=''}}
+function showCard(card){
+ const m=document.getElementById('cardViewModal');
+ m.style.display='flex';
+ m.innerHTML='';
+ 
+ const container=document.createElement('div');
+ container.style.cssText='display:flex;flex-direction:column;align-items:center;gap:1.5rem;max-width:90vw';
+ 
+ const cardWrapper=document.createElement('div');
+ cardWrapper.style.cssText='perspective:1000px;max-width:400px;width:clamp(250px,60vw,400px)';
+ 
+ const d=document.createElement('div');
+ d.className=`card rarity-${card.rarity}`;
+ d.style.cssText='transform-style:preserve-3d;transition:transform 0.6s;cursor:pointer;position:relative;width:100%;padding-bottom:140%';
+ 
+ const frontDiv=document.createElement('div');
+ frontDiv.className='card-front';
+ const frontImg=document.createElement('img');
+ frontImg.src=card.img;
+ frontDiv.appendChild(frontImg);
+ 
+ const backDiv=document.createElement('div');
+ backDiv.className='card-back';
+ const backImg=document.createElement('img');
+ backImg.src=card.backImg||MTG_CARD_BACK;
+ backDiv.appendChild(backImg);
+ 
+ const countDiv=document.createElement('div');
+ countDiv.className='count';
+ countDiv.textContent=`x${card.count}`;
+ countDiv.style.position='absolute';
+ countDiv.style.zIndex='10';
+ 
+ d.appendChild(frontDiv);
+ d.appendChild(backDiv);
+ d.appendChild(countDiv);
+ cardWrapper.appendChild(d);
+ 
+ const flipBtn=document.createElement('button');
+ flipBtn.textContent='🔄 Flip Card';
+ flipBtn.style.cssText='padding:0.75rem 1.5rem;font-size:1rem;z-index:10';
+ flipBtn.onclick=(e)=>{
+  e.stopPropagation();
+  d.classList.toggle('flipped');
+ };
+ 
+ d.onclick=(e)=>{
+  e.stopPropagation();
+  d.classList.toggle('flipped');
+ };
+ 
+ container.appendChild(cardWrapper);
+ container.appendChild(flipBtn);
+ m.appendChild(container);
+ 
+ m.onclick=(e)=>{
+  if(e.target===m){
+   m.style.display='none';
+   m.innerHTML='';
+  }
+ };
+}
 
 function render(){
  const col=document.getElementById('collection');
