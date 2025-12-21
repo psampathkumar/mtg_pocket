@@ -64,6 +64,7 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 }
 .card:hover{box-shadow:0 20px 40px rgba(0,0,0,.6)}
 .count{position:absolute;bottom:clamp(4px,1vw,6px);right:clamp(4px,1vw,6px);background:rgba(0,0,0,.7);padding:2px 6px;border-radius:8px;font-size:clamp(0.7rem,2vw,0.75rem);z-index:2}
+.flip-indicator{position:absolute;bottom:clamp(4px,1vw,6px);left:clamp(4px,1vw,6px);background:rgba(0,0,0,.7);padding:2px 6px;border-radius:8px;font-size:clamp(0.7rem,2vw,0.75rem);z-index:2}
 .new-card::after{content:'NEW';position:absolute;top:6px;left:6px;background:#ffd700;color:#000;font-weight:700;padding:2px 6px;border-radius:4px;font-size:clamp(0.65rem,2vw,0.75rem);z-index:10}
 .story-card::before{content:'STORY';position:absolute;top:6px;right:6px;background:#3498db;color:#fff;font-weight:700;padding:2px 6px;border-radius:4px;font-size:clamp(0.65rem,2vw,0.75rem);z-index:10}
 .card-placeholder{position:relative;background:#1a1a2a;border:2px dashed #333;border-radius:clamp(12px,3vw,16px);overflow:hidden;display:flex;align-items:center;justify-content:center;aspect-ratio:2.5/3.5;color:#666;font-size:clamp(0.8rem,2vw,1rem);font-weight:600}
@@ -71,6 +72,7 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 .rarity-uncommon{border:2px solid #1eff00}
 .rarity-rare{border:2px solid #0070dd}
 .rarity-mythic{border:2px solid #ff8000}
+.card.exiting{border:none !important}
 
 @keyframes ripOpen{
   0%{transform:scale(1) rotate(0deg);filter:brightness(1);clip-path:none}
@@ -540,6 +542,8 @@ function showPack(pack,isGodPack){
    if(singleView.children.length>0){
     const existingCard=singleView.children[0];
     const existingInner=existingCard.querySelector('.card-inner');
+    // Add exiting class to remove border
+    existingCard.classList.add('exiting');
     existingCard.style.animation='cardExit 0.5s ease-in forwards';
     if(existingInner){
      existingInner.classList.add('no-transition');
@@ -553,6 +557,8 @@ function showPack(pack,isGodPack){
    if(singleView.children.length>0){
     const existingCard=singleView.children[0];
     const existingInner=existingCard.querySelector('.card-inner');
+    // Add exiting class to remove border
+    existingCard.classList.add('exiting');
     existingCard.style.animation='cardExit 0.5s ease-in forwards';
     if(existingInner){
      existingInner.classList.add('no-transition');
@@ -595,6 +601,15 @@ function showPack(pack,isGodPack){
   innerDiv.appendChild(frontDiv);
   innerDiv.appendChild(backDiv);
   innerDiv.appendChild(countDiv);
+  
+  // Add flip indicator if card has a different back
+  if(card.backImg && card.backImg!==MTG_CARD_BACK){
+   const flipDiv=document.createElement('div');
+   flipDiv.className='flip-indicator';
+   flipDiv.textContent='🔄';
+   innerDiv.appendChild(flipDiv);
+  }
+  
   cardDiv.appendChild(innerDiv);
   
   if(card.isNew) cardDiv.classList.add('new-card');
@@ -676,6 +691,15 @@ function cardEl(card,isRevealing){
  innerDiv.appendChild(frontDiv);
  innerDiv.appendChild(backDiv);
  innerDiv.appendChild(countDiv);
+ 
+ // Add flip indicator if card has a different back (not standard MTG back)
+ if(card.backImg && card.backImg!==MTG_CARD_BACK){
+  const flipDiv=document.createElement('div');
+  flipDiv.className='flip-indicator';
+  flipDiv.textContent='🔄';
+  innerDiv.appendChild(flipDiv);
+ }
+ 
  cardDiv.appendChild(innerDiv);
  
  if(!isRevealing){
