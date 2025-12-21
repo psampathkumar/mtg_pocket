@@ -24,39 +24,40 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
   background:#111;
   border-radius:clamp(12px,3vw,16px);
   cursor:pointer;
+  overflow:visible;
+}
+.card .card-inner{
+  position:relative;
+  width:100%;
+  padding-bottom:140%;
   transform-style:preserve-3d;
   transition:transform 0.6s;
 }
-.card .card-front,
-.card .card-back{
-  width:100%;
-  height:100%;
+.card-front,
+.card-back{
   position:absolute;
   top:0;
   left:0;
+  width:100%;
+  height:100%;
   backface-visibility:hidden;
   -webkit-backface-visibility:hidden;
+  border-radius:clamp(12px,3vw,16px);
+  overflow:hidden;
 }
-.card .card-front{
+.card-front{
   z-index:2;
   transform:rotateY(0deg);
 }
-.card .card-back{
+.card-back{
   transform:rotateY(180deg);
 }
-.card .card-front img,
-.card .card-back img{
+.card-front img,
+.card-back img{
   width:100%;
   height:100%;
   display:block;
   object-fit:cover;
-  border-radius:clamp(12px,3vw,16px);
-}
-.card.flipped .card-front{
-  transform:rotateY(180deg);
-}
-.card.flipped .card-back{
-  transform:rotateY(0deg);
 }
 .card:hover{box-shadow:0 20px 40px rgba(0,0,0,.6)}
 .count{position:absolute;bottom:clamp(4px,1vw,6px);right:clamp(4px,1vw,6px);background:rgba(0,0,0,.7);padding:2px 6px;border-radius:8px;font-size:clamp(0.7rem,2vw,0.75rem);z-index:2}
@@ -251,9 +252,12 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
           <span>Free Packs</span>
         </label>
       </div>
-      <div style="display:flex;gap:0.5rem;align-items:center">
+      <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.75rem">
         <input type="text" id="collectorInput" placeholder="Collector #" style="flex:1;padding:0.5rem;background:#222;border:1px solid #444;border-radius:6px;color:#fff;font-size:0.9rem">
         <button id="addCardBtn" style="padding:0.5rem 1rem;font-size:0.9rem">Add Card</button>
+      </div>
+      <div>
+        <button id="testFlipBtn" style="padding:0.5rem 1rem;font-size:0.9rem;width:100%">🧪 Test Flip</button>
       </div>
     </div>
   </div>
@@ -538,75 +542,73 @@ function showPack(pack,isGodPack){
  function showCardInternal(card,isBonus,isSecret){
   singleView.innerHTML='';
   
-  const d=document.createElement('div');
-  d.className=`card rarity-${card.rarity}`;
+  const cardDiv=document.createElement('div');
+  cardDiv.className=`card rarity-${card.rarity}`;
   
-  const aspectWrapper=document.createElement('div');
-  aspectWrapper.style.cssText='position:relative;width:100%;padding-bottom:140%;overflow:hidden;border-radius:clamp(12px,3vw,16px);transform-style:preserve-3d';
+  const innerDiv=document.createElement('div');
+  innerDiv.className='card-inner';
   
   const frontDiv=document.createElement('div');
   frontDiv.className='card-front';
   const frontImg=document.createElement('img');
   frontImg.src=card.img;
-  console.log('Card reveal - Front image:', card.img);
+  frontImg.alt=card.name;
   frontDiv.appendChild(frontImg);
   
   const backDiv=document.createElement('div');
   backDiv.className='card-back';
   const backImg=document.createElement('img');
   backImg.src=card.backImg||MTG_CARD_BACK;
-  console.log('Card reveal - Back image:', card.backImg||MTG_CARD_BACK);
+  backImg.alt='Card back';
   backDiv.appendChild(backImg);
   
   const countDiv=document.createElement('div');
   countDiv.className='count';
   countDiv.textContent=`x${card.count}`;
-  countDiv.style.position='absolute';
-  countDiv.style.zIndex='10';
   
-  aspectWrapper.appendChild(frontDiv);
-  aspectWrapper.appendChild(backDiv);
-  aspectWrapper.appendChild(countDiv);
-  d.appendChild(aspectWrapper);
+  innerDiv.appendChild(frontDiv);
+  innerDiv.appendChild(backDiv);
+  innerDiv.appendChild(countDiv);
+  cardDiv.appendChild(innerDiv);
   
-  if(card.isNew) d.classList.add('new-card');
-  if(card.spotlight===true) d.classList.add('story-card');
-  if(card.isGodPack) d.classList.add('godpack');
+  if(card.isNew) cardDiv.classList.add('new-card');
+  if(card.spotlight===true) cardDiv.classList.add('story-card');
+  if(card.isGodPack) cardDiv.classList.add('godpack');
   
   if(card.masterpiece===true || isSecret===true){
-   d.classList.add('godpack');
-   aspectWrapper.style.filter='brightness(1.5) drop-shadow(0 0 30px rgba(155,89,182,0.9))';
+   cardDiv.classList.add('godpack');
+   cardDiv.style.filter='brightness(1.5) drop-shadow(0 0 30px rgba(155,89,182,0.9))';
    const glowDiv=document.createElement('div');
    glowDiv.className='bonus-glow';
    glowDiv.style.background='radial-gradient(circle,rgba(155,89,182,0.6),transparent 70%)';
-   aspectWrapper.insertBefore(glowDiv,aspectWrapper.firstChild);
+   cardDiv.insertBefore(glowDiv,cardDiv.firstChild);
   }else if(isBonus===true){
-   d.classList.add('godpack');
-   aspectWrapper.style.filter='brightness(1.3) drop-shadow(0 0 20px rgba(255,107,107,0.8))';
+   cardDiv.classList.add('godpack');
+   cardDiv.style.filter='brightness(1.3) drop-shadow(0 0 20px rgba(255,107,107,0.8))';
    const glowDiv=document.createElement('div');
    glowDiv.className='bonus-glow';
-   aspectWrapper.insertBefore(glowDiv,aspectWrapper.firstChild);
+   cardDiv.insertBefore(glowDiv,cardDiv.firstChild);
   }
   
-  singleView.appendChild(d);
+  singleView.appendChild(cardDiv);
   
-  const dSmall=cardEl(card,false);
-  if(card.isNew) dSmall.classList.add('new-card');
-  if(card.spotlight===true) dSmall.classList.add('story-card');
-  if(card.isGodPack) dSmall.classList.add('godpack');
+  const smallCard=cardEl(card,false);
+  if(card.isNew) smallCard.classList.add('new-card');
+  if(card.spotlight===true) smallCard.classList.add('story-card');
+  if(card.isGodPack) smallCard.classList.add('godpack');
   
   if(card.masterpiece===true || isSecret===true){
-   dSmall.classList.add('godpack');
+   smallCard.classList.add('godpack');
    const glowDiv=document.createElement('div');
    glowDiv.className='bonus-glow';
    glowDiv.style.background='radial-gradient(circle,rgba(155,89,182,0.6),transparent 70%)';
-   dSmall.insertBefore(glowDiv,dSmall.firstChild);
+   smallCard.insertBefore(glowDiv,smallCard.firstChild);
   }else if(isBonus===true){
-   dSmall.classList.add('godpack');
-   addBonusGlow(dSmall);
+   smallCard.classList.add('godpack');
+   addBonusGlow(smallCard);
   }
   
-  allCardsContainer.appendChild(dSmall);
+  allCardsContainer.appendChild(smallCard);
   currentIndex++;
  }
  showNextCard();
@@ -618,108 +620,111 @@ function showPack(pack,isGodPack){
 function addBonusGlow(cardElement){const glowDiv=document.createElement('div');glowDiv.className='bonus-glow';cardElement.insertBefore(glowDiv,cardElement.firstChild)}
 
 function cardEl(card,isRevealing){
- const d=document.createElement('div');
- d.className=`card rarity-${card.rarity}`;
- d.style.transformStyle='preserve-3d';
+ const cardDiv=document.createElement('div');
+ cardDiv.className=`card rarity-${card.rarity}`;
  
- // Create wrapper div to establish aspect ratio
- const aspectWrapper=document.createElement('div');
- aspectWrapper.style.cssText='position:relative;width:100%;padding-bottom:140%;overflow:hidden;border-radius:clamp(12px,3vw,16px)';
+ const innerDiv=document.createElement('div');
+ innerDiv.className='card-inner';
  
  const frontDiv=document.createElement('div');
  frontDiv.className='card-front';
  const frontImg=document.createElement('img');
  frontImg.src=card.img;
+ frontImg.alt=card.name;
  frontDiv.appendChild(frontImg);
  
  const backDiv=document.createElement('div');
  backDiv.className='card-back';
  const backImg=document.createElement('img');
  backImg.src=card.backImg||MTG_CARD_BACK;
+ backImg.alt='Card back';
  backDiv.appendChild(backImg);
  
  const countDiv=document.createElement('div');
  countDiv.className='count';
  countDiv.textContent=`x${card.count}`;
- countDiv.style.position='absolute';
- countDiv.style.zIndex='10';
  
- aspectWrapper.appendChild(frontDiv);
- aspectWrapper.appendChild(backDiv);
- aspectWrapper.appendChild(countDiv);
- d.appendChild(aspectWrapper);
+ innerDiv.appendChild(frontDiv);
+ innerDiv.appendChild(backDiv);
+ innerDiv.appendChild(countDiv);
+ cardDiv.appendChild(innerDiv);
  
  if(!isRevealing){
-  enableTilt(d);
-  d.onclick=e=>{
+  enableTilt(cardDiv);
+  cardDiv.onclick=e=>{
    e.stopPropagation();
-   if(e.target.closest('.card')===d){
-    showCard(card);
-   }
+   showCard(card);
   };
  }
- return d;
+ 
+ return cardDiv;
 }
 
 function showCard(card){
- const m=document.getElementById('cardViewModal');
- m.style.display='flex';
- m.innerHTML='';
+ const modal=document.getElementById('cardViewModal');
+ modal.style.display='flex';
+ modal.innerHTML='';
  
  const container=document.createElement('div');
  container.style.cssText='display:flex;flex-direction:column;align-items:center;gap:1.5rem;max-width:90vw';
  
- const cardWrapper=document.createElement('div');
- cardWrapper.style.cssText='perspective:1000px;max-width:400px;width:clamp(250px,60vw,400px)';
+ const perspectiveDiv=document.createElement('div');
+ perspectiveDiv.style.cssText='perspective:1000px;max-width:400px;width:clamp(250px,60vw,400px)';
  
- const d=document.createElement('div');
- d.className=`card rarity-${card.rarity}`;
- d.style.cssText='transform-style:preserve-3d;transition:transform 0.6s;cursor:pointer;position:relative;width:100%;padding-bottom:140%';
+ const cardDiv=document.createElement('div');
+ cardDiv.className=`card rarity-${card.rarity}`;
+ 
+ const innerDiv=document.createElement('div');
+ innerDiv.className='card-inner';
  
  const frontDiv=document.createElement('div');
  frontDiv.className='card-front';
  const frontImg=document.createElement('img');
  frontImg.src=card.img;
+ frontImg.alt=card.name;
  frontDiv.appendChild(frontImg);
  
  const backDiv=document.createElement('div');
  backDiv.className='card-back';
  const backImg=document.createElement('img');
  backImg.src=card.backImg||MTG_CARD_BACK;
+ backImg.alt='Card back';
  backDiv.appendChild(backImg);
  
  const countDiv=document.createElement('div');
  countDiv.className='count';
  countDiv.textContent=`x${card.count}`;
- countDiv.style.position='absolute';
- countDiv.style.zIndex='10';
  
- d.appendChild(frontDiv);
- d.appendChild(backDiv);
- d.appendChild(countDiv);
- cardWrapper.appendChild(d);
+ innerDiv.appendChild(frontDiv);
+ innerDiv.appendChild(backDiv);
+ innerDiv.appendChild(countDiv);
+ cardDiv.appendChild(innerDiv);
+ perspectiveDiv.appendChild(cardDiv);
  
  const flipBtn=document.createElement('button');
  flipBtn.textContent='🔄 Flip Card';
- flipBtn.style.cssText='padding:0.75rem 1.5rem;font-size:1rem;z-index:10';
- flipBtn.onclick=(e)=>{
-  e.stopPropagation();
-  d.classList.toggle('flipped');
+ flipBtn.style.cssText='padding:0.75rem 1.5rem;font-size:1rem';
+ 
+ flipBtn.onclick=()=>{
+  const current=innerDiv.style.transform||'rotateY(0deg)';
+  const isFlipped=current.includes('180');
+  innerDiv.style.transform=isFlipped?'rotateY(0deg)':'rotateY(180deg)';
  };
  
- d.onclick=(e)=>{
-  e.stopPropagation();
-  d.classList.toggle('flipped');
+ innerDiv.onclick=(e)=>{
+  if(e.target.tagName!=='IMG'){return;}
+  const current=innerDiv.style.transform||'rotateY(0deg)';
+  const isFlipped=current.includes('180');
+  innerDiv.style.transform=isFlipped?'rotateY(0deg)':'rotateY(180deg)';
  };
  
- container.appendChild(cardWrapper);
+ container.appendChild(perspectiveDiv);
  container.appendChild(flipBtn);
- m.appendChild(container);
+ modal.appendChild(container);
  
- m.onclick=(e)=>{
-  if(e.target===m){
-   m.style.display='none';
-   m.innerHTML='';
+ modal.onclick=(e)=>{
+  if(e.target===modal){
+   modal.style.display='none';
   }
  };
 }
@@ -869,6 +874,67 @@ document.getElementById('freeMode').onchange=update;
 document.getElementById('devToggle').onclick=()=>{
  const panel=document.getElementById('devPanel');
  panel.style.display=panel.style.display==='none'?'block':'none';
+};
+
+document.getElementById('testFlipBtn').onclick=()=>{
+ const modal=document.getElementById('cardViewModal');
+ modal.style.display='flex';
+ modal.innerHTML='';
+ 
+ const container=document.createElement('div');
+ container.style.cssText='display:flex;flex-direction:column;align-items:center;gap:1.5rem';
+ 
+ const perspectiveDiv=document.createElement('div');
+ perspectiveDiv.style.cssText='perspective:1000px;width:300px;height:420px';
+ 
+ const cardDiv=document.createElement('div');
+ cardDiv.className='card';
+ cardDiv.style.cssText='width:100%;height:100%';
+ 
+ const innerDiv=document.createElement('div');
+ innerDiv.className='card-inner';
+ innerDiv.style.cssText='width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 0.6s';
+ 
+ const frontDiv=document.createElement('div');
+ frontDiv.className='card-front';
+ frontDiv.style.cssText='position:absolute;width:100%;height:100%;backface-visibility:hidden;background:red;display:flex;align-items:center;justify-content:center;font-size:3rem;color:white;border-radius:12px';
+ frontDiv.textContent='FRONT';
+ 
+ const backDiv=document.createElement('div');
+ backDiv.className='card-back';
+ backDiv.style.cssText='position:absolute;width:100%;height:100%;backface-visibility:hidden;background:blue;display:flex;align-items:center;justify-content:center;font-size:3rem;color:white;transform:rotateY(180deg);border-radius:12px';
+ backDiv.textContent='BACK';
+ 
+ innerDiv.appendChild(frontDiv);
+ innerDiv.appendChild(backDiv);
+ cardDiv.appendChild(innerDiv);
+ perspectiveDiv.appendChild(cardDiv);
+ 
+ const flipBtn=document.createElement('button');
+ flipBtn.textContent='🔄 Flip Test Card';
+ flipBtn.style.cssText='padding:0.75rem 1.5rem;font-size:1rem';
+ flipBtn.onclick=()=>{
+  const isFlipped=innerDiv.style.transform==='rotateY(180deg)';
+  innerDiv.style.transform=isFlipped?'rotateY(0deg)':'rotateY(180deg)';
+ };
+ 
+ const closeBtn=document.createElement('button');
+ closeBtn.textContent='Close';
+ closeBtn.style.cssText='padding:0.5rem 1rem;font-size:0.9rem;background:#666';
+ closeBtn.onclick=()=>{
+  modal.style.display='none';
+ };
+ 
+ container.appendChild(perspectiveDiv);
+ container.appendChild(flipBtn);
+ container.appendChild(closeBtn);
+ modal.appendChild(container);
+ 
+ modal.onclick=(e)=>{
+  if(e.target===modal){
+   modal.style.display='none';
+  }
+ };
 };
 
 document.getElementById('addCardBtn').onclick=()=>{
