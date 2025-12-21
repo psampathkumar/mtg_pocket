@@ -242,7 +242,21 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
   </div>
   <button id="openPackHome" style="font-size:1.2rem;padding:1rem 2rem">Open Pack (6)</button>
   <div style="margin-top:1rem;font-size:0.9rem" id="countdown">Next point in: --:--</div>
-  <div style="margin-top:1rem"><label><input type="checkbox" id="freeMode"> Free Packs</label></div>
+  <div style="margin-top:1rem;position:relative">
+    <button id="devToggle" style="padding:0.5rem;font-size:0.9rem;background:rgba(255,255,255,0.1)">🛠️ Dev</button>
+    <div id="devPanel" style="display:none;position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:0.5rem;background:rgba(0,0,0,0.9);padding:1rem;border-radius:10px;border:1px solid #333;min-width:300px;z-index:100">
+      <div style="margin-bottom:0.75rem">
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+          <input type="checkbox" id="freeMode"> 
+          <span>Free Packs</span>
+        </label>
+      </div>
+      <div style="display:flex;gap:0.5rem;align-items:center">
+        <input type="text" id="collectorInput" placeholder="Collector #" style="flex:1;padding:0.5rem;background:#222;border:1px solid #444;border-radius:6px;color:#fff;font-size:0.9rem">
+        <button id="addCardBtn" style="padding:0.5rem 1rem;font-size:0.9rem">Add Card</button>
+      </div>
+    </div>
+  </div>
   <div class="navButtons">
     <button id="viewCollection">View Collection</button>
   </div>
@@ -851,6 +865,57 @@ document.getElementById('viewCollection').onclick=showCollection;
 document.getElementById('backHome').onclick=showHome;
 document.getElementById('setSelect').onchange=e=>{currentSet=e.target.value;loadSet()};
 document.getElementById('freeMode').onchange=update;
+
+document.getElementById('devToggle').onclick=()=>{
+ const panel=document.getElementById('devPanel');
+ panel.style.display=panel.style.display==='none'?'block':'none';
+};
+
+document.getElementById('addCardBtn').onclick=()=>{
+ const collectorNum=document.getElementById('collectorInput').value.trim();
+ if(!collectorNum){alert('Please enter a collector number');return}
+ 
+ const card=allCards.find(c=>c.collector_number===collectorNum);
+ if(!card){alert(`Card with collector number ${collectorNum} not found in current set`);return}
+ 
+ function getCardImages(card){
+  if(card.image_uris){
+   const front=card.image_uris.normal;
+   const back=card.card_faces&&card.card_faces.length>1&&card.card_faces[1].image_uris?card.card_faces[1].image_uris.normal:MTG_CARD_BACK;
+   return {front,back};
+  }else if(card.card_faces&&card.card_faces.length>0){
+   const front=card.card_faces[0].image_uris?card.card_faces[0].image_uris.normal:MTG_CARD_BACK;
+   const back=card.card_faces.length>1&&card.card_faces[1].image_uris?card.card_faces[1].image_uris.normal:MTG_CARD_BACK;
+   return {front,back};
+  }
+  return {front:MTG_CARD_BACK,back:MTG_CARD_BACK};
+ }
+ 
+ data.cards[currentSet]=data.cards[currentSet]||{};
+ const id=card.id;
+ const isSpotlight=storySpotlightCards.some(sc=>sc.id===card.id);
+ const imgs=getCardImages(card);
+ 
+ if(!data.cards[currentSet][id]){
+  data.cards[currentSet][id]={
+   name:card.name,
+   rarity:card.rarity,
+   img:imgs.front,
+   backImg:imgs.back,
+   count:0,
+   fullart:false,
+   spotlight:isSpotlight,
+   collectorNum:card.collector_number
+  };
+ }
+ data.cards[currentSet][id].count++;
+ save();
+ render();
+ updateStats();
+ 
+ alert(`Added ${card.name} (${collectorNum}) to collection!`);
+ document.getElementById('collectorInput').value='';
+};
 
 loadSets();
 tick();
