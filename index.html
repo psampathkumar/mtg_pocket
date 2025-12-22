@@ -968,28 +968,47 @@ document.getElementById('testGlareBtn').onclick=()=>{
  perspectiveDiv.style.cssText='perspective:1000px;width:300px;height:420px';
  
  const testCard=document.createElement('div');
- testCard.style.cssText='width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 0.1s ease-out;border-radius:12px;overflow:hidden';
+ testCard.style.cssText='width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 0.1s ease-out;border-radius:12px';
  
  const innerContainer=document.createElement('div');
  innerContainer.style.cssText='width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 0.6s';
  
  // Front face
  const front=document.createElement('div');
- front.style.cssText='position:absolute;width:100%;height:100%;backface-visibility:hidden;background:linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);display:flex;align-items:center;justify-content:center;font-size:3rem;color:white;font-weight:bold;border-radius:12px';
+ front.style.cssText='position:absolute;width:100%;height:100%;backface-visibility:hidden;background:linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);display:flex;align-items:center;justify-content:center;font-size:3rem;color:white;font-weight:bold;border-radius:12px;overflow:hidden';
  front.textContent='FRONT';
  
  // Back face
  const back=document.createElement('div');
- back.style.cssText='position:absolute;width:100%;height:100%;backface-visibility:hidden;background:linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);display:flex;align-items:center;justify-content:center;font-size:3rem;color:white;font-weight:bold;border-radius:12px;transform:rotateY(180deg)';
- back.textContent='BACK';
+ back.style.cssText='position:absolute;width:100%;height:100%;backface-visibility:hidden;background:linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);display:flex;align-items:center;justify-content:center;font-size:3rem;color:white;font-weight:bold;border-radius:12px;transform:rotateY(180deg);overflow:hidden';
  
- // Glare overlay
+ const backText=document.createElement('div');
+ backText.textContent='BACK';
+ backText.style.transform='scaleX(-1)';
+ back.appendChild(backText);
+ 
+ // Glare overlay on back
+ const glareBack=document.createElement('div');
+ glareBack.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity 0.3s;overflow:hidden;transform:scaleX(-1)';
+ 
+ const glareGradientBack=document.createElement('div');
+ glareGradientBack.style.cssText='position:absolute;width:200px;height:200px;background:radial-gradient(circle at center, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 30%, transparent 70%);transform:translate(-50%, -50%);mix-blend-mode:overlay';
+ glareBack.appendChild(glareGradientBack);
+ 
+ back.appendChild(glareBack);
+ 
+ // Glare overlay on front
  const glare=document.createElement('div');
- glare.style.cssText='position:absolute;top:-50%;left:-50%;width:200%;height:200%;pointer-events:none;background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 20%, transparent 60%);opacity:0;transition:opacity 0.3s;mix-blend-mode:overlay;z-index:10';
+ glare.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity 0.3s;overflow:hidden';
+ 
+ const glareGradient=document.createElement('div');
+ glareGradient.style.cssText='position:absolute;width:200px;height:200px;background:radial-gradient(circle at center, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 30%, transparent 70%);transform:translate(-50%, -50%);mix-blend-mode:overlay';
+ glare.appendChild(glareGradient);
+ 
+ front.appendChild(glare);
  
  innerContainer.appendChild(front);
  innerContainer.appendChild(back);
- innerContainer.appendChild(glare);
  testCard.appendChild(innerContainer);
  perspectiveDiv.appendChild(testCard);
  
@@ -1007,41 +1026,67 @@ document.getElementById('testGlareBtn').onclick=()=>{
   
   testCard.style.transform=`rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
   
-  // Position glare
-  glare.style.left=`${(x*100)-50}%`;
-  glare.style.top=`${(y*100)-50}%`;
+  // Position glare to follow mouse
+  glareGradient.style.left=`${x*100}%`;
+  glareGradient.style.top=`${y*100}%`;
   glare.style.opacity='1';
+  
+  // Update back glare too
+  glareGradientBack.style.left=`${x*100}%`;
+  glareGradientBack.style.top=`${y*100}%`;
+  glareBack.style.opacity='1';
  };
  
  testCard.onmouseleave=()=>{
   testCard.style.transform='rotateX(0deg) rotateY(0deg)';
   glare.style.opacity='0';
+  glareBack.style.opacity='0';
  };
  
- // Touch support for mobile
- testCard.ontouchmove=(e)=>{
-  const touch=e.touches[0];
-  const rect=testCard.getBoundingClientRect();
-  const x=(touch.clientX-rect.left)/rect.width;
-  const y=(touch.clientY-rect.top)/rect.height;
-  
-  const centerX=x-0.5;
-  const centerY=y-0.5;
-  
-  const rotateX=-centerY*20;
-  const rotateY=centerX*20;
-  
-  testCard.style.transform=`rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-  
-  glare.style.left=`${(x*100)-50}%`;
-  glare.style.top=`${(y*100)-50}%`;
-  glare.style.opacity='1';
- };
+ // Gyroscope support for mobile
+ let gyroActive=false;
+ let orientationHandler=null;
  
- testCard.ontouchend=()=>{
-  testCard.style.transform='rotateX(0deg) rotateY(0deg)';
-  glare.style.opacity='0';
- };
+ if(window.DeviceOrientationEvent){
+  orientationHandler=(e)=>{
+   const beta=e.beta;
+   const gamma=e.gamma;
+   
+   const tiltX=Math.max(-1,Math.min(1,beta/45));
+   const tiltY=Math.max(-1,Math.min(1,gamma/45));
+   
+   const rotateX=-tiltX*20;
+   const rotateY=tiltY*20;
+   
+   testCard.style.transform=`rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+   
+   const glareX=(tiltY+1)/2*100;
+   const glareY=(tiltX+1)/2*100;
+   
+   glareGradient.style.left=`${glareX}%`;
+   glareGradient.style.top=`${glareY}%`;
+   glare.style.opacity='1';
+   
+   // Update back glare too
+   glareGradientBack.style.left=`${glareX}%`;
+   glareGradientBack.style.top=`${glareY}%`;
+   glareBack.style.opacity='1';
+  };
+  
+  if(typeof DeviceOrientationEvent.requestPermission==='function'){
+   DeviceOrientationEvent.requestPermission()
+    .then(permissionState=>{
+     if(permissionState==='granted'){
+      gyroActive=true;
+      window.addEventListener('deviceorientation',orientationHandler);
+     }
+    })
+    .catch(console.error);
+  }else if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)){
+   gyroActive=true;
+   window.addEventListener('deviceorientation',orientationHandler);
+  }
+ }
  
  const flipBtn=document.createElement('button');
  flipBtn.textContent='🔄 Flip Test';
@@ -1056,6 +1101,9 @@ document.getElementById('testGlareBtn').onclick=()=>{
  closeBtn.textContent='Close';
  closeBtn.style.cssText='padding:0.5rem 1rem;font-size:0.9rem;background:#666';
  closeBtn.onclick=()=>{
+  if(gyroActive && orientationHandler){
+   window.removeEventListener('deviceorientation',orientationHandler);
+  }
   modal.style.display='none';
  };
  
@@ -1066,6 +1114,9 @@ document.getElementById('testGlareBtn').onclick=()=>{
  
  modal.onclick=(e)=>{
   if(e.target===modal){
+   if(gyroActive && orientationHandler){
+    window.removeEventListener('deviceorientation',orientationHandler);
+   }
    modal.style.display='none';
   }
  };
