@@ -162,7 +162,7 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
   50%{opacity:1;transform:scale(1.1)}
 }
 
-#homeScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:2rem}
+#homeScreen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:2rem;position:relative}
 .packImage{position:relative;width:clamp(250px,40vw,350px);height:clamp(400px,64vw,560px);margin:2rem auto;cursor:pointer;transition:transform .2s;background:linear-gradient(145deg,#2a2a3e,#1a1a2e);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;gap:1.5rem;border:3px solid rgba(79,172,254,0.3);overflow:visible}
 .packImage:hover{transform:scale(1.05)}
 .packImage.ripping{animation:ripOpen 0.8s ease-out forwards;position:relative;overflow:visible !important}
@@ -205,13 +205,13 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 .packIcon{width:clamp(60px,15vw,100px);height:clamp(60px,15vw,100px);object-fit:contain;filter:drop-shadow(0 5px 15px rgba(79,172,254,0.4))}
 .packBg{position:absolute;inset:0;background:radial-gradient(circle at center,rgba(79,172,254,0.1),transparent);border-radius:20px;z-index:0}
 .packContent{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:1.5rem}
-.setDropdown{position:fixed;top:clamp(70px,15vw,90px);right:clamp(0.5rem,2vw,1rem);z-index:100;background:rgba(0,0,0,.8);padding:0.5rem;border-radius:10px;backdrop-filter:blur(10px)}
+.setDropdown{position:fixed;top:clamp(70px,15vw,90px);left:50%;transform:translateX(-50%);z-index:100;background:rgba(0,0,0,.8);padding:0.5rem;border-radius:10px;backdrop-filter:blur(10px)}
 .navButtons{display:flex;gap:1rem;margin-top:1rem;flex-wrap:wrap;justify-content:center}
 
 #packModal,#cardViewModal{position:fixed;inset:0;background:rgba(0,0,0,.95);display:none;align-items:center;justify-content:center;z-index:1000;padding:clamp(0.5rem,2vw,1rem);flex-direction:column}
 .singleCardView{display:flex;align-items:center;justify-content:center;width:100%;height:100%;cursor:pointer;perspective:1000px}
 .singleCardView .card{width:clamp(250px,60vw,400px);max-width:90vw;box-shadow:0 30px 80px rgba(0,0,0,0.8)}
-#cardViewModal .card{perspective:1000px}
+#cardViewModal .card{border:none !important}
 .allCardsView{display:none}
 .packCards{display:flex;gap:clamp(0.5rem,2vw,1rem);flex-wrap:wrap;justify-content:center;max-width:100%;align-items:center}
 .packCards .card{width:clamp(100px,25vw,180px);max-width:180px}
@@ -273,6 +273,7 @@ select{background:#111;color:#fff;border-radius:8px;padding:0.4rem;border:1px so
 <div id="collectionView">
   <div class="controls">
     <button id="backHome">← Back to Home</button>
+    <div style="margin-left:auto;font-size:1rem;font-weight:600">Total Cards: <span id="totalCards">0</span></div>
   </div>
   <div class="stats" id="stats"></div>
   <div id="collection" class="cards"></div>
@@ -898,6 +899,10 @@ function updateStats(){
  const storySpotlightOwned=Object.values(owned).filter(c=>c.spotlight===true).length;
  const storySpotlightTotal=storySpotlightCards.length;
  const totalCollected=ownedNames.size+fullartOwned+storySpotlightOwned+masterpieceOwned;
+ 
+ // Update total cards counter
+ document.getElementById('totalCards').textContent=totalCollected;
+ 
  statsEl.innerHTML=`<div class='statBox' data-rarity='all'><b>All Cards</b> ${totalCollected}</div>${['common','uncommon','rare','mythic'].map(r=>`<div class='statBox' data-rarity='${r}'><b>${r.toUpperCase()}</b> ${uniqueOwned[r]}/${totals[r]}<div class='progress'><div style='width:${totals[r]?uniqueOwned[r]/totals[r]*100:0}%'></div></div></div>`).join('')}<div class='statBox' data-rarity='fullart' style='background:linear-gradient(135deg,#2a2a3e,#1a1a2e);border:2px solid #ff6b6b'><b>FULL ART</b> ${fullartOwned}/${fullartTotal}<div class='progress'><div style='width:${fullartTotal?fullartOwned/fullartTotal*100:0}%;background:linear-gradient(90deg,#ff6b6b,#ee5a6f)'></div></div></div>${storySpotlightTotal>0?`<div class='statBox' data-rarity='spotlight' style='background:linear-gradient(135deg,#2a3a4e,#1a2a3e);border:2px solid #3498db'><b>STORY SPOTLIGHT</b> ${storySpotlightOwned}/${storySpotlightTotal}<div class='progress'><div style='width:${storySpotlightTotal?storySpotlightOwned/storySpotlightTotal*100:0}%;background:linear-gradient(90deg,#3498db,#2980b9)'></div></div></div>`:''}${masterpieceCards.length>0?`<div class='statBox' data-rarity='secrets' style='background:linear-gradient(135deg,#3a1a5e,#1a0a2e);border:2px solid #9b59b6'><b>SECRETS</b> ${masterpieceOwned}</div>`:''}`;
  statsEl.querySelectorAll('.statBox').forEach(box=>{box.onclick=()=>{activeRarity=box.dataset.rarity;statsEl.querySelectorAll('.statBox').forEach(b=>b.classList.remove('active'));box.classList.add('active');render()}});
 }
@@ -921,10 +926,15 @@ function update(){
  }
 }
 
-function showHome(){document.getElementById('homeScreen').style.display='flex';document.getElementById('collectionView').style.display='none'}
+function showHome(){
+ document.getElementById('homeScreen').style.display='flex';
+ document.getElementById('collectionView').style.display='none';
+ document.querySelector('.setDropdown').style.display='block';
+}
 function showCollection(){
  document.getElementById('homeScreen').style.display='none';
  document.getElementById('collectionView').style.display='block';
+ document.querySelector('.setDropdown').style.display='none';
  render();
  updateStats();
 }
