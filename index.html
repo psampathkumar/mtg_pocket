@@ -956,9 +956,27 @@ document.getElementById('devToggle').onclick=()=>{
  panel.style.display=panel.style.display==='none'?'block':'none';
 };
 
-document.getElementById('testGlareBtn').onclick=()=>{
+document.getElementById('testGlareBtn').onclick=async()=>{
  const modal=document.getElementById('cardViewModal');
  modal.style.display='flex';
+ modal.innerHTML='<div style="padding:2rem">Loading card...</div>';
+ 
+ // Get a random card from current set
+ let testCardData=null;
+ if(allCards.length>0){
+  const randomCard=allCards[Math.floor(Math.random()*allCards.length)];
+  testCardData={
+   front:randomCard.image_uris?randomCard.image_uris.normal:randomCard.card_faces?.[0]?.image_uris?.normal,
+   back:randomCard.card_faces?.[1]?.image_uris?.normal||MTG_CARD_BACK
+  };
+ }else{
+  // Fallback if no cards loaded
+  testCardData={
+   front:MTG_CARD_BACK,
+   back:MTG_CARD_BACK
+  };
+ }
+ 
  modal.innerHTML='';
  
  const container=document.createElement('div');
@@ -975,27 +993,19 @@ document.getElementById('testGlareBtn').onclick=()=>{
  
  // Front face
  const front=document.createElement('div');
- front.style.cssText='position:absolute;width:100%;height:100%;backface-visibility:hidden;background:linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);display:flex;align-items:center;justify-content:center;font-size:3rem;color:white;font-weight:bold;border-radius:12px;overflow:hidden';
- front.textContent='FRONT';
+ front.style.cssText='position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:12px;overflow:hidden';
+ const frontImg=document.createElement('img');
+ frontImg.src=testCardData.front;
+ frontImg.style.cssText='width:100%;height:100%;object-fit:cover';
+ front.appendChild(frontImg);
  
  // Back face
  const back=document.createElement('div');
- back.style.cssText='position:absolute;width:100%;height:100%;backface-visibility:hidden;background:linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);display:flex;align-items:center;justify-content:center;font-size:3rem;color:white;font-weight:bold;border-radius:12px;transform:rotateY(180deg);overflow:hidden';
- 
- const backText=document.createElement('div');
- backText.textContent='BACK';
- backText.style.transform='scaleX(-1)';
- back.appendChild(backText);
- 
- // Glare overlay on back
- const glareBack=document.createElement('div');
- glareBack.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity 0.3s;overflow:hidden;transform:scaleX(-1)';
- 
- const glareGradientBack=document.createElement('div');
- glareGradientBack.style.cssText='position:absolute;width:200px;height:200px;background:radial-gradient(circle at center, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 30%, transparent 70%);transform:translate(-50%, -50%);mix-blend-mode:overlay';
- glareBack.appendChild(glareGradientBack);
- 
- back.appendChild(glareBack);
+ back.style.cssText='position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:12px;transform:rotateY(180deg);overflow:hidden';
+ const backImg=document.createElement('img');
+ backImg.src=testCardData.back;
+ backImg.style.cssText='width:100%;height:100%;object-fit:cover';
+ back.appendChild(backImg);
  
  // Glare overlay on front
  const glare=document.createElement('div');
@@ -1004,13 +1014,24 @@ document.getElementById('testGlareBtn').onclick=()=>{
  const glareGradient=document.createElement('div');
  glareGradient.style.cssText='position:absolute;width:200px;height:200px;background:radial-gradient(circle at center, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 30%, transparent 70%);transform:translate(-50%, -50%);mix-blend-mode:overlay';
  glare.appendChild(glareGradient);
- 
  front.appendChild(glare);
+ 
+ // Glare overlay on back
+ const glareBack=document.createElement('div');
+ glareBack.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity 0.3s;overflow:hidden';
+ 
+ const glareGradientBack=document.createElement('div');
+ glareGradientBack.style.cssText='position:absolute;width:200px;height:200px;background:radial-gradient(circle at center, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 30%, transparent 70%);transform:translate(-50%, -50%);mix-blend-mode:overlay';
+ glareBack.appendChild(glareGradientBack);
+ back.appendChild(glareBack);
  
  innerContainer.appendChild(front);
  innerContainer.appendChild(back);
  testCard.appendChild(innerContainer);
  perspectiveDiv.appendChild(testCard);
+ 
+ // Track which face is showing
+ let isFlipped=false;
  
  // Mouse movement handler
  testCard.onmousemove=(e)=>{
@@ -1026,15 +1047,20 @@ document.getElementById('testGlareBtn').onclick=()=>{
   
   testCard.style.transform=`rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
   
-  // Position glare to follow mouse
-  glareGradient.style.left=`${x*100}%`;
-  glareGradient.style.top=`${y*100}%`;
-  glare.style.opacity='1';
-  
-  // Update back glare too
-  glareGradientBack.style.left=`${x*100}%`;
-  glareGradientBack.style.top=`${y*100}%`;
-  glareBack.style.opacity='1';
+  // Position glare based on which face is showing
+  if(!isFlipped){
+   // Front face - normal positioning
+   glareGradient.style.left=`${x*100}%`;
+   glareGradient.style.top=`${y*100}%`;
+   glare.style.opacity='1';
+   glareBack.style.opacity='0';
+  }else{
+   // Back face - reversed positioning (because face is rotated 180deg)
+   glareGradientBack.style.left=`${(1-x)*100}%`;
+   glareGradientBack.style.top=`${y*100}%`;
+   glareBack.style.opacity='1';
+   glare.style.opacity='0';
+  }
  };
  
  testCard.onmouseleave=()=>{
@@ -1046,11 +1072,23 @@ document.getElementById('testGlareBtn').onclick=()=>{
  // Gyroscope support for mobile
  let gyroActive=false;
  let orientationHandler=null;
+ let baseOrientation={beta:0,gamma:0};
+ let hasBaseOrientation=false;
  
  if(window.DeviceOrientationEvent){
   orientationHandler=(e)=>{
-   const beta=e.beta;
-   const gamma=e.gamma;
+   if(!e.beta || !e.gamma) return;
+   
+   // Set base orientation on first read
+   if(!hasBaseOrientation){
+    baseOrientation={beta:e.beta,gamma:e.gamma};
+    hasBaseOrientation=true;
+    return;
+   }
+   
+   // Calculate relative to base
+   const beta=e.beta-baseOrientation.beta;
+   const gamma=e.gamma-baseOrientation.gamma;
    
    const tiltX=Math.max(-1,Math.min(1,beta/45));
    const tiltY=Math.max(-1,Math.min(1,gamma/45));
@@ -1060,17 +1098,23 @@ document.getElementById('testGlareBtn').onclick=()=>{
    
    testCard.style.transform=`rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
    
-   const glareX=(tiltY+1)/2*100;
-   const glareY=(tiltX+1)/2*100;
+   // Convert tilt to glare position (normalized 0-1)
+   const glareX=(tiltY+1)/2;
+   const glareY=(1-tiltX)/2; // Inverted Y for natural feel
    
-   glareGradient.style.left=`${glareX}%`;
-   glareGradient.style.top=`${glareY}%`;
-   glare.style.opacity='1';
-   
-   // Update back glare too
-   glareGradientBack.style.left=`${glareX}%`;
-   glareGradientBack.style.top=`${glareY}%`;
-   glareBack.style.opacity='1';
+   if(!isFlipped){
+    // Front face
+    glareGradient.style.left=`${glareX*100}%`;
+    glareGradient.style.top=`${glareY*100}%`;
+    glare.style.opacity='1';
+    glareBack.style.opacity='0';
+   }else{
+    // Back face - reversed X
+    glareGradientBack.style.left=`${(1-glareX)*100}%`;
+    glareGradientBack.style.top=`${glareY*100}%`;
+    glareBack.style.opacity='1';
+    glare.style.opacity='0';
+   }
   };
   
   if(typeof DeviceOrientationEvent.requestPermission==='function'){
@@ -1092,9 +1136,8 @@ document.getElementById('testGlareBtn').onclick=()=>{
  flipBtn.textContent='🔄 Flip Test';
  flipBtn.style.cssText='padding:0.75rem 1.5rem;font-size:1rem';
  flipBtn.onclick=()=>{
-  const current=innerContainer.style.transform||'';
-  const isFlipped=current.includes('180');
-  innerContainer.style.transform=isFlipped?'rotateY(0deg)':'rotateY(180deg)';
+  isFlipped=!isFlipped;
+  innerContainer.style.transform=isFlipped?'rotateY(180deg)':'rotateY(0deg)';
  };
  
  const closeBtn=document.createElement('button');
