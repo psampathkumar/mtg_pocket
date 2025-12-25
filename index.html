@@ -420,7 +420,7 @@ function updatePackImage(){
  if(setData[currentSet]&&setData[currentSet].icon){icon.src=setData[currentSet].icon;icon.style.display='block'}else{icon.style.display='none'}
 }
 
-function roll(){let r=Math.random()*100;if(r<1)return'mythic';if(r<10)return'rare';if(r<30)return'uncommon';return'common'}
+function roll(){let r=Math.random()*100;if(r<3)return'mythic';if(r<10)return'rare';if(r<30)return'uncommon';return'common'}
 
 function tick(){
  const now=Date.now();
