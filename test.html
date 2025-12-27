@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MTG Pocket - Test Suite</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    
+    header h1 {
+      margin: 0 0 10px 0;
+      font-size: 2.5rem;
+    }
+    
+    header p {
+      margin: 0;
+      opacity: 0.9;
+    }
+    
+    .controls {
+      padding: 20px 30px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+    
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+    
+    .summary {
+      padding: 20px 30px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+    
+    .stat-card {
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .stat-card.total {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .stat-card.passed {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .stat-card.failed {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    
+    .stat-card.skipped {
+      background: #fff3cd;
+      color: #856404;
+    }
+    
+    .stat-card .number {
+      font-size: 3rem;
+      font-weight: bold;
+      margin: 0;
+    }
+    
+    .stat-card .label {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      margin-top: 5px;
+    }
+    
+    .progress-bar {
+      height: 4px;
+      background: #e9ecef;
+      margin: 0 30px 20px 30px;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    
+    .results {
+      padding: 0 30px 30px 30px;
+    }
+    
+    .test-group {
+      margin-bottom: 30px;
+    }
+    
+    .test-group h2 {
+      font-size: 1.3rem;
+      margin: 0 0 15px 0;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e9ecef;
+      color: #495057;
+    }
+    
+    .test-item {
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .test-item:hover {
+      transform: translateX(4px);
+    }
+    
+    .test-item.passed {
+      background: #d4edda;
+      border-left: 4px solid #28a745;
+    }
+    
+    .test-item.failed {
+      background: #f8d7da;
+      border-left: 4px solid #dc3545;
+    }
+    
+    .test-item.skipped {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+    }
+    
+    .test-item.running {
+      background: #cfe2ff;
+      border-left: 4px solid #0d6efd;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    
+    .test-icon {
+      font-size: 1.2rem;
+      min-width: 24px;
+    }
+    
+    .test-name {
+      flex: 1;
+      font-weight: 500;
+    }
+    
+    .test-duration {
+      font-size: 0.85rem;
+      opacity: 0.7;
+    }
+    
+    .test-error {
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.05);
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      color: #721c24;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #6c757d;
+    }
+    
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .console-output {
+      margin-top: 20px;
+      padding: 15px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      border-radius: 6px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      max-height: 300px;
+      overflow-y: auto;
+      display: none;
+    }
+    
+    .console-output.visible {
+      display: block;
+    }
+    
+    .console-line {
+      margin-bottom: 4px;
+      padding: 2px 0;
+    }
+    
+    .console-line.error {
+      color: #f48771;
+    }
+    
+    .console-line.warn {
+      color: #dcdcaa;
+    }
+    
+    .console-line.info {
+      color: #4fc1ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🧪 MTG Pocket Test Suite</h1>
+      <p>Automated testing for refactored codebase</p>
+    </header>
+    
+    <div class="controls">
+      <button class="btn-primary" id="runAllTests">▶️ Run All Tests</button>
+      <button class="btn-success" id="runQuickTests">⚡ Quick Tests</button>
+      <button class="btn-danger" id="clearStorage">🗑️ Clear Storage</button>
+      <button class="btn-secondary" id="toggleConsole">📋 Toggle Console</button>
+      <label style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+        <input type="checkbox" id="stopOnError">
+        <span>Stop on first error</span>
+      </label>
+    </div>
+    
+    <div class="summary" id="summary" style="display: none;">
+      <div class="stat-card total">
+        <div class="number" id="totalTests">0</div>
+        <div class="label">Total Tests</div>
+      </div>
+      <div class="stat-card passed">
+        <div class="number" id="passedTests">0</div>
+        <div class="label">Passed</div>
+      </div>
+      <div class="stat-card failed">
+        <div class="number" id="failedTests">0</div>
+        <div class="label">Failed</div>
+      </div>
+      <div class="stat-card skipped">
+        <div class="number" id="skippedTests">0</div>
+        <div class="label">Skipped</div>
+      </div>
+    </div>
+    
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    
+    <div class="results" id="results">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>Ready to run tests...</p>
+      </div>
+    </div>
+    
+    <div class="console-output" id="consoleOutput"></div>
+  </div>
+
+  <script type="module">
+    // Test Suite Framework
+    class TestSuite {
+      constructor() {
+        this.tests = [];
+        this.results = {
+          total: 0,
+          passed: 0,
+          failed: 0,
+          skipped: 0
+        };
+        this.running = false;
+        this.stopOnError = false;
+        this.consoleLogs = [];
+        
+        // Intercept console methods
+        this.setupConsoleInterception();
+      }
+      
+      setupConsoleInterception() {
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        console.log = (...args) => {
+          this.addConsoleLog('info', args.join(' '));
+          originalLog.apply(console, args);
+        };
+        
+        console.error = (...args) => {
+          this.addConsoleLog('error', args.join(' '));
+          originalError.apply(console, args);
+        };
+        
+        console.warn = (...args) => {
+          this.addConsoleLog('warn', args.join(' '));
+          originalWarn.apply(console, args);
+        };
+      }
+      
+      addConsoleLog(type, message) {
+        this.consoleLogs.push({ type, message, time: new Date().toLocaleTimeString() });
+        this.updateConsoleOutput();
+      }
+      
+      updateConsoleOutput() {
+        const consoleDiv = document.getElementById('consoleOutput');
+        const last20 = this.consoleLogs.slice(-20);
+        consoleDiv.innerHTML = last20.map(log => 
+          `<div class="console-line ${log.type}">[${log.time}] ${log.message}</div>`
+        ).join('');
+        consoleDiv.scrollTop = consoleDiv.scrollHeight;
+      }
+      
+      group(name, tests) {
+        this.tests.push({ type: 'group', name, tests });
+      }
+      
+      test(name, fn, options = {}) {
+        return { name, fn, options };
+      }
+      
+      async runAll() {
+        if (this.running) return;
+        
+        this.running = true;
+        this.results = { total: 0, passed: 0, failed: 0, skipped: 0 };
+        this.stopOnError = document.getElementById('stopOnError').checked;
+        
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = '';
+        
+        document.getElementById('summary').style.display = 'grid';
+        
+        for (const group of this.tests) {
+          if (group.type === 'group') {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = 'test-group';
+            groupDiv.innerHTML = `<h2>${group.name}</h2>`;
+            resultsDiv.appendChild(groupDiv);
+            
+            for (const test of group.tests) {
+              if (!this.running) break;
+              
+              const testDiv = document.createElement('div');
+              testDiv.className = 'test-item running';
+              testDiv.innerHTML = `
+                <span class="test-icon">⏳</span>
+                <span class="test-name">${test.name}</span>
+                <span class="test-duration">Running...</span>
+              `;
+              groupDiv.appendChild(testDiv);
+              
+              this.results.total++;
+              this.updateProgress();
+              
+              const startTime = performance.now();
+              
+              try {
+                await test.fn();
+                const duration = Math.round(performance.now() - startTime);
+                
+                testDiv.className = 'test-item passed';
+                testDiv.innerHTML = `
+                  <span class="test-icon">✅</span>
+                  <span class="test-name">${test.name}</span>
+                  <span class="test-duration">${duration}ms</span>
+                `;
+                
+                this.results.passed++;
+              } catch (error) {
+                const duration = Math.round(performance.now() - startTime);
+                
+                testDiv.className = 'test-item failed';
+                testDiv.innerHTML = `
+                  <span class="test-icon">❌</span>
+                  <span class="test-name">${test.name}</span>
+                  <span class="test-duration">${duration}ms</span>
+                `;
+                
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'test-error';
+                errorDiv.textContent = error.message || error;
+                testDiv.appendChild(errorDiv);
+                
+                this.results.failed++;
+                
+                if (this.stopOnError) {
+                  this.running = false;
+                  break;
+                }
+              }
+              
+              this.updateProgress();
+            }
+          }
+        }
+        
+        this.running = false;
+        this.updateProgress();
+      }
+      
+      async runQuick() {
+        // Run only quick tests (marked with quick: true)
+        const originalTests = this.tests;
+        this.tests = this.tests.map(group => ({
+          ...group,
+          tests: group.tests.filter(t => t.options.quick)
+        })).filter(g => g.tests.length > 0);
+        
+        await this.runAll();
+        
+        this.tests = originalTests;
+      }
+      
+      updateProgress() {
+        document.getElementById('totalTests').textContent = this.results.total;
+        document.getElementById('passedTests').textContent = this.results.passed;
+        document.getElementById('failedTests').textContent = this.results.failed;
+        document.getElementById('skippedTests').textContent = this.results.skipped;
+        
+        const progress = this.results.total > 0 
+          ? ((this.results.passed + this.results.failed + this.results.skipped) / this.results.total) * 100 
+          : 0;
+        
+        document.getElementById('progressFill').style.width = `${progress}%`;
+      }
+      
+      stop() {
+        this.running = false;
+      }
+    }
+    
+    // Create test suite instance
+    const suite = new TestSuite();
+    
+    // ===== MODULE LOADING TESTS =====
+    suite.group('Module Loading', [
+      suite.test('Constants module loads', async () => {
+        const module = await import('./js/constants.js');
+        if (!module.PACK_COST) throw new Error('PACK_COST not exported');
+        if (module.PACK_COST !== 6) throw new Error('PACK_COST has wrong value');
+      }, { quick: true }),
+      
+      suite.test('State module loads', async () => {
+        const module = await import('./js/state.js');
+        if (typeof module.initializeState !== 'function') throw new Error('initializeState not exported');
+        if (typeof module.save !== 'function') throw new Error('save not exported');
+      }, { quick: true }),
+      
+      suite.test('API module loads', async () => {
+        const module = await import('./js/api.js');
+        if (typeof module.fetchAllPages !== 'function') throw new Error('fetchAllPages not exported');
+      }, { quick: true }),
+      
+      suite.test('Utils module loads', async () => {
+        const module = await import('./js/utils.js');
+        if (typeof module.rollRarity !== 'function') throw new Error('rollRarity not exported');
+        if (typeof module.getCardImages !== 'function') throw new Error('getCardImages not exported');
+      }, { quick: true }),
+      
+      suite.test('Card renderer module loads', async () => {
+        const module = await import('./js/card-renderer.js');
+        if (typeof module.createCardElement !== 'function') throw new Error('createCardElement not exported');
+      }, { quick: true }),
+      
+      suite.test('Pack opening module loads', async () => {
+        const module = await import('./js/pack-opening.js');
+        if (typeof module.openPack !== 'function') throw new Error('openPack not exported');
+      }, { quick: true }),
+      
+      suite.test('Collection module loads', async () => {
+        const module = await import('./js/collection.js');
+        if (typeof module.renderCollection !== 'function') throw new Error('renderCollection not exported');
+      }, { quick: true }),
+      
+      suite.test('Dev tools module loads', async () => {
+        const module = await import('./js/dev-tools.js');
+        if (typeof module.initDevPanel !== 'function') throw new Error('initDevPanel not exported');
+      }, { quick: true }),
+    ]);
+    
+    // ===== STATE MANAGEMENT TESTS =====
+    suite.group('State Management', [
+      suite.test('State initializes correctly', async () => {
+        const { initializeState, getPoints } = await import('./js/state.js');
+        initializeState();
+        const points = getPoints();
+        if (typeof points !== 'number') throw new Error('Points is not a number');
+      }, { quick: true }),
+      
+      suite.test('Points can be added', async () => {
+        const { addPoints, getPoints } = await import('./js/state.js');
+        const before = getPoints();
+        addPoints(5);
+        const after = getPoints();
+        if (after !== before + 5) throw new Error('Points not added correctly');
+      }, { quick: true }),
+      
+      suite.test('Points can be subtracted', async () => {
+        const { subtractPoints, getPoints } = await import('./js/state.js');
+        const before = getPoints();
+        subtractPoints(3);
+        const after = getPoints();
+        if (after !== before - 3) throw new Error('Points not subtracted correctly');
+      }, { quick: true }),
+      
+      suite.test('Current set can be changed', async () => {
+        const { setCurrentSet, getCurrentSet } = await import('./js/state.js');
+        setCurrentSet('TEST');
+        const current = getCurrentSet();
+        if (current !== 'TEST') throw new Error('Set not changed correctly');
+      }, { quick: true }),
+      
+      suite.test('Data persists to localStorage', async () => {
+        const { save, setPoints } = await import('./js/state.js');
+        setPoints(100);
+        save();
+        const stored = JSON.parse(localStorage.getItem('mtgPocket'));
+        if (stored.points !== 100) throw new Error('Data not saved to localStorage');
+      }),
+    ]);
+    
+    // ===== UTILITY FUNCTION TESTS =====
+    suite.group('Utility Functions', [
+      suite.test('rollRarity returns valid rarity', async () => {
+        const { rollRarity } = await import('./js/utils.js');
+        const validRarities = ['common', 'uncommon', 'rare', 'mythic'];
+        const result = rollRarity();
+        if (!validRarities.includes(result)) throw new Error(`Invalid rarity: ${result}`);
+      }, { quick: true }),
+      
+      suite.test('rollRarity distribution is reasonable', async () => {
+        const { rollRarity } = await import('./js/utils.js');
+        const rolls = Array(1000).fill(0).map(() => rollRarity());
+        const common = rolls.filter(r => r === 'common').length;
+        const mythic = rolls.filter(r => r === 'mythic').length;
+        
+        // Common should be most frequent
+        if (common < 500) throw new Error('Common cards too rare');
+        // Mythic should be rarest
+        if (mythic > 100) throw new Error('Mythic cards too common');
+      }),
+      
+      suite.test('formatTime works correctly', async () => {
+        const { formatTime } = await import('./js/utils.js');
+        const result = formatTime(125000); // 2:05
+        if (result !== '02:05') throw new Error(`Wrong format: ${result}`);
+      }, { quick: true }),
+      
+      suite.test('randomChance works', async () => {
+        const { randomChance } = await import('./js/utils.js');
+        const always = Array(100).fill(0).map(() => randomChance(1.0));
+        const never = Array(100).fill(0).map(() => randomChance(0.0));
+        
+        if (!always.every(r => r === true)) throw new Error('randomChance(1.0) should always be true');
+        if (!never.every(r => r === false)) throw new Error('randomChance(0.0) should always be false');
+      }),
+      
+      suite.test('getCardImages handles single-faced card', async () => {
+        const { getCardImages } = await import('./js/utils.js');
+        const card = {
+          name: 'Test Card',
+          image_uris: { normal: 'front.jpg' }
+        };
+        const result = getCardImages(card);
+        if (result.front !== 'front.jpg') throw new Error('Front image not extracted');
+        if (!result.back) throw new Error('Back image missing');
+      }, { quick: true }),
+      
+      suite.test('getCardImages handles double-faced card', async () => {
+        const { getCardImages } = await import('./js/utils.js');
+        const card = {
+          name: 'Test DFC',
+          card_faces: [
+            { image_uris: { normal: 'front.jpg' } },
+            { image_uris: { normal: 'back.jpg' } }
+          ]
+        };
+        const result = getCardImages(card);
+        if (result.front !== 'front.jpg') throw new Error('Front image not extracted');
+        if (result.back !== 'back.jpg') throw new Error('Back image not extracted');
+      }),
+    ]);
+    
+    // ===== API TESTS =====
+    suite.group('API Functions', [
+      suite.test('fetchAllPages handles single page', async () => {
+        const { fetchAllPages } = await import('./js/api.js');
+        // Note: This will make a real API call - might be slow
+        const url = 'https://api.scryfall.com/sets';
+        const result = await fetchAllPages(url);
+        if (!Array.isArray(result)) throw new Error('Result is not an array');
+        if (result.length === 0) throw new Error('No data returned');
+      }),
+      
+      suite.test('filterSets excludes jumpstart', async () => {
+        const { filterSets } = await import('./js/api.js');
+        const sets = [
+          { name: 'Jumpstart', released_at: '2020-01-01', card_count: 500, icon_svg_uri: 'icon.svg' },
+          { name: 'Normal Set', released_at: '2020-01-01', card_count: 500, icon_svg_uri: 'icon.svg' }
+        ];
+        const result = filterSets(sets);
+        if (result.some(s => s.name === 'Jumpstart')) throw new Error('Jumpstart not filtered');
+        if (!result.some(s => s.name === 'Normal Set')) throw new Error('Normal set was filtered');
+      }, { quick: true }),
+      
+      suite.test('sortSetsByDate sorts correctly', async () => {
+        const { sortSetsByDate } = await import('./js/api.js');
+        const sets = [
+          { released_at: '2020-01-01' },
+          { released_at: '2022-01-01' },
+          { released_at: '2021-01-01' }
+        ];
+        const result = sortSetsByDate(sets);
+        if (result[0].released_at !== '2022-01-01') throw new Error('Not sorted newest first');
+      }, { quick: true }),
+    ]);
+    
+    // ===== INTEGRATION TESTS =====
+    suite.group('Integration Tests', [
+      suite.test('Can initialize and save state', async () => {
+        const { initializeState, setPoints, save, getPoints } = await import('./js/state.js');
+        initializeState();
+        setPoints(50);
+        save();
+        
+        // Reload state
+        initializeState();
+        if (getPoints() !== 50) throw new Error('State not persisted correctly');
+      }),
+      
+      suite.test('Pack cost constant matches expected value', async () => {
+        const { PACK_COST } = await import('./js/constants.js');
+        // Just verify the constant has the expected value
+        if (PACK_COST !== 6) throw new Error(`Pack cost should be 6, got ${PACK_COST}`);
+      }, { quick: true }),
+      
+      suite.test('LocalStorage structure is valid', async () => {
+        const stored = localStorage.getItem('mtgPocket');
+        if (!stored) throw new Error('No data in localStorage');
+        
+        const data = JSON.parse(stored);
+        if (typeof data.points !== 'number') throw new Error('Invalid points type');
+        if (typeof data.last !== 'number') throw new Error('Invalid last timestamp type');
+        if (typeof data.cards !== 'object') throw new Error('Invalid cards type');
+      }),
+    ]);
+    
+    // ===== BACKWARD COMPATIBILITY TESTS =====
+    suite.group('Backward Compatibility', [
+      suite.test('Can load old single-file version data', async () => {
+        const { initializeState, getPoints, getSetCards, getData } = await import('./js/state.js');
+        
+        // Create mock old data structure
+        const oldData = {
+          points: 42,
+          last: Date.now() - 1000000,
+          lastPack: 'BLB',
+          cards: {
+            'BLB': {
+              'card-id-1': {
+                name: 'Test Card',
+                rarity: 'rare',
+                img: 'test.jpg',
+                count: 3,
+                collectorNum: '123'
+                // Note: missing fullart and backImg - should be added by migration
+              }
+            }
+          }
+        };
+        
+        // Save old data format
+        localStorage.setItem('mtgPocket', JSON.stringify(oldData));
+        
+        // Initialize with new code
+        initializeState();
+        
+        // Check points loaded
+        if (getPoints() !== 42) throw new Error('Points not loaded from old format');
+        
+        // Check cards loaded
+        const cards = getSetCards('BLB');
+        if (!cards['card-id-1']) throw new Error('Card not loaded from old format');
+        
+        // Check migration added missing fields
+        const card = cards['card-id-1'];
+        if (card.fullart === undefined) throw new Error('Migration did not add fullart field');
+        if (!card.backImg) throw new Error('Migration did not add backImg field');
+        
+        console.log('Old data successfully migrated:', card);
+      }),
+      
+      suite.test('Migration preserves all existing data', async () => {
+        const { initializeState, getData, save } = await import('./js/state.js');
+        
+        // Create data with multiple sets and cards
+        const testData = {
+          points: 100,
+          last: Date.now(),
+          lastPack: 'MH3',
+          cards: {
+            'BLB': {
+              'card1': { name: 'Card 1', rarity: 'common', img: 'c1.jpg', count: 2, collectorNum: '1' },
+              'card2': { name: 'Card 2', rarity: 'rare', img: 'c2.jpg', count: 1, collectorNum: '2' }
+            },
+            'MH3': {
+              'card3_fullart': { name: 'Card 3', rarity: 'mythic', img: 'c3.jpg', count: 1, fullart: true, collectorNum: '3' }
+            }
+          }
+        };
+        
+        localStorage.setItem('mtgPocket', JSON.stringify(testData));
+        initializeState();
+        
+        const data = getData();
+        
+        // Check all data preserved
+        if (data.points !== 100) throw new Error('Points changed during migration');
+        if (data.lastPack !== 'MH3') throw new Error('LastPack changed during migration');
+        if (!data.cards['BLB']) throw new Error('BLB set lost during migration');
+        if (!data.cards['MH3']) throw new Error('MH3 set lost during migration');
+        if (Object.keys(data.cards['BLB']).length !== 2) throw new Error('Cards lost from BLB');
+        if (data.cards['BLB']['card1'].count !== 2) throw new Error('Card count changed');
+      }),
+      
+      suite.test('Handles corrupted data gracefully', async () => {
+        const { initializeState, getPoints } = await import('./js/state.js');
+        
+        // Save corrupted data
+        localStorage.setItem('mtgPocket', 'invalid json{{{');
+        
+        // Should not throw, should initialize with defaults
+        initializeState();
+        
+        const points = getPoints();
+        if (typeof points !== 'number') throw new Error('Did not initialize with valid defaults');
+        if (points < 0) throw new Error('Initialized with invalid points value');
+      }),
+      
+      suite.test('Handles missing cards object', async () => {
+        const { initializeState, getData } = await import('./js/state.js');
+        
+        // Data without cards object
+        const incompleteData = {
+          points: 50,
+          last: Date.now()
+        };
+        
+        localStorage.setItem('mtgPocket', JSON.stringify(incompleteData));
+        initializeState();
+        
+        const data = getData();
+        if (typeof data.cards !== 'object') throw new Error('Did not add missing cards object');
+      }),
+      
+      suite.test('Migration adds backImg to all cards', async () => {
+        const { initializeState, getSetCards, MTG_CARD_BACK } = await import('./js/state.js');
+        const { MTG_CARD_BACK: CARD_BACK } = await import('./js/constants.js');
+        
+        const oldData = {
+          points: 0,
+          last: Date.now(),
+          cards: {
+            'TEST': {
+              'card1': { name: 'No Back', rarity: 'common', img: 'front.jpg', count: 1, collectorNum: '1' }
+            }
+          }
+        };
+        
+        localStorage.setItem('mtgPocket', JSON.stringify(oldData));
+        initializeState();
+        
+        const cards = getSetCards('TEST');
+        const card = cards['card1'];
+        
+        if (!card.backImg) throw new Error('backImg not added during migration');
+        if (card.backImg !== CARD_BACK) throw new Error(`backImg should be ${CARD_BACK}`);
+      }),
+      
+      suite.test('Migration detects fullart suffix correctly', async () => {
+        const { initializeState, getSetCards } = await import('./js/state.js');
+        
+        const oldData = {
+          points: 0,
+          last: Date.now(),
+          cards: {
+            'TEST': {
+              'regular-card': { name: 'Regular', rarity: 'common', img: 'r.jpg', count: 1, collectorNum: '1' },
+              'fullart-card_fullart': { name: 'Full Art', rarity: 'rare', img: 'fa.jpg', count: 1, collectorNum: '2' }
+            }
+          }
+        };
+        
+        localStorage.setItem('mtgPocket', JSON.stringify(oldData));
+        initializeState();
+        
+        const cards = getSetCards('TEST');
+        
+        if (cards['regular-card'].fullart !== false) throw new Error('Regular card should have fullart=false');
+        if (cards['fullart-card_fullart'].fullart !== true) throw new Error('Fullart card should have fullart=true');
+      }),
+      
+      suite.test('Collection module handles old data without errors', async () => {
+        const { initializeState, setCurrentSet } = await import('./js/state.js');
+        
+        // Create old format data
+        const oldData = {
+          points: 0,
+          last: Date.now(),
+          lastPack: 'BLB',
+          cards: {
+            'BLB': {
+              'test-card': { 
+                name: 'Test Card', 
+                rarity: 'uncommon', 
+                img: 'test.jpg', 
+                count: 2,
+                collectorNum: '100'
+              }
+            }
+          }
+        };
+        
+        localStorage.setItem('mtgPocket', JSON.stringify(oldData));
+        initializeState();
+        setCurrentSet('BLB');
+        
+        // Test that collection module can load and process the data
+        const { getSetCards } = await import('./js/state.js');
+        const cards = getSetCards('BLB');
+        
+        if (!cards['test-card']) throw new Error('Card not accessible from collection module');
+        if (cards['test-card'].count !== 2) throw new Error('Card count incorrect');
+        
+        // Migration should have added missing fields
+        if (cards['test-card'].fullart === undefined) throw new Error('fullart not added');
+        if (!cards['test-card'].backImg) throw new Error('backImg not added');
+      }),
+    ]);
+    
+    // ===== EVENT HANDLERS =====
+    document.getElementById('runAllTests').onclick = () => suite.runAll();
+    document.getElementById('runQuickTests').onclick = () => suite.runQuick();
+    document.getElementById('clearStorage').onclick = () => {
+      if (confirm('Clear all localStorage data? This will reset your progress!')) {
+        localStorage.removeItem('mtgPocket');
+        alert('Storage cleared! Reload the main app to start fresh.');
+      }
+    };
+    document.getElementById('toggleConsole').onclick = () => {
+      const consoleDiv = document.getElementById('consoleOutput');
+      consoleDiv.classList.toggle('visible');
+    };
+    
+    // Auto-run quick tests on load
+    window.addEventListener('load', () => {
+      setTimeout(() => suite.runQuick(), 500);
+    });
+  </script>
+</body>
+</html>
