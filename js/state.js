@@ -37,12 +37,19 @@ export function initializeState() {
   if (stored) {
     try {
       state.data = JSON.parse(stored);
+      console.log('Loaded saved data:', {
+        points: state.data.points,
+        lastPack: state.data.lastPack,
+        setCount: Object.keys(state.data.cards).length,
+        totalCards: Object.values(state.data.cards).reduce((sum, set) => sum + Object.keys(set).length, 0)
+      });
       migrateData();
     } catch (error) {
       console.error('Failed to parse stored data:', error);
       state.data = getDefaultData();
     }
   } else {
+    console.log('No saved data found, initializing with defaults');
     state.data = getDefaultData();
   }
 }
@@ -79,10 +86,31 @@ export function save() {
 export function migrateData() {
   let needsSave = false;
   
+  console.log('Running data migration...');
+  
+  // Ensure cards object exists
+  if (!state.data.cards) {
+    state.data.cards = {};
+    needsSave = true;
+    console.log('Added missing cards object');
+  }
+  
   // Migrate each set's cards
   Object.keys(state.data.cards).forEach(setCode => {
-    Object.keys(state.data.cards[setCode]).forEach(cardId => {
-      const card = state.data.cards[setCode][cardId];
+    const setCards = state.data.cards[setCode];
+    
+    if (!setCards || typeof setCards !== 'object') {
+      console.warn(`Invalid cards for set ${setCode}, skipping`);
+      return;
+    }
+    
+    Object.keys(setCards).forEach(cardId => {
+      const card = setCards[cardId];
+      
+      if (!card || typeof card !== 'object') {
+        console.warn(`Invalid card ${cardId} in set ${setCode}, skipping`);
+        return;
+      }
       
       // Add fullart flag if missing
       if (card.fullart === undefined) {
@@ -95,11 +123,34 @@ export function migrateData() {
         card.backImg = MTG_CARD_BACK;
         needsSave = true;
       }
+      
+      // Ensure count exists and is a number
+      if (typeof card.count !== 'number') {
+        card.count = 1;
+        needsSave = true;
+      }
+      
+      // Ensure name exists
+      if (!card.name) {
+        console.warn(`Card ${cardId} missing name in set ${setCode}`);
+        card.name = 'Unknown Card';
+        needsSave = true;
+      }
+      
+      // Ensure img exists
+      if (!card.img) {
+        console.warn(`Card ${cardId} missing img in set ${setCode}`);
+        card.img = MTG_CARD_BACK;
+        needsSave = true;
+      }
     });
   });
   
   if (needsSave) {
+    console.log('Migration complete, saving changes');
     save();
+  } else {
+    console.log('No migration needed');
   }
 }
 

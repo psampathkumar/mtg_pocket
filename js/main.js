@@ -32,7 +32,8 @@ import {
   initDevPanel,
   initAddCard,
   initTestGlareManual,
-  initTestGlareLibrary
+  initTestGlareLibrary,
+  initDiagnostic
 } from './dev-tools.js';
 
 // ===== INITIALIZATION =====
@@ -166,6 +167,7 @@ function initializeUI() {
   initAddCard();
   initTestGlareManual();
   initTestGlareLibrary();
+  initDiagnostic();
 }
 
 // ===== EVENT HANDLERS =====

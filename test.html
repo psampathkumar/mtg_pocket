@@ -729,6 +729,195 @@
       }),
     ]);
     
+    // ===== BACKWARD COMPATIBILITY TESTS =====
+    suite.group('Backward Compatibility', [
+      suite.test('Can load old single-file version data', async () => {
+        const { initializeState, getPoints, getSetCards, getData } = await import('./js/state.js');
+        
+        // Create mock old data structure
+        const oldData = {
+          points: 42,
+          last: Date.now() - 1000000,
+          lastPack: 'BLB',
+          cards: {
+            'BLB': {
+              'card-id-1': {
+                name: 'Test Card',
+                rarity: 'rare',
+                img: 'test.jpg',
+                count: 3,
+                collectorNum: '123'
+                // Note: missing fullart and backImg - should be added by migration
+              }
+            }
+          }
+        };
+        
+        // Save old data format
+        localStorage.setItem('mtgPocket', JSON.stringify(oldData));
+        
+        // Initialize with new code
+        initializeState();
+        
+        // Check points loaded
+        if (getPoints() !== 42) throw new Error('Points not loaded from old format');
+        
+        // Check cards loaded
+        const cards = getSetCards('BLB');
+        if (!cards['card-id-1']) throw new Error('Card not loaded from old format');
+        
+        // Check migration added missing fields
+        const card = cards['card-id-1'];
+        if (card.fullart === undefined) throw new Error('Migration did not add fullart field');
+        if (!card.backImg) throw new Error('Migration did not add backImg field');
+        
+        console.log('Old data successfully migrated:', card);
+      }),
+      
+      suite.test('Migration preserves all existing data', async () => {
+        const { initializeState, getData, save } = await import('./js/state.js');
+        
+        // Create data with multiple sets and cards
+        const testData = {
+          points: 100,
+          last: Date.now(),
+          lastPack: 'MH3',
+          cards: {
+            'BLB': {
+              'card1': { name: 'Card 1', rarity: 'common', img: 'c1.jpg', count: 2, collectorNum: '1' },
+              'card2': { name: 'Card 2', rarity: 'rare', img: 'c2.jpg', count: 1, collectorNum: '2' }
+            },
+            'MH3': {
+              'card3_fullart': { name: 'Card 3', rarity: 'mythic', img: 'c3.jpg', count: 1, fullart: true, collectorNum: '3' }
+            }
+          }
+        };
+        
+        localStorage.setItem('mtgPocket', JSON.stringify(testData));
+        initializeState();
+        
+        const data = getData();
+        
+        // Check all data preserved
+        if (data.points !== 100) throw new Error('Points changed during migration');
+        if (data.lastPack !== 'MH3') throw new Error('LastPack changed during migration');
+        if (!data.cards['BLB']) throw new Error('BLB set lost during migration');
+        if (!data.cards['MH3']) throw new Error('MH3 set lost during migration');
+        if (Object.keys(data.cards['BLB']).length !== 2) throw new Error('Cards lost from BLB');
+        if (data.cards['BLB']['card1'].count !== 2) throw new Error('Card count changed');
+      }),
+      
+      suite.test('Handles corrupted data gracefully', async () => {
+        const { initializeState, getPoints } = await import('./js/state.js');
+        
+        // Save corrupted data
+        localStorage.setItem('mtgPocket', 'invalid json{{{');
+        
+        // Should not throw, should initialize with defaults
+        initializeState();
+        
+        const points = getPoints();
+        if (typeof points !== 'number') throw new Error('Did not initialize with valid defaults');
+        if (points < 0) throw new Error('Initialized with invalid points value');
+      }),
+      
+      suite.test('Handles missing cards object', async () => {
+        const { initializeState, getData } = await import('./js/state.js');
+        
+        // Data without cards object
+        const incompleteData = {
+          points: 50,
+          last: Date.now()
+        };
+        
+        localStorage.setItem('mtgPocket', JSON.stringify(incompleteData));
+        initializeState();
+        
+        const data = getData();
+        if (typeof data.cards !== 'object') throw new Error('Did not add missing cards object');
+      }),
+      
+      suite.test('Migration adds backImg to all cards', async () => {
+        const { initializeState, getSetCards, MTG_CARD_BACK } = await import('./js/state.js');
+        const { MTG_CARD_BACK: CARD_BACK } = await import('./js/constants.js');
+        
+        const oldData = {
+          points: 0,
+          last: Date.now(),
+          cards: {
+            'TEST': {
+              'card1': { name: 'No Back', rarity: 'common', img: 'front.jpg', count: 1, collectorNum: '1' }
+            }
+          }
+        };
+        
+        localStorage.setItem('mtgPocket', JSON.stringify(oldData));
+        initializeState();
+        
+        const cards = getSetCards('TEST');
+        const card = cards['card1'];
+        
+        if (!card.backImg) throw new Error('backImg not added during migration');
+        if (card.backImg !== CARD_BACK) throw new Error(`backImg should be ${CARD_BACK}`);
+      }),
+      
+      suite.test('Migration detects fullart suffix correctly', async () => {
+        const { initializeState, getSetCards } = await import('./js/state.js');
+        
+        const oldData = {
+          points: 0,
+          last: Date.now(),
+          cards: {
+            'TEST': {
+              'regular-card': { name: 'Regular', rarity: 'common', img: 'r.jpg', count: 1, collectorNum: '1' },
+              'fullart-card_fullart': { name: 'Full Art', rarity: 'rare', img: 'fa.jpg', count: 1, collectorNum: '2' }
+            }
+          }
+        };
+        
+        localStorage.setItem('mtgPocket', JSON.stringify(oldData));
+        initializeState();
+        
+        const cards = getSetCards('TEST');
+        
+        if (cards['regular-card'].fullart !== false) throw new Error('Regular card should have fullart=false');
+        if (cards['fullart-card_fullart'].fullart !== true) throw new Error('Fullart card should have fullart=true');
+      }),
+      
+      suite.test('Collection renders with old data', async () => {
+        const { initializeState } = await import('./js/state.js');
+        const { renderCollection } = await import('./js/collection.js');
+        
+        // Create old format data
+        const oldData = {
+          points: 0,
+          last: Date.now(),
+          lastPack: 'BLB',
+          cards: {
+            'BLB': {
+              'test-card': { 
+                name: 'Test Card', 
+                rarity: 'uncommon', 
+                img: 'test.jpg', 
+                count: 2,
+                collectorNum: '100'
+              }
+            }
+          }
+        };
+        
+        localStorage.setItem('mtgPocket', JSON.stringify(oldData));
+        initializeState();
+        
+        // This should not throw
+        try {
+          renderCollection();
+        } catch (error) {
+          throw new Error(`Collection failed to render with old data: ${error.message}`);
+        }
+      }),
+    ]);
+    
     // ===== EVENT HANDLERS =====
     document.getElementById('runAllTests').onclick = () => suite.runAll();
     document.getElementById('runQuickTests').onclick = () => suite.runQuick();

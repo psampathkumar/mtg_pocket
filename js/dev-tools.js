@@ -390,3 +390,51 @@ export function initTestGlareLibrary() {
     };
   };
 }
+
+/**
+ * Initialize diagnostic tool
+ */
+export function initDiagnostic() {
+  const diagnosticBtn = document.getElementById('diagnosticBtn');
+  
+  diagnosticBtn.onclick = async () => {
+    const { getData, getCurrentSet, getAllCards, getSetCards } = await import('./state.js');
+    
+    const data = getData();
+    const currentSet = getCurrentSet();
+    const allCards = getAllCards();
+    const ownedCards = currentSet ? getSetCards(currentSet) : {};
+    
+    const info = {
+      'Current Set': currentSet || 'None',
+      'Points': data.points,
+      'Last Pack': data.lastPack || 'None',
+      'Total Sets with Cards': Object.keys(data.cards).length,
+      'Cards in Current Set': Object.keys(ownedCards).length,
+      'All Cards Loaded': allCards.length,
+      'LocalStorage Size': new Blob([JSON.stringify(data)]).size + ' bytes',
+      'Sample Card': ownedCards[Object.keys(ownedCards)[0]] || 'None'
+    };
+    
+    let output = '═══ MTG POCKET DIAGNOSTIC ═══\n\n';
+    
+    for (const [key, value] of Object.entries(info)) {
+      output += `${key}:\n`;
+      if (typeof value === 'object') {
+        output += JSON.stringify(value, null, 2) + '\n\n';
+      } else {
+        output += `  ${value}\n\n`;
+      }
+    }
+    
+    output += '═══ SETS WITH CARDS ═══\n';
+    for (const [setCode, cards] of Object.entries(data.cards)) {
+      const cardCount = Object.keys(cards).length;
+      const totalCount = Object.values(cards).reduce((sum, c) => sum + c.count, 0);
+      output += `${setCode}: ${cardCount} unique cards, ${totalCount} total\n`;
+    }
+    
+    console.log(output);
+    alert('Diagnostic info logged to console! Press F12 to view.');
+  };
+}
