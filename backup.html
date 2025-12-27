@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MTG Pocket - Backup & Restore</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    
+    header h1 {
+      margin: 0 0 10px 0;
+      font-size: 2rem;
+    }
+    
+    .content {
+      padding: 30px;
+    }
+    
+    .section {
+      margin-bottom: 30px;
+      padding: 20px;
+      border: 2px solid #e9ecef;
+      border-radius: 8px;
+    }
+    
+    .section h2 {
+      margin-top: 0;
+      color: #495057;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .section.warning {
+      border-color: #ffc107;
+      background: #fff3cd;
+    }
+    
+    .section.success {
+      border-color: #28a745;
+      background: #d4edda;
+    }
+    
+    .section.info {
+      border-color: #17a2b8;
+      background: #d1ecf1;
+    }
+    
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.2s;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+    
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+    
+    .info-box {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+    }
+    
+    .info-box strong {
+      color: #495057;
+    }
+    
+    input[type="file"] {
+      display: none;
+    }
+    
+    .file-input-label {
+      display: inline-block;
+      padding: 12px 24px;
+      background: #6c757d;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    
+    .file-input-label:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 15px;
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
+    }
+    
+    .step-number {
+      min-width: 30px;
+      height: 30px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+    
+    .step-content {
+      flex: 1;
+    }
+    
+    .status {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 6px;
+      display: none;
+    }
+    
+    .status.show {
+      display: block;
+    }
+    
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .status.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🛡️ MTG Pocket Backup & Restore</h1>
+      <p>Safely backup and restore your collection data</p>
+    </header>
+    
+    <div class="content">
+      <!-- Current Data Info -->
+      <div class="section info">
+        <h2>📊 Current Data</h2>
+        <div class="info-box" id="currentDataInfo">
+          Checking localStorage...
+        </div>
+      </div>
+      
+      <!-- Backup Section -->
+      <div class="section success">
+        <h2>💾 Backup Your Data</h2>
+        <p>Download a backup file before upgrading to the refactored version. This is your safety net!</p>
+        
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <strong>Export Current Data</strong>
+            <p>Downloads a JSON file with all your points and cards.</p>
+            <button class="btn-success" id="exportBtn">📥 Download Backup</button>
+          </div>
+        </div>
+        
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <strong>Verify Backup File</strong>
+            <p>Check the downloaded file is not empty or corrupted.</p>
+            <button class="btn-secondary" id="verifyBtn">🔍 Verify Backup File</button>
+            <input type="file" id="verifyInput" accept=".json">
+          </div>
+        </div>
+        
+        <div id="backupStatus" class="status"></div>
+      </div>
+      
+      <!-- Restore Section -->
+      <div class="section warning">
+        <h2>♻️ Restore Data</h2>
+        <p><strong>⚠️ Warning:</strong> This will replace your current data!</p>
+        
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <strong>Choose Backup File</strong>
+            <label for="restoreInput" class="file-input-label">
+              📂 Select Backup File
+            </label>
+            <input type="file" id="restoreInput" accept=".json">
+            <p id="selectedFile" style="margin-top:10px;color:#6c757d;font-size:14px;"></p>
+          </div>
+        </div>
+        
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <strong>Preview & Restore</strong>
+            <p>Review the backup data before restoring.</p>
+            <button class="btn-danger" id="restoreBtn" disabled>♻️ Restore from Backup</button>
+          </div>
+        </div>
+        
+        <div id="restoreStatus" class="status"></div>
+        <div id="previewData" class="info-box" style="display:none;"></div>
+      </div>
+      
+      <!-- Test Migration Section -->
+      <div class="section info">
+        <h2>🧪 Test Migration (Safe)</h2>
+        <p>Test the new version's migration without affecting your real data.</p>
+        
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <strong>Simulate Migration</strong>
+            <p>See what the new version will do to your data (read-only test).</p>
+            <button class="btn-primary" id="testMigrationBtn">🔬 Test Migration</button>
+          </div>
+        </div>
+        
+        <div id="migrationStatus" class="status"></div>
+        <pre id="migrationPreview" style="display:none;background:#f8f9fa;padding:15px;border-radius:6px;overflow-x:auto;font-size:12px;"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Check current data on load
+    window.addEventListener('load', () => {
+      const data = localStorage.getItem('mtgPocket');
+      const infoDiv = document.getElementById('currentDataInfo');
+      
+      if (!data) {
+        infoDiv.innerHTML = '<strong>⚠️ No data found</strong><br>No MTG Pocket data in localStorage.';
+        return;
+      }
+      
+      try {
+        const parsed = JSON.parse(data);
+        const sets = Object.keys(parsed.cards || {});
+        const totalCards = Object.values(parsed.cards || {}).reduce((sum, set) => 
+          sum + Object.keys(set).length, 0
+        );
+        const totalCount = Object.values(parsed.cards || {}).reduce((sum, set) => 
+          sum + Object.values(set).reduce((s, card) => s + (card.count || 0), 0), 0
+        );
+        const dataSize = new Blob([data]).size;
+        
+        infoDiv.innerHTML = `
+          <strong>✅ Data Found</strong><br>
+          Points: <strong>${parsed.points || 0}</strong><br>
+          Last Pack: <strong>${parsed.lastPack || 'None'}</strong><br>
+          Sets: <strong>${sets.length}</strong> (${sets.join(', ')})<br>
+          Unique Cards: <strong>${totalCards}</strong><br>
+          Total Cards: <strong>${totalCount}</strong><br>
+          Size: <strong>${(dataSize / 1024).toFixed(2)} KB</strong>
+        `;
+      } catch (error) {
+        infoDiv.innerHTML = `<strong>❌ Corrupted Data</strong><br>Error: ${error.message}`;
+      }
+    });
+    
+    // Export backup
+    document.getElementById('exportBtn').onclick = () => {
+      const data = localStorage.getItem('mtgPocket');
+      const statusDiv = document.getElementById('backupStatus');
+      
+      if (!data) {
+        statusDiv.className = 'status error show';
+        statusDiv.textContent = '❌ No data to backup!';
+        return;
+      }
+      
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      a.href = url;
+      a.download = `mtg-pocket-backup-${timestamp}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      statusDiv.className = 'status success show';
+      statusDiv.textContent = `✅ Backup downloaded: mtg-pocket-backup-${timestamp}.json`;
+    };
+    
+    // Verify backup
+    document.getElementById('verifyBtn').onclick = () => {
+      document.getElementById('verifyInput').click();
+    };
+    
+    document.getElementById('verifyInput').onchange = (e) => {
+      const file = e.target.files[0];
+      const statusDiv = document.getElementById('backupStatus');
+      
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target.result);
+          
+          if (!data.points && data.points !== 0) throw new Error('Missing points field');
+          if (!data.cards) throw new Error('Missing cards field');
+          
+          const sets = Object.keys(data.cards);
+          const totalCards = Object.values(data.cards).reduce((sum, set) => 
+            sum + Object.keys(set).length, 0
+          );
+          
+          statusDiv.className = 'status success show';
+          statusDiv.innerHTML = `
+            ✅ Backup file is valid!<br>
+            Points: ${data.points}<br>
+            Sets: ${sets.length}<br>
+            Cards: ${totalCards}
+          `;
+        } catch (error) {
+          statusDiv.className = 'status error show';
+          statusDiv.textContent = `❌ Invalid backup file: ${error.message}`;
+        }
+      };
+      reader.readAsText(file);
+    };
+    
+    // Select restore file
+    document.getElementById('restoreInput').onchange = (e) => {
+      const file = e.target.files[0];
+      const selectedFileDiv = document.getElementById('selectedFile');
+      const restoreBtn = document.getElementById('restoreBtn');
+      const previewDiv = document.getElementById('previewData');
+      const statusDiv = document.getElementById('restoreStatus');
+      
+      if (!file) {
+        restoreBtn.disabled = true;
+        return;
+      }
+      
+      selectedFileDiv.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const data = JSON.parse(event.target.result);
+          
+          // Validate
+          if (!data.points && data.points !== 0) throw new Error('Invalid backup: missing points');
+          if (!data.cards) throw new Error('Invalid backup: missing cards');
+          
+          // Store for restoration
+          window.backupData = data;
+          
+          // Show preview
+          const sets = Object.keys(data.cards);
+          const totalCards = Object.values(data.cards).reduce((sum, set) => 
+            sum + Object.keys(set).length, 0
+          );
+          
+          previewDiv.style.display = 'block';
+          previewDiv.innerHTML = `
+            <strong>Preview:</strong><br>
+            Points: ${data.points}<br>
+            Sets: ${sets.join(', ')}<br>
+            Total Cards: ${totalCards}<br>
+            Last Pack: ${data.lastPack || 'None'}
+          `;
+          
+          restoreBtn.disabled = false;
+          statusDiv.className = 'status info show';
+          statusDiv.textContent = '✅ Ready to restore. Click "Restore from Backup" to proceed.';
+        } catch (error) {
+          restoreBtn.disabled = true;
+          previewDiv.style.display = 'none';
+          statusDiv.className = 'status error show';
+          statusDiv.textContent = `❌ Invalid backup file: ${error.message}`;
+        }
+      };
+      reader.readAsText(file);
+    };
+    
+    // Restore data
+    document.getElementById('restoreBtn').onclick = () => {
+      const statusDiv = document.getElementById('restoreStatus');
+      
+      if (!window.backupData) {
+        statusDiv.className = 'status error show';
+        statusDiv.textContent = '❌ No backup data loaded!';
+        return;
+      }
+      
+      if (!confirm('⚠️ This will REPLACE your current data! Are you sure?')) {
+        return;
+      }
+      
+      try {
+        localStorage.setItem('mtgPocket', JSON.stringify(window.backupData));
+        statusDiv.className = 'status success show';
+        statusDiv.textContent = '✅ Data restored successfully! Reload the main app to see your data.';
+        
+        // Update current data display
+        setTimeout(() => window.location.reload(), 1000);
+      } catch (error) {
+        statusDiv.className = 'status error show';
+        statusDiv.textContent = `❌ Failed to restore: ${error.message}`;
+      }
+    };
+    
+    // Test migration
+    document.getElementById('testMigrationBtn').onclick = () => {
+      const statusDiv = document.getElementById('migrationStatus');
+      const previewDiv = document.getElementById('migrationPreview');
+      
+      const data = localStorage.getItem('mtgPocket');
+      
+      if (!data) {
+        statusDiv.className = 'status error show';
+        statusDiv.textContent = '❌ No data to test migration on!';
+        return;
+      }
+      
+      try {
+        const parsed = JSON.parse(data);
+        const MTG_CARD_BACK = 'https://files.mtg.wiki/Magic_card_back.jpg';
+        
+        let changes = [];
+        let migrated = JSON.parse(JSON.stringify(parsed)); // Deep clone
+        
+        // Simulate migration
+        Object.keys(migrated.cards || {}).forEach(setCode => {
+          Object.keys(migrated.cards[setCode]).forEach(cardId => {
+            const card = migrated.cards[setCode][cardId];
+            
+            if (card.fullart === undefined) {
+              card.fullart = cardId.endsWith('_fullart');
+              changes.push(`${setCode}/${cardId}: Added fullart=${card.fullart}`);
+            }
+            
+            if (card.backImg === undefined) {
+              card.backImg = MTG_CARD_BACK;
+              changes.push(`${setCode}/${cardId}: Added backImg`);
+            }
+            
+            if (typeof card.count !== 'number') {
+              card.count = 1;
+              changes.push(`${setCode}/${cardId}: Fixed count to 1`);
+            }
+          });
+        });
+        
+        if (changes.length === 0) {
+          statusDiv.className = 'status success show';
+          statusDiv.textContent = '✅ No migration needed! Your data is already compatible.';
+          previewDiv.style.display = 'none';
+        } else {
+          statusDiv.className = 'status info show';
+          statusDiv.textContent = `🔬 Migration would make ${changes.length} changes:`;
+          previewDiv.style.display = 'block';
+          previewDiv.textContent = changes.join('\n');
+        }
+      } catch (error) {
+        statusDiv.className = 'status error show';
+        statusDiv.textContent = `❌ Error testing migration: ${error.message}`;
+      }
+    };
+  </script>
+</body>
+</html>
