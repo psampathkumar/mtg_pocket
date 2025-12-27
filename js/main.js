@@ -196,8 +196,8 @@ async function handleSetChange(event) {
  * Start the countdown timer for point regeneration
  */
 function startCountdownTimer() {
-  setInterval(tick, COUNTDOWN_UPDATE_INTERVAL);
   tick(); // Initial tick
+  setInterval(tick, COUNTDOWN_UPDATE_INTERVAL);
 }
 
 /**

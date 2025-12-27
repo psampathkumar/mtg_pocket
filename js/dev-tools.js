@@ -24,6 +24,11 @@ export function initDevPanel() {
   const devToggle = document.getElementById('devToggle');
   const devPanel = document.getElementById('devPanel');
   
+  if (!devToggle || !devPanel) {
+    console.warn('Dev panel elements not found - skipping initialization');
+    return;
+  }
+  
   devToggle.onclick = () => {
     devPanel.style.display = devPanel.style.display === 'none' ? 'block' : 'none';
   };
@@ -37,6 +42,11 @@ export function initDevPanel() {
 export function initAddCard() {
   const addCardBtn = document.getElementById('addCardBtn');
   const collectorInput = document.getElementById('collectorInput');
+  
+  if (!addCardBtn || !collectorInput) {
+    console.warn('Add card elements not found - skipping initialization');
+    return;
+  }
   
   addCardBtn.onclick = () => {
     const collectorNum = collectorInput.value.trim();
@@ -89,6 +99,11 @@ export function initAddCard() {
  */
 export function initTestGlareManual() {
   const testGlareBtn = document.getElementById('testGlareBtn');
+  
+  if (!testGlareBtn) {
+    console.warn('Test glare button not found - skipping initialization');
+    return;
+  }
   
   testGlareBtn.onclick = async () => {
     const modal = document.getElementById('cardViewModal');
@@ -303,6 +318,11 @@ export function initTestGlareManual() {
 export function initTestGlareLibrary() {
   const testLibraryBtn = document.getElementById('testLibraryBtn');
   
+  if (!testLibraryBtn) {
+    console.warn('Test library button not found - skipping initialization');
+    return;
+  }
+  
   testLibraryBtn.onclick = async () => {
     const modal = document.getElementById('cardViewModal');
     modal.style.display = 'flex';
@@ -396,6 +416,11 @@ export function initTestGlareLibrary() {
  */
 export function initDiagnostic() {
   const diagnosticBtn = document.getElementById('diagnosticBtn');
+  
+  if (!diagnosticBtn) {
+    console.warn('Diagnostic button not found - skipping initialization');
+    return;
+  }
   
   diagnosticBtn.onclick = async () => {
     const { getData, getCurrentSet, getAllCards, getSetCards } = await import('./state.js');
