@@ -14,6 +14,8 @@ import { getRecentPacks, setCurrentSet, getCurrentSet, getSetMetadata } from './
  * Render the pack carousel
  */
 export function renderPackCarousel() {
+  console.log('=== renderPackCarousel called ===');
+  
   const carousel = document.getElementById('packCarousel');
   if (!carousel) {
     console.warn('Pack carousel element not found');
@@ -21,6 +23,8 @@ export function renderPackCarousel() {
   }
   
   const currentSet = getCurrentSet();
+  console.log('Current set:', currentSet);
+  
   if (!currentSet) {
     console.warn('No current set selected');
     carousel.innerHTML = '<div style="color:#666;text-align:center;padding:2rem">Select a set from the dropdown to begin</div>';
@@ -28,18 +32,23 @@ export function renderPackCarousel() {
   }
   
   const recentPacks = getRecentPacks();
+  console.log('Recent packs:', recentPacks);
   
   // Build display array: [left, center, right]
   const displayPacks = buildDisplayArray(currentSet, recentPacks);
+  console.log('Display packs:', displayPacks);
   
   carousel.innerHTML = '';
   
   // Create 3 pack elements
   displayPacks.forEach((setCode, index) => {
     const position = ['left', 'center', 'right'][index];
+    console.log(`Creating pack ${index}: ${setCode} at position ${position}`);
     const packDiv = createPackElement(setCode, position);
     carousel.appendChild(packDiv);
   });
+  
+  console.log('=== renderPackCarousel complete ===');
 }
 
 /**
@@ -88,12 +97,30 @@ function createPackElement(setCode, position) {
   const contentDiv = document.createElement('div');
   contentDiv.className = 'packContent';
   
+  // Try mtgpics.com logo first, fallback to set name
   const logo = document.createElement('img');
   logo.className = 'packLogo';
   logo.alt = 'Set Logo';
   logo.src = `https://www.mtgpics.com/graph/sets/logos_big/${setCode}.png`;
-  logo.onerror = () => { logo.style.display = 'none'; };
-  logo.onload = () => { logo.style.display = 'block'; };
+  logo.style.display = 'block';
+  
+  logo.onerror = () => { 
+    console.warn(`Failed to load mtgpics logo for ${setCode}, using fallback`);
+    // Fallback: show set name as text
+    logo.style.display = 'none';
+    const setMetadata = getSetMetadata(setCode);
+    if (setMetadata && setMetadata.name) {
+      const nameDiv = document.createElement('div');
+      nameDiv.textContent = setMetadata.name;
+      nameDiv.style.cssText = 'font-size:clamp(1.2rem,3vw,1.8rem);font-weight:bold;text-align:center;color:#4facfe;text-shadow:0 2px 10px rgba(79,172,254,0.5)';
+      contentDiv.appendChild(nameDiv);
+    }
+  };
+  
+  logo.onload = () => { 
+    console.log(`✅ Logo loaded for ${setCode}`);
+    logo.style.display = 'block'; 
+  };
   
   const icon = document.createElement('img');
   icon.className = 'packIcon';
@@ -103,6 +130,13 @@ function createPackElement(setCode, position) {
   if (setMetadata && setMetadata.icon) {
     icon.src = setMetadata.icon;
     icon.style.display = 'block';
+    icon.onerror = () => {
+      console.warn(`Failed to load icon for ${setCode}`);
+      icon.style.display = 'none';
+    };
+    icon.onload = () => {
+      console.log(`✅ Icon loaded for ${setCode}`);
+    };
   } else {
     icon.style.display = 'none';
   }
