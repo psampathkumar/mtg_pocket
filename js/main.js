@@ -137,7 +137,6 @@ async function loadSet() {
     setData.storySpotlightCards
   );
   
-  updatePackImage();
   renderPackCarousel();
   updateStats();
   
