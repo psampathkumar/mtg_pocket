@@ -1,3 +1,77 @@
+/* ===== CSS CUSTOM PROPERTIES (MOBILE-FIRST) ===== */
+:root {
+  /* Fluid Pack Sizing */
+  --pack-width: min(75vw, 300px);
+  --pack-height: calc(var(--pack-width) * 1.6);
+  
+  /* Carousel Positioning */
+  --carousel-spacing: 15vw;
+  --pack-scale-side: 0.7;
+  --pack-opacity-side: 0.75;
+  
+  /* Typography Scale */
+  --font-xs: clamp(0.65rem, 3vw, 0.75rem);
+  --font-sm: clamp(0.75rem, 3.5vw, 0.9rem);
+  --font-base: clamp(0.85rem, 4vw, 1rem);
+  --font-md: clamp(1rem, 4.5vw, 1.2rem);
+  --font-lg: clamp(1.1rem, 5vw, 1.5rem);
+  --font-xl: clamp(1.3rem, 6vw, 2rem);
+  
+  /* Spacing Scale */
+  --spacing-xs: clamp(0.25rem, 1vw, 0.5rem);
+  --spacing-sm: clamp(0.5rem, 2vw, 0.75rem);
+  --spacing-md: clamp(0.75rem, 3vw, 1rem);
+  --spacing-lg: clamp(1rem, 4vw, 1.5rem);
+  --spacing-xl: clamp(1.5rem, 5vw, 2rem);
+  
+  /* Card Sizing */
+  --card-width-collection: min(40vw, 140px);
+  --card-width-modal: min(85vw, 400px);
+  --card-width-pack: min(35vw, 160px);
+}
+
+/* ===== RESPONSIVE BREAKPOINTS ===== */
+
+/* Small phones (376px+) */
+@media (min-width: 376px) {
+  :root {
+    --pack-width: min(65vw, 320px);
+    --carousel-spacing: 18vw;
+    --pack-scale-side: 0.72;
+  }
+}
+
+/* Large phones (480px+) */
+@media (min-width: 480px) {
+  :root {
+    --pack-width: min(55vw, 340px);
+    --carousel-spacing: 25vw;
+    --pack-scale-side: 0.75;
+    --card-width-collection: min(35vw, 150px);
+  }
+}
+
+/* Tablets (768px+) */
+@media (min-width: 768px) {
+  :root {
+    --pack-width: min(40vw, 350px);
+    --carousel-spacing: 40vw;
+    --pack-scale-side: 0.82;
+    --pack-opacity-side: 0.7;
+    --card-width-collection: min(25vw, 180px);
+    --card-width-modal: min(60vw, 400px);
+    --card-width-pack: min(25vw, 180px);
+  }
+}
+
+/* Desktop (1024px+) */
+@media (min-width: 1024px) {
+  :root {
+    --carousel-spacing: 50vw;
+    --pack-scale-side: 0.85;
+  }
+}
+
 /* ===== BASE STYLES ===== */
 * {
   box-sizing: border-box;
@@ -10,6 +84,7 @@ body {
   color: #fff;
   min-height: 100vh;
   overflow-x: hidden;
+  font-size: var(--font-base);
 }
 
 /* ===== HEADER ===== */
@@ -17,15 +92,15 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: clamp(0.5rem, 3vw, 1rem) clamp(0.75rem, 4vw, 1.5rem);
+  padding: var(--spacing-md) var(--spacing-lg);
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(6px);
-  gap: 0.5rem;
+  gap: var(--spacing-sm);
   flex-wrap: wrap;
 }
 
 header h1 {
-  font-size: clamp(1.2rem, 4vw, 1.8rem);
+  font-size: var(--font-xl);
   margin: 0;
 }
 
@@ -34,11 +109,17 @@ button {
   background: linear-gradient(135deg, #4facfe, #00f2fe);
   border: none;
   border-radius: 10px;
-  padding: clamp(0.5rem, 2vw, 0.6rem) clamp(0.75rem, 3vw, 1rem);
+  padding: var(--spacing-md) var(--spacing-lg);
   font-weight: 600;
   cursor: pointer;
-  font-size: clamp(0.8rem, 2vw, 1rem);
+  font-size: var(--font-base);
   white-space: nowrap;
+  min-height: 44px; /* iOS touch target minimum */
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+button:active {
+  transform: scale(0.98);
 }
 
 button:disabled {
@@ -46,44 +127,66 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Mobile: Full-width buttons for easy tapping */
+@media (max-width: 480px) {
+  button {
+    width: 100%;
+    max-width: 400px;
+  }
+  
+  .navButtons button,
+  .controls button {
+    width: auto;
+    min-width: 120px;
+  }
+}
+
 /* ===== FORM ELEMENTS ===== */
 select {
   background: #111;
   color: #fff;
   border-radius: 8px;
-  padding: 0.4rem;
+  padding: var(--spacing-sm);
   border: 1px solid #333;
-  font-size: clamp(0.8rem, 2vw, 1rem);
+  font-size: var(--font-base);
+  min-height: 44px;
 }
 
 /* ===== CONTROLS & STATS ===== */
 .controls {
   display: flex;
-  gap: clamp(0.5rem, 2vw, 1rem);
+  gap: var(--spacing-md);
   flex-wrap: wrap;
-  padding: clamp(0.5rem, 2vw, 1rem);
+  padding: var(--spacing-md);
   align-items: center;
-  font-size: clamp(0.85rem, 2vw, 1rem);
+  font-size: var(--font-base);
 }
 
 .stats {
-  padding: clamp(0.5rem, 2vw, 1rem);
+  padding: var(--spacing-md);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
-  gap: clamp(0.5rem, 2vw, 1rem);
+  gap: var(--spacing-md);
 }
 
 .statBox {
   background: #111;
-  padding: clamp(0.75rem, 2vw, 1rem);
+  padding: var(--spacing-md);
   border-radius: 12px;
   cursor: pointer;
   text-align: center;
-  font-size: clamp(0.85rem, 2vw, 1rem);
+  font-size: var(--font-sm);
+  transition: transform 0.2s, box-shadow 0.2s;
+  min-height: 44px; /* Touch-friendly */
+}
+
+.statBox:active {
+  transform: scale(0.98);
 }
 
 .statBox.active {
   outline: 2px solid #4facfe;
+  box-shadow: 0 0 10px rgba(79, 172, 254, 0.5);
 }
 
 .progress {
@@ -97,14 +200,15 @@ select {
 .progress div {
   height: 100%;
   background: linear-gradient(90deg, #4facfe, #00f2fe);
+  transition: width 0.3s;
 }
 
 /* ===== CARD GRID ===== */
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(120px, 45vw), 1fr));
-  gap: clamp(0.5rem, 2vw, 1rem);
-  padding: clamp(0.5rem, 2vw, 1rem);
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-width-collection), 1fr));
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
 }
 
 /* ===== CARD COMPONENT ===== */
@@ -114,6 +218,7 @@ select {
   border-radius: clamp(12px, 3vw, 16px);
   cursor: pointer;
   overflow: visible;
+  transition: transform 0.2s, box-shadow 0.3s;
 }
 
 .card .card-inner {
@@ -158,8 +263,10 @@ select {
   object-fit: cover;
 }
 
-.card:hover {
+.card:hover,
+.card:active {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  transform: translateY(-2px);
 }
 
 /* ===== CARD BADGES ===== */
@@ -170,7 +277,7 @@ select {
   background: rgba(0, 0, 0, 0.7);
   padding: 2px 6px;
   border-radius: 8px;
-  font-size: clamp(0.7rem, 2vw, 0.75rem);
+  font-size: var(--font-xs);
   z-index: 2;
 }
 
@@ -181,7 +288,7 @@ select {
   background: rgba(0, 0, 0, 0.7);
   padding: 2px 6px;
   border-radius: 8px;
-  font-size: clamp(0.7rem, 2vw, 0.75rem);
+  font-size: var(--font-xs);
   z-index: 2;
 }
 
@@ -195,7 +302,7 @@ select {
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 4px;
-  font-size: clamp(0.65rem, 2vw, 0.75rem);
+  font-size: var(--font-xs);
   z-index: 10;
 }
 
@@ -209,7 +316,7 @@ select {
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 4px;
-  font-size: clamp(0.65rem, 2vw, 0.75rem);
+  font-size: var(--font-xs);
   z-index: 10;
 }
 
@@ -225,7 +332,7 @@ select {
   justify-content: center;
   aspect-ratio: 2.5/3.5;
   color: #666;
-  font-size: clamp(0.8rem, 2vw, 1rem);
+  font-size: var(--font-base);
   font-weight: 600;
 }
 
@@ -402,26 +509,35 @@ select {
   align-items: center;
   justify-content: center;
   min-height: 60vh;
-  padding: 2rem;
+  padding: var(--spacing-xl);
   position: relative;
 }
 
+/* Mobile: Reduce padding */
+@media (max-width: 480px) {
+  #homeScreen {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+}
+
+/* ===== PACK CAROUSEL (MOBILE-FIRST) ===== */
 .packCarousel {
   position: relative;
   width: 100%;
-  max-width: 900px;
-  height: clamp(450px, 70vw, 620px);
-  margin: 2rem auto;
+  max-width: 100vw;
+  height: calc(var(--pack-height) * 1.3);
+  margin: var(--spacing-xl) auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  perspective: 1500px;
+  perspective: 1000px;
+  overflow: visible;
 }
 
 .packImage {
   position: absolute;
-  width: clamp(250px, 40vw, 350px);
-  height: clamp(400px, 64vw, 560px);
+  width: var(--pack-width);
+  height: var(--pack-height);
   cursor: pointer;
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   background: linear-gradient(145deg, #2a2a3e, #1a1a2e);
@@ -431,8 +547,8 @@ select {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
-  gap: 1.5rem;
+  padding: var(--spacing-xl);
+  gap: var(--spacing-lg);
   border: 3px solid rgba(79, 172, 254, 0.3);
   overflow: visible;
 }
@@ -445,15 +561,15 @@ select {
 
 .packImage.left {
   z-index: 2;
-  transform: translateX(-120%) scale(0.85) rotateY(25deg);
-  opacity: 0.7;
+  transform: translateX(calc(var(--carousel-spacing) * -1)) scale(var(--pack-scale-side));
+  opacity: var(--pack-opacity-side);
   filter: brightness(0.7);
 }
 
 .packImage.right {
   z-index: 2;
-  transform: translateX(120%) scale(0.85) rotateY(-25deg);
-  opacity: 0.7;
+  transform: translateX(var(--carousel-spacing)) scale(var(--pack-scale-side));
+  opacity: var(--pack-opacity-side);
   filter: brightness(0.7);
 }
 
@@ -464,24 +580,50 @@ select {
   transform: translateX(0) scale(0.5);
 }
 
-.packImage:hover {
+.packImage:hover,
+.packImage:active {
   transform: translateX(0) scale(1.05);
 }
 
-.packImage.center:hover {
+.packImage.center:hover,
+.packImage.center:active {
   transform: translateX(0) scale(1.05);
 }
 
-.packImage.left:hover {
-  transform: translateX(-120%) scale(0.9) rotateY(25deg);
+.packImage.left:hover,
+.packImage.left:active {
+  transform: translateX(calc(var(--carousel-spacing) * -1)) scale(calc(var(--pack-scale-side) + 0.05));
   opacity: 0.9;
   filter: brightness(0.85);
 }
 
-.packImage.right:hover {
-  transform: translateX(120%) scale(0.9) rotateY(-25deg);
+.packImage.right:hover,
+.packImage.right:active {
+  transform: translateX(var(--carousel-spacing)) scale(calc(var(--pack-scale-side) + 0.05));
   opacity: 0.9;
   filter: brightness(0.85);
+}
+
+/* Mobile: Remove 3D rotation for clarity */
+@media (max-width: 768px) {
+  .packImage.left,
+  .packImage.right {
+    transform: translateX(calc(var(--carousel-spacing) * -1)) scale(var(--pack-scale-side));
+  }
+  
+  .packImage.right {
+    transform: translateX(var(--carousel-spacing)) scale(var(--pack-scale-side));
+  }
+  
+  .packImage.left:hover,
+  .packImage.left:active {
+    transform: translateX(calc(var(--carousel-spacing) * -1)) scale(calc(var(--pack-scale-side) + 0.05));
+  }
+  
+  .packImage.right:hover,
+  .packImage.right:active {
+    transform: translateX(var(--carousel-spacing)) scale(calc(var(--pack-scale-side) + 0.05));
+  }
 }
 
 .packImage.ripping {
@@ -536,8 +678,8 @@ select {
 }
 
 .packIcon {
-  width: clamp(60px, 15vw, 100px);
-  height: clamp(60px, 15vw, 100px);
+  width: clamp(50px, 12vw, 100px);
+  height: clamp(50px, 12vw, 100px);
   object-fit: contain;
   filter: drop-shadow(0 5px 15px rgba(79, 172, 254, 0.4));
 }
@@ -556,7 +698,7 @@ select {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  gap: var(--spacing-lg);
 }
 
 .setDropdown {
@@ -566,15 +708,15 @@ select {
   transform: translateX(-50%);
   z-index: 100;
   background: rgba(0, 0, 0, 0.8);
-  padding: 0.5rem;
+  padding: var(--spacing-sm);
   border-radius: 10px;
   backdrop-filter: blur(10px);
 }
 
 .navButtons {
   display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
   flex-wrap: wrap;
   justify-content: center;
 }
@@ -589,8 +731,9 @@ select {
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: clamp(0.5rem, 2vw, 1rem);
+  padding: var(--spacing-lg);
   flex-direction: column;
+  overflow-y: auto;
 }
 
 .singleCardView {
@@ -604,7 +747,7 @@ select {
 }
 
 .singleCardView .card {
-  width: clamp(250px, 60vw, 400px);
+  width: var(--card-width-modal);
   max-width: 90vw;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
 }
@@ -624,7 +767,7 @@ select {
 
 .packCards {
   display: flex;
-  gap: clamp(0.5rem, 2vw, 1rem);
+  gap: var(--spacing-md);
   flex-wrap: wrap;
   justify-content: center;
   max-width: 100%;
@@ -632,7 +775,7 @@ select {
 }
 
 .packCards .card {
-  width: clamp(100px, 25vw, 180px);
+  width: var(--card-width-pack);
   max-width: 180px;
 }
 
@@ -641,36 +784,46 @@ select {
   display: none;
 }
 
-/* ===== MEDIA QUERIES ===== */
-@media (max-width: 768px) {
-  .packCards .card {
-    width: clamp(120px, 35vw, 160px);
-  }
-  .packImage {
-    width: clamp(220px, 50vw, 300px);
-    height: clamp(352px, 80vw, 480px);
-  }
-  .packLogo {
-    width: 75%;
-  }
-  .packIcon {
-    width: clamp(50px, 12vw, 80px);
-    height: clamp(50px, 12vw, 80px);
-  }
-}
+/* ===== MEDIA QUERIES - FINE TUNING ===== */
 
-@media (max-width: 480px) {
+/* Extra small phones */
+@media (max-width: 375px) {
+  .packCarousel {
+    perspective: 800px;
+  }
+  
+  .packCards .card {
+    width: min(40vw, 130px);
+  }
+  
   header {
     flex-direction: column;
     text-align: center;
   }
+}
+
+/* Small phones */
+@media (max-width: 480px) {
   .packCards {
-    gap: 0.75rem;
+    gap: var(--spacing-sm);
   }
-  .packCards .card {
-    width: clamp(100px, 40vw, 140px);
-  }
+  
   .navButtons {
-    gap: 0.5rem;
+    gap: var(--spacing-sm);
+  }
+}
+
+/* Tablets */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .packCarousel {
+    perspective: 1200px;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  .packCarousel {
+    perspective: 1500px;
+    max-width: 900px;
   }
 }
