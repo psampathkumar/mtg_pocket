@@ -28,6 +28,7 @@ import {
 } from './state.js';
 import { rollRarity, getCardImages, randomChance, getRandomElement, wait } from './utils.js';
 import { showPackModal } from './card-renderer.js';
+import { startRipAnimation } from './pack-carousel.js';
 
 // ===== PACK OPENING =====
 
@@ -51,10 +52,7 @@ export async function openPack(freeMode) {
   }
   
   // Play pack ripping animation
-  const packImg = document.getElementById('packImage');
-  packImg.classList.add('ripping');
-  await wait(PACK_RIP_DURATION);
-  packImg.classList.remove('ripping');
+  await startRipAnimation();
   
   // Deduct points
   if (!freeMode) {
@@ -222,18 +220,27 @@ function ensureCardExists(setCode, cardId, cardData) {
 
 /**
  * Update the pack image based on current set
+ * NOTE: This function is deprecated with the new carousel system
+ * but kept for backward compatibility
  */
 export function updatePackImage() {
   const currentSet = getCurrentSet();
+  
+  // Check if old single pack elements exist (backward compatibility)
   const logo = document.getElementById('packLogo');
   const icon = document.getElementById('packIcon');
   
-  // Set logo
+  if (!logo || !icon) {
+    // Using new carousel system, no need to update
+    console.log('Using carousel system, skipping legacy updatePackImage');
+    return;
+  }
+  
+  // Legacy single-pack system
   logo.src = `https://www.mtgpics.com/graph/sets/logos_big/${currentSet}.png`;
   logo.onerror = () => { logo.style.display = 'none'; };
   logo.onload = () => { logo.style.display = 'block'; };
   
-  // Set icon
   const setMetadata = getSetMetadata(currentSet);
   
   if (setMetadata && setMetadata.icon) {

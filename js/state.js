@@ -13,7 +13,8 @@ export const state = {
     points: 0,
     last: Date.now(),
     cards: {},
-    lastPack: null
+    lastPack: null,
+    recentPacks: []  // Array of recent pack set codes (max 3)
   },
   
   // Current session data (not persisted)
@@ -62,7 +63,8 @@ function getDefaultData() {
     points: 0,
     last: Date.now(),
     cards: {},
-    lastPack: null
+    lastPack: null,
+    recentPacks: []
   };
 }
 
@@ -93,6 +95,28 @@ export function migrateData() {
     state.data.cards = {};
     needsSave = true;
     console.log('Added missing cards object');
+  }
+  
+  // Ensure recentPacks array exists
+  if (!state.data.recentPacks) {
+    state.data.recentPacks = [];
+    // Initialize with lastPack if it exists
+    if (state.data.lastPack) {
+      state.data.recentPacks = [state.data.lastPack];
+      console.log('Initialized recentPacks with lastPack:', state.data.lastPack);
+    }
+    needsSave = true;
+    console.log('Added missing recentPacks array');
+  }
+  
+  // Ensure recentPacks is an array (in case of corruption)
+  if (!Array.isArray(state.data.recentPacks)) {
+    console.warn('recentPacks was not an array, resetting');
+    state.data.recentPacks = [];
+    if (state.data.lastPack) {
+      state.data.recentPacks = [state.data.lastPack];
+    }
+    needsSave = true;
   }
   
   // Migrate each set's cards
@@ -244,11 +268,39 @@ export function clearSetCards(setCode) {
 
 // ===== LAST PACK TRACKING =====
 /**
- * Set the last opened pack's set code
+ * Set the last opened pack's set code and update recent packs
  */
 export function setLastPack(setCode) {
   state.data.lastPack = setCode;
+  
+  // Update recent packs (keep last 3)
+  if (!state.data.recentPacks) {
+    state.data.recentPacks = [];
+  }
+  
+  // Remove if already exists
+  state.data.recentPacks = state.data.recentPacks.filter(code => code !== setCode);
+  
+  // Add to front
+  state.data.recentPacks.unshift(setCode);
+  
+  // Keep only last 3
+  if (state.data.recentPacks.length > 3) {
+    state.data.recentPacks = state.data.recentPacks.slice(0, 3);
+  }
+  
   save();
+}
+
+/**
+ * Get recent packs array
+ */
+export function getRecentPacks() {
+  if (!state.data.recentPacks || !Array.isArray(state.data.recentPacks)) {
+    console.warn('recentPacks invalid, returning empty array');
+    return [];
+  }
+  return state.data.recentPacks;
 }
 
 /**

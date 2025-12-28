@@ -200,12 +200,15 @@ export function initTestGlareManual() {
       
       // Position glare based on which face is showing
       if (!isFlipped) {
+        // Front face - normal positioning
         glareGradient.style.left = `${x * 100}%`;
         glareGradient.style.top = `${y * 100}%`;
         glare.style.opacity = '1';
         glareBack.style.opacity = '0';
       } else {
-        glareGradientBack.style.left = `${(1 - x) * 100}%`;
+        // Back face - X is reversed because card is rotated 180deg on Y axis
+        // When card is rotated 180deg on Y, left becomes right
+        glareGradientBack.style.left = `${x * 100}%`;  // Keep X the same (don't reverse)
         glareGradientBack.style.top = `${y * 100}%`;
         glareBack.style.opacity = '1';
         glare.style.opacity = '0';
@@ -249,12 +252,14 @@ export function initTestGlareManual() {
         const glareY = (1 - tiltX) / 2;
         
         if (!isFlipped) {
+          // Front face
           glareGradient.style.left = `${glareX * 100}%`;
           glareGradient.style.top = `${glareY * 100}%`;
           glare.style.opacity = '1';
           glareBack.style.opacity = '0';
         } else {
-          glareGradientBack.style.left = `${(1 - glareX) * 100}%`;
+          // Back face - Keep X the same (the back face is already mirrored visually)
+          glareGradientBack.style.left = `${glareX * 100}%`;
           glareGradientBack.style.top = `${glareY * 100}%`;
           glareBack.style.opacity = '1';
           glare.style.opacity = '0';
@@ -352,34 +357,37 @@ export function initTestGlareLibrary() {
     const container = document.createElement('div');
     container.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:1.5rem';
     
+    // Create hover-tilt element
     const hoverTilt = document.createElement('hover-tilt');
-    hoverTilt.setAttribute('shadow', '');
     hoverTilt.setAttribute('tilt-factor', GLARE_CONFIG.tiltFactor.toString());
     hoverTilt.setAttribute('scale-factor', GLARE_CONFIG.scaleFactor.toString());
-    hoverTilt.style.cssText = 'width:300px;height:420px;border-radius:4.55%;overflow:hidden';
+    hoverTilt.style.cssText = 'width:300px;height:420px;border-radius:4.55%;display:block';
     
-    const cardContainer = document.createElement('div');
-    cardContainer.style.cssText = 'width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 0.6s';
+    // Create wrapper for flip functionality
+    const flipWrapper = document.createElement('div');
+    flipWrapper.style.cssText = 'width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 0.6s';
     
+    // Front face with image
     const front = document.createElement('div');
-    front.style.cssText = 'position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:inherit;overflow:hidden';
+    front.style.cssText = 'position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:4.55%;overflow:hidden';
     const frontImg = document.createElement('img');
     frontImg.src = testCardData.front;
     frontImg.alt = testCardData.name;
-    frontImg.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+    frontImg.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;border-radius:4.55%';
     front.appendChild(frontImg);
     
+    // Back face with image
     const back = document.createElement('div');
-    back.style.cssText = 'position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:inherit;transform:rotateY(180deg);overflow:hidden';
+    back.style.cssText = 'position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:4.55%;transform:rotateY(180deg);overflow:hidden';
     const backImg = document.createElement('img');
     backImg.src = testCardData.back;
     backImg.alt = 'Card back';
-    backImg.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+    backImg.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;border-radius:4.55%';
     back.appendChild(backImg);
     
-    cardContainer.appendChild(front);
-    cardContainer.appendChild(back);
-    hoverTilt.appendChild(cardContainer);
+    flipWrapper.appendChild(front);
+    flipWrapper.appendChild(back);
+    hoverTilt.appendChild(flipWrapper);
     
     let isFlipped = false;
     
@@ -388,7 +396,7 @@ export function initTestGlareLibrary() {
     flipBtn.style.cssText = 'padding:0.75rem 1.5rem;font-size:1rem';
     flipBtn.onclick = () => {
       isFlipped = !isFlipped;
-      cardContainer.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
+      flipWrapper.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
     };
     
     const closeBtn = document.createElement('button');

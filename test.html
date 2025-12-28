@@ -919,6 +919,44 @@
         if (cards['test-card'].fullart === undefined) throw new Error('fullart not added');
         if (!cards['test-card'].backImg) throw new Error('backImg not added');
       }),
+      
+      suite.test('Carousel handles upgrade from old version', async () => {
+        const { initializeState, getRecentPacks, getLastPack } = await import('./js/state.js');
+        
+        // Old data without recentPacks
+        const oldData = {
+          points: 50,
+          last: Date.now(),
+          lastPack: 'MH3',
+          cards: { 'MH3': {} }
+        };
+        
+        localStorage.setItem('mtgPocket', JSON.stringify(oldData));
+        initializeState();
+        
+        const recentPacks = getRecentPacks();
+        const lastPack = getLastPack();
+        
+        // Should have initialized recentPacks with lastPack
+        if (!Array.isArray(recentPacks)) throw new Error('recentPacks not an array');
+        if (recentPacks.length !== 1) throw new Error('recentPacks should have 1 entry');
+        if (recentPacks[0] !== 'MH3') throw new Error('recentPacks should contain lastPack');
+        if (lastPack !== 'MH3') throw new Error('lastPack not preserved');
+      }),
+      
+      suite.test('Carousel handles completely fresh install', async () => {
+        const { initializeState, getRecentPacks } = await import('./js/state.js');
+        
+        // Completely fresh, no data
+        localStorage.removeItem('mtgPocket');
+        initializeState();
+        
+        const recentPacks = getRecentPacks();
+        
+        // Should have empty array
+        if (!Array.isArray(recentPacks)) throw new Error('recentPacks not an array');
+        if (recentPacks.length !== 0) throw new Error('Fresh install should have empty recentPacks');
+      }),
     ]);
     
     // ===== EVENT HANDLERS =====

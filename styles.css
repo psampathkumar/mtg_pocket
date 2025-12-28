@@ -406,13 +406,24 @@ select {
   position: relative;
 }
 
-.packImage {
+.packCarousel {
   position: relative;
+  width: 100%;
+  max-width: 900px;
+  height: clamp(450px, 70vw, 620px);
+  margin: 2rem auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1500px;
+}
+
+.packImage {
+  position: absolute;
   width: clamp(250px, 40vw, 350px);
   height: clamp(400px, 64vw, 560px);
-  margin: 2rem auto;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   background: linear-gradient(145deg, #2a2a3e, #1a1a2e);
   border-radius: 20px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
@@ -426,8 +437,51 @@ select {
   overflow: visible;
 }
 
+.packImage.center {
+  z-index: 3;
+  transform: translateX(0) scale(1);
+  opacity: 1;
+}
+
+.packImage.left {
+  z-index: 2;
+  transform: translateX(-120%) scale(0.85) rotateY(25deg);
+  opacity: 0.7;
+  filter: brightness(0.7);
+}
+
+.packImage.right {
+  z-index: 2;
+  transform: translateX(120%) scale(0.85) rotateY(-25deg);
+  opacity: 0.7;
+  filter: brightness(0.7);
+}
+
+.packImage.hidden {
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(0) scale(0.5);
+}
+
 .packImage:hover {
-  transform: scale(1.05);
+  transform: translateX(0) scale(1.05);
+}
+
+.packImage.center:hover {
+  transform: translateX(0) scale(1.05);
+}
+
+.packImage.left:hover {
+  transform: translateX(-120%) scale(0.9) rotateY(25deg);
+  opacity: 0.9;
+  filter: brightness(0.85);
+}
+
+.packImage.right:hover {
+  transform: translateX(120%) scale(0.9) rotateY(-25deg);
+  opacity: 0.9;
+  filter: brightness(0.85);
 }
 
 .packImage.ripping {

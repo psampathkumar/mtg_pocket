@@ -26,8 +26,9 @@ import {
   loadCompleteSetData
 } from './api.js';
 import { formatTime } from './utils.js';
-import { openPack, updatePackImage } from './pack-opening.js';
+import { openPack } from './pack-opening.js';
 import { showCollectionView, showHomeScreen, updateStats } from './collection.js';
+import { initPackCarousel, renderPackCarousel } from './pack-carousel.js';
 import {
   initDevPanel,
   initAddCard,
@@ -137,6 +138,7 @@ async function loadSet() {
   );
   
   updatePackImage();
+  renderPackCarousel();
   updateStats();
   
   console.log('Set loaded:', currentSet);
@@ -148,15 +150,38 @@ async function loadSet() {
  * Initialize all UI event handlers
  */
 function initializeUI() {
-  // Pack opening
-  document.getElementById('openPackHome').onclick = handleOpenPack;
-  document.getElementById('packImage').onclick = handleOpenPack;
+  // Initialize pack carousel
+  initPackCarousel();
+  
+  // Pack opening - listen for custom event from carousel
+  document.addEventListener('openPack', async (e) => {
+    const freeMode = document.getElementById('freeMode').checked;
+    await openPack(freeMode);
+    renderPackCarousel(); // Refresh carousel after opening
+    updateUI();
+    updateStats();
+  });
+  
+  // Pack selection - listen for custom event from carousel (side pack clicked)
+  document.addEventListener('packSelected', async (e) => {
+    // Pack was selected, carousel already updated
+    // Just update UI and stats for the new set
+    updateUI();
+  });
+  
+  // Open pack button
+  document.getElementById('openPackHome').onclick = () => {
+    const event = new CustomEvent('openPack', { 
+      detail: { setCode: getCurrentSet() } 
+    });
+    document.dispatchEvent(event);
+  };
   
   // Navigation
   document.getElementById('viewCollection').onclick = showCollectionView;
   document.getElementById('backHome').onclick = showHomeScreen;
   
-  // Set selector
+  // Set selector - changing dropdown updates center pack
   document.getElementById('setSelect').onchange = handleSetChange;
   
   // Free mode toggle
@@ -173,21 +198,12 @@ function initializeUI() {
 // ===== EVENT HANDLERS =====
 
 /**
- * Handle pack opening
- */
-async function handleOpenPack() {
-  const freeMode = document.getElementById('freeMode').checked;
-  await openPack(freeMode);
-  updateUI();
-  updateStats();
-}
-
-/**
- * Handle set change
+ * Handle set change from dropdown
  */
 async function handleSetChange(event) {
   setCurrentSet(event.target.value);
   await loadSet();
+  renderPackCarousel(); // Update carousel when set changes
 }
 
 // ===== COUNTDOWN TIMER =====
