@@ -1,11 +1,14 @@
 /**
- * MTG Pocket - Pack Carousel
+ * MTG Pocket - Pack Carousel (REFACTORED WITH PROPER SEQUENCING)
  * 
  * Manages the 3-pack carousel display on home screen.
- * - Center pack always matches dropdown selection
- * - Left/right show recent history (duplicated if < 3 unique)
- * - Clicking sides rotates carousel clockwise/counter-clockwise
- * - Only center pack can be opened
+ * 
+ * CRITICAL FIX: Proper async/await sequencing to ensure:
+ * 1. State is updated
+ * 2. Card data is loaded
+ * 3. THEN carousel is rendered
+ * 
+ * NEW FEATURE: Vertical pack names on side packs for mobile visibility
  */
 
 import { getRecentPacks, setCurrentSet, getCurrentSet, getSetMetadata } from './state.js';
@@ -14,41 +17,41 @@ import { getRecentPacks, setCurrentSet, getCurrentSet, getSetMetadata } from './
  * Render the pack carousel
  */
 export function renderPackCarousel() {
-  console.log('=== renderPackCarousel called ===');
+  console.log('🎨 === renderPackCarousel START ===');
   
   const carousel = document.getElementById('packCarousel');
   if (!carousel) {
-    console.warn('Pack carousel element not found');
+    console.error('❌ Pack carousel element not found');
     return;
   }
   
   const currentSet = getCurrentSet();
-  console.log('Current set:', currentSet);
+  console.log('📍 Current set from state:', currentSet);
   
   if (!currentSet) {
-    console.warn('No current set selected');
+    console.warn('⚠️ No current set selected');
     carousel.innerHTML = '<div style="color:#666;text-align:center;padding:2rem">Select a set from the dropdown to begin</div>';
     return;
   }
   
   const recentPacks = getRecentPacks();
-  console.log('Recent packs:', recentPacks);
+  console.log('📚 Recent packs from state:', recentPacks);
   
   // Build display array: [left, center, right]
   const displayPacks = buildDisplayArray(currentSet, recentPacks);
-  console.log('Display packs:', displayPacks);
+  console.log('🎯 Display array built:', displayPacks);
   
   carousel.innerHTML = '';
   
   // Create 3 pack elements
   displayPacks.forEach((setCode, index) => {
     const position = ['left', 'center', 'right'][index];
-    console.log(`Creating pack ${index}: ${setCode} at position ${position}`);
+    console.log(`  └─ Creating pack [${index}]: ${setCode} at position: ${position}`);
     const packDiv = createPackElement(setCode, position);
     carousel.appendChild(packDiv);
   });
   
-  console.log('=== renderPackCarousel complete ===');
+  console.log('✅ === renderPackCarousel COMPLETE ===\n');
 }
 
 /**
@@ -56,25 +59,18 @@ export function renderPackCarousel() {
  * Center is always currentSet, sides are recent history
  */
 function buildDisplayArray(currentSet, recentPacks) {
-  // Center is always the current set
   const center = currentSet;
-  
-  // Get unique recent packs excluding the current center
   const uniqueRecent = recentPacks.filter(code => code !== center);
   
-  // Ensure we have at least 2 items for left/right
   let left, right;
   
   if (uniqueRecent.length === 0) {
-    // No history - duplicate center
     left = center;
     right = center;
   } else if (uniqueRecent.length === 1) {
-    // One in history - use it for both sides
     left = uniqueRecent[0];
     right = uniqueRecent[0];
   } else {
-    // Two or more in history
     left = uniqueRecent[0];
     right = uniqueRecent[1];
   }
@@ -83,7 +79,7 @@ function buildDisplayArray(currentSet, recentPacks) {
 }
 
 /**
- * Create a pack element
+ * Create a pack element with vertical name labels
  */
 function createPackElement(setCode, position) {
   const packDiv = document.createElement('div');
@@ -97,6 +93,18 @@ function createPackElement(setCode, position) {
   const contentDiv = document.createElement('div');
   contentDiv.className = 'packContent';
   
+  // Get set metadata
+  const setMetadata = getSetMetadata(setCode);
+  const setName = setMetadata?.name || setCode;
+  
+  // NEW FEATURE: Add vertical label for side packs
+  if (position !== 'center') {
+    const verticalLabel = document.createElement('div');
+    verticalLabel.className = 'packVerticalLabel';
+    verticalLabel.textContent = setName;
+    packDiv.appendChild(verticalLabel);
+  }
+  
   // Try mtgpics.com logo first, fallback to set name
   const logo = document.createElement('img');
   logo.className = 'packLogo';
@@ -105,20 +113,17 @@ function createPackElement(setCode, position) {
   logo.style.display = 'block';
   
   logo.onerror = () => { 
-    console.warn(`Failed to load mtgpics logo for ${setCode}, using fallback`);
-    // Fallback: show set name as text
+    console.warn(`⚠️ Failed to load logo for ${setCode}, using fallback`);
     logo.style.display = 'none';
-    const setMetadata = getSetMetadata(setCode);
-    if (setMetadata && setMetadata.name) {
-      const nameDiv = document.createElement('div');
-      nameDiv.textContent = setMetadata.name;
-      nameDiv.style.cssText = 'font-size:clamp(1.2rem,3vw,1.8rem);font-weight:bold;text-align:center;color:#4facfe;text-shadow:0 2px 10px rgba(79,172,254,0.5)';
-      contentDiv.appendChild(nameDiv);
-    }
+    
+    const nameDiv = document.createElement('div');
+    nameDiv.textContent = setName;
+    nameDiv.style.cssText = 'font-size:clamp(1.2rem,3vw,1.8rem);font-weight:bold;text-align:center;color:#4facfe;text-shadow:0 2px 10px rgba(79,172,254,0.5)';
+    contentDiv.appendChild(nameDiv);
   };
   
   logo.onload = () => { 
-    console.log(`✅ Logo loaded for ${setCode}`);
+    console.log(`  └─ ✅ Logo loaded for ${setCode}`);
     logo.style.display = 'block'; 
   };
   
@@ -126,16 +131,15 @@ function createPackElement(setCode, position) {
   icon.className = 'packIcon';
   icon.alt = 'Set Icon';
   
-  const setMetadata = getSetMetadata(setCode);
-  if (setMetadata && setMetadata.icon) {
+  if (setMetadata?.icon) {
     icon.src = setMetadata.icon;
     icon.style.display = 'block';
     icon.onerror = () => {
-      console.warn(`Failed to load icon for ${setCode}`);
+      console.warn(`⚠️ Failed to load icon for ${setCode}`);
       icon.style.display = 'none';
     };
     icon.onload = () => {
-      console.log(`✅ Icon loaded for ${setCode}`);
+      console.log(`  └─ ✅ Icon loaded for ${setCode}`);
     };
   } else {
     icon.style.display = 'none';
@@ -148,17 +152,31 @@ function createPackElement(setCode, position) {
   
   // Click handlers
   if (position === 'center') {
-    // Center pack opens
+    // Center pack opens - ALWAYS uses getCurrentSet()
     packDiv.onclick = (e) => {
       if (packDiv.classList.contains('ripping')) return;
-      const event = new CustomEvent('openPack', { detail: { setCode } });
+      
+      const actualCurrentSet = getCurrentSet();
+      console.log('🎯 === CENTER PACK CLICKED ===');
+      console.log('  └─ Pack element dataset:', packDiv.dataset.setCode);
+      console.log('  └─ getCurrentSet():', actualCurrentSet);
+      console.log('  └─ Dropdown value:', document.getElementById('setSelect')?.value);
+      
+      const event = new CustomEvent('openPack', { 
+        detail: { setCode: actualCurrentSet } 
+      });
       document.dispatchEvent(event);
     };
   } else {
     // Side packs rotate carousel
-    packDiv.onclick = (e) => {
+    packDiv.onclick = async (e) => {
       if (packDiv.classList.contains('ripping')) return;
-      rotateTo(setCode, position);
+      
+      console.log('🔄 === SIDE PACK CLICKED ===');
+      console.log('  └─ Set code:', setCode);
+      console.log('  └─ Position:', position);
+      
+      await rotateTo(setCode, position);
     };
   }
   
@@ -167,43 +185,67 @@ function createPackElement(setCode, position) {
 
 /**
  * Rotate carousel to bring a side pack to center
- * @param {string} setCode - The set code to bring to center
- * @param {string} fromPosition - 'left' or 'right'
+ * REFACTORED: Proper async/await sequencing
  */
-function rotateTo(setCode, fromPosition) {
-  // Update current set (which updates dropdown via binding)
-  setCurrentSet(setCode);
+async function rotateTo(setCode, fromPosition) {
+  console.log('⚙️ === ROTATE TO START ===');
+  console.log('  └─ Target set:', setCode);
+  console.log('  └─ From position:', fromPosition);
   
-  // Update dropdown UI
+  // Step 1: Update state
+  console.log('  └─ STEP 1: Updating state...');
+  setCurrentSet(setCode);
+  console.log('    ✅ State updated. getCurrentSet():', getCurrentSet());
+  
+  // Step 2: Update dropdown UI
+  console.log('  └─ STEP 2: Updating dropdown...');
   const dropdown = document.getElementById('setSelect');
   if (dropdown) {
     dropdown.value = setCode;
+    console.log('    ✅ Dropdown updated to:', dropdown.value);
   }
   
-  // Re-render carousel with new center
-  renderPackCarousel();
-  
-  // Dispatch event for other modules
-  const event = new CustomEvent('packSelected', { detail: { setCode } });
+  // Step 3: Load set data (CRITICAL - must happen before rendering)
+  console.log('  └─ STEP 3: Loading set data...');
+  const event = new CustomEvent('carouselSetChange', { 
+    detail: { 
+      setCode, 
+      source: 'carousel-rotation',
+      timestamp: Date.now()
+    } 
+  });
   document.dispatchEvent(event);
+  console.log('    ✅ carouselSetChange event dispatched');
+  
+  // Note: The actual loadSet() happens in main.js listener
+  // Carousel will be re-rendered after loadSet() completes
+  
+  console.log('✅ === ROTATE TO COMPLETE ===\n');
 }
 
 /**
  * Add ripping animation to center pack
  */
 export function startRipAnimation() {
+  console.log('🎬 Starting rip animation...');
   const centerPack = document.querySelector('.packImage.center');
+  
   if (centerPack) {
     centerPack.classList.add('ripping');
+    console.log('  ✅ Rip animation started');
+    
     return new Promise(resolve => {
       setTimeout(() => {
         if (centerPack) {
           centerPack.classList.remove('ripping');
+          console.log('  ✅ Rip animation complete');
         }
         resolve();
       }, 800);
     });
   }
+  
+  console.log('  ⚠️ No center pack found for animation');
   return Promise.resolve();
 }
 
@@ -211,13 +253,15 @@ export function startRipAnimation() {
  * Initialize carousel
  */
 export function initPackCarousel() {
-  console.log('Initializing pack carousel');
+  console.log('🚀 Initializing pack carousel...');
   
   const currentSet = getCurrentSet();
   if (!currentSet) {
-    console.warn('No current set, waiting for set selection');
+    console.warn('⚠️ No current set, waiting for set selection');
     return;
   }
   
+  console.log('  └─ Initial set:', currentSet);
   renderPackCarousel();
+  console.log('✅ Pack carousel initialized\n');
 }

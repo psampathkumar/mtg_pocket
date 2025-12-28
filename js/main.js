@@ -1,7 +1,11 @@
 /**
- * MTG Pocket - Main Application
+ * MTG Pocket - Main Application (REFACTORED WITH PROPER SEQUENCING)
  * 
  * Entry point for the application. Initializes all modules and sets up event handlers.
+ * 
+ * CRITICAL FIX: Proper async/await sequencing for carousel rotation
+ * - carouselSetChange event triggers loadSet()
+ * - loadSet() completes BEFORE carousel re-renders
  */
 
 import { PACK_COST, INTERVAL, COUNTDOWN_UPDATE_INTERVAL } from './constants.js';
@@ -43,24 +47,29 @@ import {
  * Initialize the application
  */
 async function init() {
-  console.log('=== MTG Pocket Initializing ===');
+  console.log('🚀 === MTG POCKET INITIALIZING ===\n');
   
   // Load saved data
+  console.log('📂 Loading saved data...');
   initializeState();
   
   // Load sets
+  console.log('📦 Loading sets...');
   await loadSets();
   
   // Initialize UI
+  console.log('🎨 Initializing UI...');
   initializeUI();
   
   // Start countdown timer
+  console.log('⏰ Starting countdown timer...');
   startCountdownTimer();
   
   // Initial UI update
+  console.log('🔄 Initial UI update...');
   updateUI();
   
-  console.log('=== MTG Pocket Ready ===');
+  console.log('✅ === MTG POCKET READY ===\n');
 }
 
 // ===== SET LOADING =====
@@ -69,15 +78,21 @@ async function init() {
  * Load all MTG sets and populate the set selector
  */
 async function loadSets() {
-  console.log('Loading sets...');
-  
+  console.log('  └─ Fetching all sets from API...');
   const allSets = await fetchAllSets();
+  console.log(`    ✅ Fetched ${allSets.length} sets`);
+  
+  console.log('  └─ Filtering sets...');
   const filteredSets = filterSets(allSets);
+  console.log(`    ✅ Filtered to ${filteredSets.length} sets`);
+  
+  console.log('  └─ Sorting sets by date...');
   const sortedSets = sortSetsByDate(filteredSets);
   
   const setSelect = document.getElementById('setSelect');
   setSelect.innerHTML = '';
   
+  console.log('  └─ Populating dropdown and storing metadata...');
   // Populate dropdown and store metadata
   sortedSets.forEach(set => {
     const option = document.createElement('option');
@@ -104,13 +119,15 @@ async function loadSets() {
   // Set current set to last opened pack or first in list
   const lastPack = getLastPack();
   const initialSet = lastPack || setSelect.value;
+  console.log('  └─ Setting initial set:', initialSet, lastPack ? '(from last pack)' : '(first in list)');
   setCurrentSet(initialSet);
   setSelect.value = initialSet;
   
   // Load the initial set
+  console.log('  └─ Loading initial set data...');
   await loadSet();
   
-  console.log('Sets loaded');
+  console.log('✅ Sets loaded\n');
 }
 
 /**
@@ -118,7 +135,8 @@ async function loadSets() {
  */
 async function loadSet() {
   const currentSet = getCurrentSet();
-  console.log('Loading set:', currentSet);
+  console.log('📦 === LOAD SET START ===');
+  console.log('  └─ Set code:', currentSet);
   
   // Get all sets from state
   const { getState } = await import('./state.js');
@@ -128,8 +146,16 @@ async function loadSet() {
     ...stateData.setData[code]
   }));
   
+  console.log('  └─ Fetching complete set data from API...');
   const setData = await loadCompleteSetData(currentSet, allSets);
   
+  console.log('  └─ Card counts:');
+  console.log(`    • Main cards: ${setData.mainCards.length}`);
+  console.log(`    • Full-art cards: ${setData.fullArtCards.length}`);
+  console.log(`    • Masterpiece cards: ${setData.masterpieceCards.length}`);
+  console.log(`    • Story spotlight cards: ${setData.storySpotlightCards.length}`);
+  
+  console.log('  └─ Updating state with card data...');
   updateCardsData(
     setData.mainCards,
     setData.fullArtCards,
@@ -137,10 +163,13 @@ async function loadSet() {
     setData.storySpotlightCards
   );
   
+  console.log('  └─ Rendering carousel...');
   renderPackCarousel();
+  
+  console.log('  └─ Updating stats...');
   updateStats();
   
-  console.log('Set loaded:', currentSet);
+  console.log('✅ === LOAD SET COMPLETE ===\n');
 }
 
 // ===== UI INITIALIZATION =====
@@ -152,39 +181,89 @@ function initializeUI() {
   // Initialize pack carousel
   initPackCarousel();
   
-  // Pack opening - listen for custom event from carousel
-  document.addEventListener('openPack', async (e) => {
-    const freeMode = document.getElementById('freeMode').checked;
-    await openPack(freeMode);
-    renderPackCarousel(); // Refresh carousel after opening
+  // CRITICAL: Listen for carousel rotation BEFORE other events
+  // This ensures proper sequencing: rotate → load → render → open
+  document.addEventListener('carouselSetChange', async (e) => {
+    console.log('📨 === EVENT: carouselSetChange ===');
+    console.log('  └─ Set code:', e.detail?.setCode);
+    console.log('  └─ Source:', e.detail?.source);
+    console.log('  └─ Timestamp:', e.detail?.timestamp);
+    
+    console.log('  └─ Loading set data (THIS MUST COMPLETE FIRST)...');
+    await loadSet();
+    console.log('    ✅ Set data loaded');
+    
+    console.log('  └─ Updating UI...');
     updateUI();
-    updateStats();
+    console.log('    ✅ UI updated');
+    
+    console.log('✅ === EVENT: carouselSetChange COMPLETE ===\n');
   });
   
-  // Pack selection - listen for custom event from carousel (side pack clicked)
-  document.addEventListener('packSelected', async (e) => {
-    // Pack was selected, carousel already updated
-    // Just update UI and stats for the new set
+  // Pack opening event
+  document.addEventListener('openPack', async (e) => {
+    console.log('📨 === EVENT: openPack ===');
+    console.log('  └─ Event detail setCode:', e.detail?.setCode);
+    console.log('  └─ getCurrentSet():', getCurrentSet());
+    
+    const freeMode = document.getElementById('freeMode').checked;
+    console.log('  └─ Free mode:', freeMode);
+    
+    console.log('  └─ Calling openPack()...');
+    await openPack(freeMode);
+    
+    console.log('  └─ Refreshing carousel...');
+    renderPackCarousel();
+    
+    console.log('  └─ Updating UI and stats...');
     updateUI();
+    updateStats();
+    
+    console.log('✅ === EVENT: openPack COMPLETE ===\n');
   });
   
   // Open pack button
   document.getElementById('openPackHome').onclick = () => {
+    console.log('🔘 === BUTTON: Open Pack ===');
+    const currentSet = getCurrentSet();
+    console.log('  └─ getCurrentSet():', currentSet);
+    
     const event = new CustomEvent('openPack', { 
-      detail: { setCode: getCurrentSet() } 
+      detail: { setCode: currentSet } 
     });
     document.dispatchEvent(event);
   };
   
   // Navigation
-  document.getElementById('viewCollection').onclick = showCollectionView;
-  document.getElementById('backHome').onclick = showHomeScreen;
+  document.getElementById('viewCollection').onclick = () => {
+    console.log('🔘 === BUTTON: View Collection ===');
+    showCollectionView();
+  };
   
-  // Set selector - changing dropdown updates center pack
-  document.getElementById('setSelect').onchange = handleSetChange;
+  document.getElementById('backHome').onclick = () => {
+    console.log('🔘 === BUTTON: Back Home ===');
+    showHomeScreen();
+  };
+  
+  // Set selector - changing dropdown
+  document.getElementById('setSelect').onchange = async (event) => {
+    console.log('📝 === DROPDOWN: Set Changed ===');
+    console.log('  └─ New value:', event.target.value);
+    
+    console.log('  └─ Updating state...');
+    setCurrentSet(event.target.value);
+    
+    console.log('  └─ Loading set...');
+    await loadSet();
+    
+    console.log('✅ === DROPDOWN: Set Changed COMPLETE ===\n');
+  };
   
   // Free mode toggle
-  document.getElementById('freeMode').onchange = updateUI;
+  document.getElementById('freeMode').onchange = () => {
+    console.log('🔘 === TOGGLE: Free Mode ===');
+    updateUI();
+  };
   
   // Dev tools
   initDevPanel();
@@ -192,17 +271,8 @@ function initializeUI() {
   initTestGlareManual();
   initTestGlareLibrary();
   initDiagnostic();
-}
-
-// ===== EVENT HANDLERS =====
-
-/**
- * Handle set change from dropdown
- */
-async function handleSetChange(event) {
-  setCurrentSet(event.target.value);
-  await loadSet();
-  renderPackCarousel(); // Update carousel when set changes
+  
+  console.log('✅ UI initialized\n');
 }
 
 // ===== COUNTDOWN TIMER =====

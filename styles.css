@@ -701,6 +701,55 @@ select {
   gap: var(--spacing-lg);
 }
 
+/* ===== VERTICAL PACK LABELS (NEW FEATURE) ===== */
+.packVerticalLabel {
+  position: absolute;
+  top: 50%;
+  left: -30px;
+  transform: translateY(-50%) rotate(-90deg);
+  transform-origin: center;
+  font-size: clamp(0.7rem, 2.5vw, 0.9rem);
+  font-weight: 700;
+  color: #4facfe;
+  text-shadow: 0 2px 8px rgba(79, 172, 254, 0.6);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Position for right pack */
+.packImage.right .packVerticalLabel {
+  left: auto;
+  right: -30px;
+  transform: translateY(-50%) rotate(90deg);
+}
+
+/* Mobile: Move labels closer to packs */
+@media (max-width: 768px) {
+  .packVerticalLabel {
+    left: -20px;
+    font-size: clamp(0.6rem, 2vw, 0.75rem);
+  }
+  
+  .packImage.right .packVerticalLabel {
+    right: -20px;
+  }
+}
+
+/* Extra small mobile: Even closer */
+@media (max-width: 480px) {
+  .packVerticalLabel {
+    left: -15px;
+    font-size: clamp(0.55rem, 2vw, 0.7rem);
+  }
+  
+  .packImage.right .packVerticalLabel {
+    right: -15px;
+  }
+}
+
 .setDropdown {
   position: fixed;
   top: clamp(70px, 15vw, 90px);
