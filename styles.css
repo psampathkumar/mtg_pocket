@@ -705,38 +705,34 @@ select {
 .packVerticalLabel {
   position: absolute;
   top: 50%;
-  left: 5px;
-  transform: translateY(-50%) rotate(-90deg);
+  right: -20%;
+  transform: translate(0%, -50%) rotate(-90deg);
   transform-origin: center;
-  font-size: clamp(0.7rem, 2.5vw, 0.9rem);
+  font-size: clamp(0.65rem, 2.5vw, 0.85rem);
   font-weight: 700;
   color: #4facfe;
   text-shadow: 
-    0 0 10px rgba(0, 0, 0, 0.9),
-    0 0 20px rgba(0, 0, 0, 0.8),
-    0 2px 8px rgba(79, 172, 254, 0.6);
+    0 0 10px rgba(0, 0, 0, 1),
+    0 0 20px rgba(0, 0, 0, 0.9),
+    0 2px 8px rgba(79, 172, 254, 0.8);
   white-space: nowrap;
   pointer-events: none;
   z-index: 100;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  background: rgba(0, 0, 0, 0.6);
-  padding: 4px 8px;
-  border-radius: 4px;
 }
 
-/* Position for right pack */
+/* Position for right pack - also on the edge */
 .packImage.right .packVerticalLabel {
-  left: auto;
-  right: 5px;
-  transform: translateY(-50%) rotate(90deg);
+  right: auto;
+  left: -12%;
+  transform: translate(0%, -50%) rotate(90deg);
 }
 
-/* Mobile: Consistent positioning */
+/* Mobile: Slightly smaller */
 @media (max-width: 768px) {
   .packVerticalLabel {
     font-size: clamp(0.6rem, 2vw, 0.75rem);
-    padding: 3px 6px;
   }
 }
 
@@ -744,7 +740,6 @@ select {
 @media (max-width: 480px) {
   .packVerticalLabel {
     font-size: clamp(0.55rem, 2vw, 0.7rem);
-    padding: 2px 5px;
   }
 }
 
