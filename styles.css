@@ -55,7 +55,7 @@
 @media (min-width: 768px) {
   :root {
     --pack-width: min(40vw, 350px);
-    --carousel-spacing: 40vw;
+    --carousel-spacing: 30vw;
     --pack-scale-side: 0.82;
     --pack-opacity-side: 0.7;
     --card-width-collection: min(25vw, 180px);
@@ -67,7 +67,7 @@
 /* Desktop (1024px+) */
 @media (min-width: 1024px) {
   :root {
-    --carousel-spacing: 50vw;
+    --carousel-spacing: 35vw;
     --pack-scale-side: 0.85;
   }
 }
