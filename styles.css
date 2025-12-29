@@ -705,7 +705,7 @@ select {
 .packVerticalLabel {
   position: absolute;
   top: 50%;
-  right: -20%;
+  left: -20%;
   transform: translate(0%, -50%) rotate(-90deg);
   transform-origin: center;
   font-size: clamp(0.65rem, 2.5vw, 0.85rem);
@@ -724,8 +724,8 @@ select {
 
 /* Position for right pack - also on the edge */
 .packImage.right .packVerticalLabel {
-  right: auto;
-  left: -12%;
+  left: auto;
+  right: -12%;
   transform: translate(0%, -50%) rotate(90deg);
 }
 
