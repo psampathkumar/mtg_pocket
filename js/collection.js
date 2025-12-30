@@ -228,13 +228,22 @@ export function updateStats() {
     return sum + (card.count || 0);
   }, 0);
   
+  // Calculate unique cards count for "All Cards" stat box
+  const uniqueOwnedNames = new Set();
+  Object.values(ownedCards).forEach(c => {
+    if (c.fullart === false) {
+      uniqueOwnedNames.add(c.name);
+    }
+  });
+  const uniqueCardsCount = uniqueOwnedNames.size + fullArtOwned + storySpotlightOwned + masterpieceOwned;
+  
   // Update total cards counter
   document.getElementById('totalCards').textContent = totalCollected;
   
   // Build stats HTML
   let statsHTML = `
     <div class='statBox' data-rarity='${FILTER_TYPES.ALL}'>
-      <b>All Cards</b> ${totalCollected}
+      <b>All Cards</b> ${uniqueCardsCount}
     </div>
   `;
   
