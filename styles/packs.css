@@ -1,0 +1,206 @@
+/* ===== HOME SCREEN ===== */
+#homeScreen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  padding: var(--spacing-xl);
+  position: relative;
+}
+
+/* ===== PACK CAROUSEL (MOBILE-FIRST) ===== */
+.packCarousel {
+  position: relative;
+  width: 100%;
+  max-width: 100vw;
+  height: calc(var(--pack-height) * 1.3);
+  margin: var(--spacing-xl) auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: 1000px;
+  overflow: visible;
+}
+
+/* ===== PACK IMAGE (BASE STRUCTURE) ===== */
+.packImage {
+  position: absolute;
+  width: var(--pack-width);
+  height: var(--pack-height);
+  cursor: pointer;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(145deg, #2a2a3e, #1a1a2e);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xl);
+  gap: var(--spacing-lg);
+  border: 3px solid rgba(79, 172, 254, 0.3);
+  overflow: visible;
+}
+
+/* ===== PACK POSITIONS ===== */
+.packImage.center {
+  z-index: 3;
+  transform: translateX(0) scale(1);
+  opacity: 1;
+}
+
+.packImage.left {
+  z-index: 2;
+  transform: translateX(calc(var(--carousel-spacing) * -1)) scale(var(--pack-scale-side));
+  opacity: var(--pack-opacity-side);
+  filter: brightness(0.7);
+}
+
+.packImage.right {
+  z-index: 2;
+  transform: translateX(var(--carousel-spacing)) scale(var(--pack-scale-side));
+  opacity: var(--pack-opacity-side);
+  filter: brightness(0.7);
+}
+
+.packImage.hidden {
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(0) scale(0.5);
+}
+
+/* ===== PACK HOVER STATES ===== */
+.packImage:hover,
+.packImage:active {
+  transform: translateX(0) scale(1.05);
+}
+
+.packImage.center:hover,
+.packImage.center:active {
+  transform: translateX(0) scale(1.05);
+}
+
+.packImage.left:hover,
+.packImage.left:active {
+  transform: translateX(calc(var(--carousel-spacing) * -1)) scale(calc(var(--pack-scale-side) + 0.05));
+  opacity: 0.9;
+  filter: brightness(0.85);
+}
+
+.packImage.right:hover,
+.packImage.right:active {
+  transform: translateX(var(--carousel-spacing)) scale(calc(var(--pack-scale-side) + 0.05));
+  opacity: 0.9;
+  filter: brightness(0.85);
+}
+
+/* ===== PACK CONTENT ===== */
+.packBg {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(79, 172, 254, 0.1), transparent);
+  border-radius: 20px;
+  z-index: 0;
+}
+
+.packContent {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.packLogo {
+  width: 80%;
+  max-width: 200px;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 5px 15px rgba(79, 172, 254, 0.6));
+}
+
+.packIcon {
+  width: clamp(50px, 12vw, 100px);
+  height: clamp(50px, 12vw, 100px);
+  object-fit: contain;
+  filter: drop-shadow(0 5px 15px rgba(79, 172, 254, 0.4));
+}
+
+/* ===== UNIVERSAL VERTICAL PACK LABELS (BOTH SIDES, ALL PACKS) ===== */
+.packVerticalLabel {
+  position: absolute;
+  top: 50%;
+  transform: translate(0%, -50%);
+  transform-origin: center;
+  font-size: clamp(0.65rem, 2.5vw, 0.85rem);
+  font-weight: 700;
+  color: #4facfe;
+  text-shadow: 
+    0 0 10px rgba(0, 0, 0, 1),
+    0 0 20px rgba(0, 0, 0, 0.9),
+    0 2px 8px rgba(79, 172, 254, 0.8);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1000;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Left label - rotated -90deg, positioned at left edge */
+.packVerticalLabel.left {
+  left: 0;
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+
+/* Right label - rotated 90deg, positioned at right edge */
+.packVerticalLabel.right {
+  right: 0;
+  transform: translate(50%, -50%) rotate(90deg);
+}
+
+/* ===== PACK RIPPING ANIMATION ===== */
+.packImage.ripping {
+  animation: ripOpen 0.8s ease-out forwards;
+  position: relative;
+  overflow: visible !important;
+}
+
+.packImage.ripping::before {
+  content: '';
+  position: absolute;
+  top: 32.5%;
+  left: -10%;
+  width: 200px;
+  height: 6px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(79, 172, 254, 0.3) 20%,
+    rgba(79, 172, 254, 0.6) 40%,
+    rgba(79, 172, 254, 0.9) 60%,
+    rgba(255, 255, 255, 1) 80%,
+    rgba(255, 255, 255, 1) 100%);
+  box-shadow:
+    0 0 15px 5px rgba(255, 255, 255, 0.8),
+    0 0 25px 8px rgba(79, 172, 254, 0.8),
+    0 0 35px 10px rgba(79, 172, 254, 0.6);
+  transform: rotate(-2.86deg);
+  transform-origin: right center;
+  z-index: 1000;
+  animation: swordSlice 0.8s ease-in forwards;
+  pointer-events: none;
+  border-radius: 3px;
+}
+
+.packImage.ripping::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: inherit;
+  border-radius: inherit;
+  border: inherit;
+  animation: ripOpenBottom 0.8s ease-out forwards;
+  z-index: 1;
+}

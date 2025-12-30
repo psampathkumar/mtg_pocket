@@ -1,0 +1,106 @@
+/* ===== BUTTONS ===== */
+button {
+  background: linear-gradient(135deg, #4facfe, #00f2fe);
+  border: none;
+  border-radius: 10px;
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: var(--font-base);
+  white-space: nowrap;
+  min-height: 44px; /* iOS touch target minimum */
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ===== FORM ELEMENTS ===== */
+select {
+  background: #111;
+  color: #fff;
+  border-radius: 8px;
+  padding: var(--spacing-sm);
+  border: 1px solid #333;
+  font-size: var(--font-base);
+  min-height: 44px;
+}
+
+/* ===== CONTROLS & STATS ===== */
+.controls {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  padding: var(--spacing-md);
+  align-items: center;
+  font-size: var(--font-base);
+}
+
+.stats {
+  padding: var(--spacing-md);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+  gap: var(--spacing-md);
+}
+
+.statBox {
+  background: #111;
+  padding: var(--spacing-md);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+  font-size: var(--font-sm);
+  transition: transform 0.2s, box-shadow 0.2s;
+  min-height: 44px; /* Touch-friendly */
+}
+
+.statBox:active {
+  transform: scale(0.98);
+}
+
+.statBox.active {
+  outline: 2px solid #4facfe;
+  box-shadow: 0 0 10px rgba(79, 172, 254, 0.5);
+}
+
+.progress {
+  height: 8px;
+  background: #222;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.progress div {
+  height: 100%;
+  background: linear-gradient(90deg, #4facfe, #00f2fe);
+  transition: width 0.3s;
+}
+
+/* ===== SET DROPDOWN ===== */
+.setDropdown {
+  position: absolute;
+  top: clamp(70px, 15vw, 90px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.8);
+  padding: var(--spacing-sm);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+}
+
+/* ===== NAVIGATION BUTTONS ===== */
+.navButtons {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  flex-wrap: wrap;
+  justify-content: center;
+}

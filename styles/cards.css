@@ -1,0 +1,153 @@
+/* ===== CARD GRID ===== */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-width-collection), 1fr));
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+}
+
+/* ===== CARD COMPONENT ===== */
+.card {
+  position: relative;
+  background: #111;
+  border-radius: clamp(12px, 3vw, 16px);
+  cursor: pointer;
+  overflow: visible;
+  transition: transform 0.2s, box-shadow 0.3s;
+}
+
+.card .card-inner {
+  position: relative;
+  width: 100%;
+  padding-bottom: 140%;
+  transform-style: preserve-3d;
+  transition: transform 0.6s;
+}
+
+.card .card-inner.no-transition {
+  transition: none;
+}
+
+.card-front,
+.card-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: clamp(12px, 3vw, 16px);
+  overflow: hidden;
+}
+
+.card-front {
+  z-index: 2;
+  transform: rotateY(0deg);
+}
+
+.card-back {
+  transform: rotateY(180deg);
+}
+
+.card-front img,
+.card-back img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.card:hover,
+.card:active {
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  transform: translateY(-2px);
+}
+
+/* ===== CARD BADGES ===== */
+.count {
+  position: absolute;
+  bottom: clamp(4px, 1vw, 6px);
+  right: clamp(4px, 1vw, 6px);
+  background: rgba(0, 0, 0, 0.7);
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: var(--font-xs);
+  z-index: 2;
+}
+
+.flip-indicator {
+  position: absolute;
+  bottom: clamp(4px, 1vw, 6px);
+  left: clamp(4px, 1vw, 6px);
+  background: rgba(0, 0, 0, 0.7);
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: var(--font-xs);
+  z-index: 2;
+}
+
+.new-card::after {
+  content: 'NEW';
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: #ffd700;
+  color: #000;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: var(--font-xs);
+  z-index: 10;
+}
+
+.story-card::before {
+  content: 'STORY';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: #3498db;
+  color: #fff;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: var(--font-xs);
+  z-index: 10;
+}
+
+/* ===== CARD PLACEHOLDER ===== */
+.card-placeholder {
+  position: relative;
+  background: #1a1a2a;
+  border: 2px dashed #333;
+  border-radius: clamp(12px, 3vw, 16px);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 2.5/3.5;
+  color: #666;
+  font-size: var(--font-base);
+  font-weight: 600;
+}
+
+/* ===== RARITY BORDERS ===== */
+.rarity-common {
+  border: 2px solid #999;
+}
+
+.rarity-uncommon {
+  border: 2px solid #1eff00;
+}
+
+.rarity-rare {
+  border: 2px solid #0070dd;
+}
+
+.rarity-mythic {
+  border: 2px solid #ff8000;
+}
+
+.card.exiting {
+  border: none !important;
+}

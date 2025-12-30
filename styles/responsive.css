@@ -1,0 +1,97 @@
+/* ===== RESPONSIVE DESIGN (MOBILE-FIRST) ===== */
+
+/* Extra small phones (≤375px) */
+@media (max-width: 375px) {
+  .packCarousel {
+    perspective: 800px;
+  }
+  
+  .packCards .card {
+    width: min(40vw, 130px);
+  }
+  
+  header {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .packVerticalLabel {
+    font-size: clamp(0.55rem, 2vw, 0.7rem);
+  }
+}
+
+/* Small phones (≤480px) */
+@media (max-width: 480px) {
+  button {
+    width: 100%;
+    max-width: 400px;
+  }
+  
+  .navButtons button,
+  .controls button {
+    width: auto;
+    min-width: 120px;
+  }
+  
+  .packCards {
+    gap: var(--spacing-sm);
+  }
+  
+  .navButtons {
+    gap: var(--spacing-sm);
+  }
+  
+  #homeScreen {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+  
+  .packVerticalLabel {
+    font-size: clamp(0.6rem, 2vw, 0.75rem);
+  }
+}
+
+/* Tablets (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .packCarousel {
+    perspective: 1200px;
+  }
+  
+  .packVerticalLabel {
+    font-size: clamp(0.65rem, 2.5vw, 0.85rem);
+  }
+}
+
+/* Desktop (≥1024px) */
+@media (min-width: 1024px) {
+  .packCarousel {
+    perspective: 1500px;
+    max-width: 900px;
+  }
+}
+
+/* Mobile: Remove 3D rotation for clarity (≤768px) */
+@media (max-width: 768px) {
+  .packImage.left,
+  .packImage.right {
+    transform: translateX(calc(var(--carousel-spacing) * -1)) scale(var(--pack-scale-side));
+  }
+  
+  .packImage.right {
+    transform: translateX(var(--carousel-spacing)) scale(var(--pack-scale-side));
+  }
+  
+  .packImage.left:hover,
+  .packImage.left:active {
+    transform: translateX(calc(var(--carousel-spacing) * -1)) scale(calc(var(--pack-scale-side) + 0.05));
+  }
+  
+  .packImage.right:hover,
+  .packImage.right:active {
+    transform: translateX(var(--carousel-spacing)) scale(calc(var(--pack-scale-side) + 0.05));
+  }
+}
+
+/* ===== COLLECTION VIEW ===== */
+#collectionView {
+  display: none;
+}

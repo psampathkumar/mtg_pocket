@@ -1,0 +1,146 @@
+/* ===== PACK RIP ANIMATIONS ===== */
+@keyframes ripOpen {
+  0% {
+    transform: scale(1) rotate(0deg);
+    filter: brightness(1);
+    clip-path: none;
+  }
+  15% {
+    transform: scale(1.05) rotate(-3deg);
+    filter: brightness(1.2);
+    clip-path: none;
+  }
+  30% {
+    transform: scale(1.05) rotate(3deg);
+    filter: brightness(1.2);
+    clip-path: none;
+  }
+  45% {
+    transform: scale(1) rotate(0deg);
+    filter: brightness(1);
+    clip-path: none;
+  }
+  50%, 69% {
+    transform: scale(1) rotate(0deg);
+    filter: brightness(1);
+    clip-path: none;
+  }
+  70% {
+    clip-path: polygon(0 0, 100% 0, 100% 30%, 0 35%);
+    filter: brightness(2);
+  }
+  85% {
+    clip-path: polygon(0 0, 100% 0, 100% 30%, 0 35%);
+    transform: translateY(-40px) scale(1.05);
+    opacity: 0.5;
+  }
+  100% {
+    clip-path: polygon(0 0, 100% 0, 100% 30%, 0 35%);
+    transform: translateY(-80px) scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes ripOpenBottom {
+  0%, 69% {
+    opacity: 0;
+    clip-path: polygon(0 35%, 100% 30%, 100% 100%, 0 100%);
+    transform: translateY(0) scale(1);
+  }
+  70% {
+    opacity: 1;
+    clip-path: polygon(0 35%, 100% 30%, 100% 100%, 0 100%);
+    transform: translateY(0) scale(1);
+  }
+  85% {
+    clip-path: polygon(0 35%, 100% 30%, 100% 100%, 0 100%);
+    transform: translateY(40px) scale(0.95);
+    opacity: 0.5;
+  }
+  100% {
+    clip-path: polygon(0 35%, 100% 30%, 100% 100%, 0 100%);
+    transform: translateY(80px) scale(0.9);
+    opacity: 0;
+  }
+}
+
+@keyframes swordSlice {
+  0%, 45% {
+    left: -220px;
+    opacity: 0;
+  }
+  48% {
+    left: -20px;
+    opacity: 1;
+  }
+  62% {
+    left: 100%;
+    opacity: 1;
+  }
+  65% {
+    left: calc(100% + 50px);
+    opacity: 0;
+  }
+  100% {
+    left: calc(100% + 50px);
+    opacity: 0;
+  }
+}
+
+/* ===== CARD EXIT ANIMATIONS ===== */
+@keyframes cardExit {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100vw);
+    opacity: 0;
+  }
+}
+
+@keyframes cardFlipExit {
+  0% {
+    transform: rotateY(0deg);
+  }
+  100% {
+    transform: rotateY(270deg);
+  }
+}
+
+/* ===== SPECIAL EFFECT ANIMATIONS ===== */
+@keyframes godpack {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5), 0 0 40px rgba(255, 215, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.9), 0 0 80px rgba(255, 215, 0, 0.5);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+/* ===== SPECIAL EFFECTS ===== */
+.godpack {
+  animation: godpack 1s ease-in-out infinite;
+  border: 3px solid gold !important;
+}
+
+.bonus-glow {
+  position: absolute;
+  inset: -10px;
+  background: radial-gradient(circle, rgba(255, 107, 107, 0.4), transparent 70%);
+  border-radius: inherit;
+  z-index: 0;
+  animation: pulseGlow 2s ease-in-out infinite;
+  pointer-events: none;
+}

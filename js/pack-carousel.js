@@ -1,5 +1,5 @@
 /**
- * MTG Pocket - Pack Carousel (REFACTORED WITH PROPER SEQUENCING)
+ * MTG Pocket - Pack Carousel (REFACTORED WITH UNIVERSAL LABELS)
  * 
  * Manages the 3-pack carousel display on home screen.
  * 
@@ -8,7 +8,7 @@
  * 2. Card data is loaded
  * 3. THEN carousel is rendered
  * 
- * NEW FEATURE: Vertical pack names on side packs for mobile visibility
+ * NEW FEATURE: Universal vertical labels on BOTH sides of ALL packs
  */
 
 import { getRecentPacks, setCurrentSet, getCurrentSet, getSetMetadata } from './state.js';
@@ -26,7 +26,7 @@ export function renderPackCarousel() {
   }
   
   const currentSet = getCurrentSet();
-  console.log('📍 Current set from state:', currentSet);
+  console.log('🔍 Current set from state:', currentSet);
   
   if (!currentSet) {
     console.warn('⚠️ No current set selected');
@@ -79,7 +79,7 @@ function buildDisplayArray(currentSet, recentPacks) {
 }
 
 /**
- * Create a pack element with vertical name labels
+ * Create a pack element with UNIVERSAL vertical labels (both sides, all packs)
  */
 function createPackElement(setCode, position) {
   const packDiv = document.createElement('div');
@@ -97,13 +97,18 @@ function createPackElement(setCode, position) {
   const setMetadata = getSetMetadata(setCode);
   const setName = setMetadata?.name || setCode;
   
-  // NEW FEATURE: Add vertical label for side packs
-  if (position !== 'center') {
-    const verticalLabel = document.createElement('div');
-    verticalLabel.className = 'packVerticalLabel';
-    verticalLabel.textContent = setName;
-    packDiv.appendChild(verticalLabel);
-  }
+  // UNIVERSAL LABELS: Add vertical labels to BOTH sides of ALL packs
+  // These are part of the pack structure, like a printed label on physical packs
+  const leftLabel = document.createElement('div');
+  leftLabel.className = 'packVerticalLabel left';
+  leftLabel.textContent = setName;
+  
+  const rightLabel = document.createElement('div');
+  rightLabel.className = 'packVerticalLabel right';
+  rightLabel.textContent = setName;
+  
+  packDiv.appendChild(leftLabel);
+  packDiv.appendChild(rightLabel);
   
   // Try mtgpics.com logo first, fallback to set name
   const logo = document.createElement('img');

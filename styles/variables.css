@@ -1,0 +1,73 @@
+/* ===== CSS CUSTOM PROPERTIES (MOBILE-FIRST) ===== */
+:root {
+  /* Fluid Pack Sizing */
+  --pack-width: min(75vw, 300px);
+  --pack-height: calc(var(--pack-width) * 1.6);
+  
+  /* Carousel Positioning */
+  --carousel-spacing: 15vw;
+  --pack-scale-side: 0.7;
+  --pack-opacity-side: 0.75;
+  
+  /* Typography Scale */
+  --font-xs: clamp(0.65rem, 3vw, 0.75rem);
+  --font-sm: clamp(0.75rem, 3.5vw, 0.9rem);
+  --font-base: clamp(0.85rem, 4vw, 1rem);
+  --font-md: clamp(1rem, 4.5vw, 1.2rem);
+  --font-lg: clamp(1.1rem, 5vw, 1.5rem);
+  --font-xl: clamp(1.3rem, 6vw, 2rem);
+  
+  /* Spacing Scale */
+  --spacing-xs: clamp(0.25rem, 1vw, 0.5rem);
+  --spacing-sm: clamp(0.5rem, 2vw, 0.75rem);
+  --spacing-md: clamp(0.75rem, 3vw, 1rem);
+  --spacing-lg: clamp(1rem, 4vw, 1.5rem);
+  --spacing-xl: clamp(1.5rem, 5vw, 2rem);
+  
+  /* Card Sizing */
+  --card-width-collection: min(40vw, 140px);
+  --card-width-modal: min(85vw, 400px);
+  --card-width-pack: min(35vw, 160px);
+}
+
+/* ===== RESPONSIVE BREAKPOINTS ===== */
+
+/* Small phones (376px+) */
+@media (min-width: 376px) {
+  :root {
+    --pack-width: min(65vw, 320px);
+    --carousel-spacing: 18vw;
+    --pack-scale-side: 0.72;
+  }
+}
+
+/* Large phones (480px+) */
+@media (min-width: 480px) {
+  :root {
+    --pack-width: min(55vw, 340px);
+    --carousel-spacing: 25vw;
+    --pack-scale-side: 0.75;
+    --card-width-collection: min(35vw, 150px);
+  }
+}
+
+/* Tablets (768px+) */
+@media (min-width: 768px) {
+  :root {
+    --pack-width: min(40vw, 350px);
+    --carousel-spacing: 30vw;
+    --pack-scale-side: 0.82;
+    --pack-opacity-side: 0.7;
+    --card-width-collection: min(25vw, 180px);
+    --card-width-modal: min(60vw, 400px);
+    --card-width-pack: min(25vw, 180px);
+  }
+}
+
+/* Desktop (1024px+) */
+@media (min-width: 1024px) {
+  :root {
+    --carousel-spacing: 35vw;
+    --pack-scale-side: 0.85;
+  }
+}
