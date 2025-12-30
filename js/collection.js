@@ -223,14 +223,10 @@ export function updateStats() {
   const storySpotlightOwned = Object.values(ownedCards).filter(c => c.spotlight === true).length;
   const storySpotlightTotal = storySpotlightCards.length;
   
-  // Calculate total collected
-  const uniqueOwnedNames = new Set();
-  Object.values(ownedCards).forEach(c => {
-    if (c.fullart === false) {
-      uniqueOwnedNames.add(c.name);
-    }
-  });
-  const totalCollected = uniqueOwnedNames.size + fullArtOwned + storySpotlightOwned + masterpieceOwned;
+  // Calculate total collected (sum of all card counts including duplicates)
+  const totalCollected = Object.values(ownedCards).reduce((sum, card) => {
+    return sum + (card.count || 0);
+  }, 0);
   
   // Update total cards counter
   document.getElementById('totalCards').textContent = totalCollected;
