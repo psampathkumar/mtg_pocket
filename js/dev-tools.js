@@ -315,8 +315,6 @@ export function initTestGlareManual() {
   };
 }
 
-// ===== TEST GLARE (LIBRARY IMPLEMENTATION) =====
-
 /**
  * Initialize library glare test
  */
@@ -329,10 +327,13 @@ export function initTestGlareLibrary() {
   }
   
   testLibraryBtn.onclick = async () => {
+    console.log('🎴 === TESTING HOVER-TILT LIBRARY ===');
+    
     const modal = document.getElementById('cardViewModal');
     modal.style.display = 'flex';
     modal.innerHTML = '<div style="padding:2rem">Loading card...</div>';
     
+    // Get test card data
     const allCards = getAllCards();
     let testCardData = null;
     
@@ -352,64 +353,70 @@ export function initTestGlareLibrary() {
       };
     }
     
+    console.log('  └─ Test card:', testCardData.name);
+    console.log('  └─ Front URL:', testCardData.front);
+    
+    // Clear modal
     modal.innerHTML = '';
     
     const container = document.createElement('div');
-    container.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:1.5rem';
+    container.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:1.5rem;padding:2rem';
     
-    // Create hover-tilt element
+    // SIMPLE TEST: Just image inside hover-tilt
+    console.log('  └─ Creating hover-tilt element...');
+    
     const hoverTilt = document.createElement('hover-tilt');
-    hoverTilt.setAttribute('tilt-factor', GLARE_CONFIG.tiltFactor.toString());
-    hoverTilt.setAttribute('scale-factor', GLARE_CONFIG.scaleFactor.toString());
-    hoverTilt.style.cssText = 'width:300px;height:420px;border-radius:4.55%;display:block';
+    hoverTilt.setAttribute('tilt-factor', '1.2');
+    hoverTilt.setAttribute('scale-factor', '1.05');
+    hoverTilt.style.cssText = 'width:300px;height:420px;display:block';
     
-    // Create wrapper for flip functionality
-    const flipWrapper = document.createElement('div');
-    flipWrapper.style.cssText = 'width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 0.6s';
+    console.log('  └─ hover-tilt element created');
+    console.log('  └─ Is custom element defined?', customElements.get('hover-tilt') !== undefined);
     
-    // Front face with image
-    const front = document.createElement('div');
-    front.style.cssText = 'position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:4.55%;overflow:hidden';
-    const frontImg = document.createElement('img');
-    frontImg.src = testCardData.front;
-    frontImg.alt = testCardData.name;
-    frontImg.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;border-radius:4.55%';
-    front.appendChild(frontImg);
+    // Simple image directly inside
+    const img = document.createElement('img');
+    img.src = testCardData.front;
+    img.alt = testCardData.name;
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;border-radius:12px';
     
-    // Back face with image
-    const back = document.createElement('div');
-    back.style.cssText = 'position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:4.55%;transform:rotateY(180deg);overflow:hidden';
-    const backImg = document.createElement('img');
-    backImg.src = testCardData.back;
-    backImg.alt = 'Card back';
-    backImg.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;border-radius:4.55%';
-    back.appendChild(backImg);
-    
-    flipWrapper.appendChild(front);
-    flipWrapper.appendChild(back);
-    hoverTilt.appendChild(flipWrapper);
-    
-    let isFlipped = false;
-    
-    const flipBtn = document.createElement('button');
-    flipBtn.textContent = '🔄 Flip Card';
-    flipBtn.style.cssText = 'padding:0.75rem 1.5rem;font-size:1rem';
-    flipBtn.onclick = () => {
-      isFlipped = !isFlipped;
-      flipWrapper.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
+    img.onload = () => {
+      console.log('  └─ ✅ Image loaded successfully');
     };
+    
+    img.onerror = () => {
+      console.log('  └─ ❌ Image failed to load');
+    };
+    
+    hoverTilt.appendChild(img);
+    
+    // Info text
+    const infoText = document.createElement('div');
+    infoText.style.cssText = 'color:#fff;text-align:center;max-width:300px';
+    infoText.innerHTML = `
+      <p style="margin:0 0 0.5rem 0;font-weight:bold">Hover-Tilt Library Test</p>
+      <p style="margin:0;font-size:0.9rem;color:#aaa">Hover over the card to see the tilt effect</p>
+    `;
     
     const closeBtn = document.createElement('button');
     closeBtn.textContent = 'Close';
-    closeBtn.style.cssText = 'padding:0.5rem 1rem;font-size:0.9rem;background:#666';
+    closeBtn.style.cssText = 'padding:0.75rem 1.5rem;font-size:1rem;background:#666';
     closeBtn.onclick = () => {
       modal.style.display = 'none';
     };
     
     container.appendChild(hoverTilt);
-    container.appendChild(flipBtn);
+    container.appendChild(infoText);
     container.appendChild(closeBtn);
     modal.appendChild(container);
+    
+    // Check if custom element is actually working
+    setTimeout(() => {
+      console.log('  └─ Checking hover-tilt attributes after mount...');
+      console.log('  └─ tilt-factor:', hoverTilt.getAttribute('tilt-factor'));
+      console.log('  └─ scale-factor:', hoverTilt.getAttribute('scale-factor'));
+      console.log('  └─ Shadow root:', hoverTilt.shadowRoot ? 'Present' : 'Not present');
+      console.log('✅ === HOVER-TILT LIBRARY TEST COMPLETE ===\n');
+    }, 100);
     
     modal.onclick = (e) => {
       if (e.target === modal) {
