@@ -114,11 +114,22 @@ function generatePack(setCode) {
   } else {
     // Regular pack: 5 cards based on rarity
     for (let i = 0; i < 5; i++) {
-      const rarity = rollRarity();
-      const pool = allCards.filter(c => c.rarity === rarity);
+      let rarity = rollRarity();
+      let pool = allCards.filter(c => c.rarity === rarity);
+      
+      // Fallback: if no cards of rolled rarity, try other rarities in order
+      const fallbackRarities = ['common', 'uncommon', 'rare', 'mythic'].filter(r => r !== rarity);
+      let attempts = 0;
+      
+      while (pool.length === 0 && attempts < fallbackRarities.length) {
+        console.warn(`No cards found for rarity: ${rarity}, trying fallback: ${fallbackRarities[attempts]}`);
+        rarity = fallbackRarities[attempts];
+        pool = allCards.filter(c => c.rarity === rarity);
+        attempts++;
+      }
       
       if (pool.length === 0) {
-        console.warn(`No cards found for rarity: ${rarity}`);
+        console.warn(`No cards available for any rarity in pack slot ${i + 1}, skipping`);
         continue;
       }
       

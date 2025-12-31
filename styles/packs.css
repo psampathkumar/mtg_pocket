@@ -149,15 +149,15 @@
   text-transform: uppercase;
 }
 
-/* Left label - rotated -90deg, positioned at left edge */
+/* Left label - rotated -90deg, offset inward by ~1.1x border width (3.3px) */
 .packVerticalLabel.left {
-  left: 0;
+  left: 4px;
   transform: translate(-50%, -50%) rotate(-90deg);
 }
 
-/* Right label - rotated 90deg, positioned at right edge */
+/* Right label - rotated 90deg, offset inward by ~1.1x border width (3.3px) */
 .packVerticalLabel.right {
-  right: 0;
+  right: 4px;
   transform: translate(50%, -50%) rotate(90deg);
 }
 
