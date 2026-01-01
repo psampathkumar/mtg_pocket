@@ -1,5 +1,5 @@
 /**
- * MTG Pocket - Developer Tools
+ * MTG Pocket - Developer Tools (FIXED HOLOGRAPHIC EFFECTS)
  * 
  * Development features for testing and debugging.
  */
@@ -92,7 +92,7 @@ export function initAddCard() {
   };
 }
 
-// ===== TEST GLARE (MANUAL IMPLEMENTATION) =====
+// ===== TEST GLARE (MANUAL IMPLEMENTATION - FIXED) =====
 
 /**
  * Initialize manual glare test
@@ -108,7 +108,7 @@ export function initTestGlareManual() {
   testGlareBtn.onclick = async () => {
     const modal = document.getElementById('cardViewModal');
     modal.style.display = 'flex';
-    modal.innerHTML = '<div style="padding:2rem">Loading card...</div>';
+    modal.innerHTML = '<div style="padding:2rem;color:#fff">Loading card...</div>';
     
     // Get a random card from current set
     const allCards = getAllCards();
@@ -119,12 +119,14 @@ export function initTestGlareManual() {
       const imgs = getCardImages(randomCard);
       testCardData = {
         front: imgs.front,
-        back: imgs.back
+        back: imgs.back,
+        name: randomCard.name
       };
     } else {
       testCardData = {
         front: MTG_CARD_BACK,
-        back: MTG_CARD_BACK
+        back: MTG_CARD_BACK,
+        name: 'Test Card'
       };
     }
     
@@ -206,9 +208,8 @@ export function initTestGlareManual() {
         glare.style.opacity = '1';
         glareBack.style.opacity = '0';
       } else {
-        // Back face - X is reversed because card is rotated 180deg on Y axis
-        // When card is rotated 180deg on Y, left becomes right
-        glareGradientBack.style.left = `${x * 100}%`;  // Keep X the same (don't reverse)
+        // Back face - X is the same (card is already visually mirrored)
+        glareGradientBack.style.left = `${x * 100}%`;
         glareGradientBack.style.top = `${y * 100}%`;
         glareBack.style.opacity = '1';
         glare.style.opacity = '0';
@@ -258,7 +259,7 @@ export function initTestGlareManual() {
           glare.style.opacity = '1';
           glareBack.style.opacity = '0';
         } else {
-          // Back face - Keep X the same (the back face is already mirrored visually)
+          // Back face
           glareGradientBack.style.left = `${glareX * 100}%`;
           glareGradientBack.style.top = `${glareY * 100}%`;
           glareBack.style.opacity = '1';
@@ -316,7 +317,8 @@ export function initTestGlareManual() {
 }
 
 /**
- * Initialize library glare test
+ * Initialize library glare test - REMOVED/DEPRECATED
+ * The hover-tilt library is not reliably loading, so we're using manual implementation only
  */
 export function initTestGlareLibrary() {
   const testLibraryBtn = document.getElementById('testLibraryBtn');
@@ -326,103 +328,14 @@ export function initTestGlareLibrary() {
     return;
   }
   
-  testLibraryBtn.onclick = async () => {
-    console.log('🎴 === TESTING HOVER-TILT LIBRARY ===');
-    
-    const modal = document.getElementById('cardViewModal');
-    modal.style.display = 'flex';
-    modal.innerHTML = '<div style="padding:2rem">Loading card...</div>';
-    
-    // Get test card data
-    const allCards = getAllCards();
-    let testCardData = null;
-    
-    if (allCards.length > 0) {
-      const randomCard = getRandomElement(allCards);
-      const imgs = getCardImages(randomCard);
-      testCardData = {
-        front: imgs.front,
-        back: imgs.back,
-        name: randomCard.name
-      };
-    } else {
-      testCardData = {
-        front: MTG_CARD_BACK,
-        back: MTG_CARD_BACK,
-        name: 'Test Card'
-      };
-    }
-    
-    console.log('  └─ Test card:', testCardData.name);
-    console.log('  └─ Front URL:', testCardData.front);
-    
-    // Clear modal
-    modal.innerHTML = '';
-    
-    const container = document.createElement('div');
-    container.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:1.5rem;padding:2rem';
-    
-    // SIMPLE TEST: Just image inside hover-tilt
-    console.log('  └─ Creating hover-tilt element...');
-    
-    const hoverTilt = document.createElement('hover-tilt');
-    hoverTilt.setAttribute('tilt-factor', '1.2');
-    hoverTilt.setAttribute('scale-factor', '1.05');
-    hoverTilt.style.cssText = 'width:300px;height:420px;display:block';
-    
-    console.log('  └─ hover-tilt element created');
-    console.log('  └─ Is custom element defined?', customElements.get('hover-tilt') !== undefined);
-    
-    // Simple image directly inside
-    const img = document.createElement('img');
-    img.src = testCardData.front;
-    img.alt = testCardData.name;
-    img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;border-radius:12px';
-    
-    img.onload = () => {
-      console.log('  └─ ✅ Image loaded successfully');
-    };
-    
-    img.onerror = () => {
-      console.log('  └─ ❌ Image failed to load');
-    };
-    
-    hoverTilt.appendChild(img);
-    
-    // Info text
-    const infoText = document.createElement('div');
-    infoText.style.cssText = 'color:#fff;text-align:center;max-width:300px';
-    infoText.innerHTML = `
-      <p style="margin:0 0 0.5rem 0;font-weight:bold">Hover-Tilt Library Test</p>
-      <p style="margin:0;font-size:0.9rem;color:#aaa">Hover over the card to see the tilt effect</p>
-    `;
-    
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = 'Close';
-    closeBtn.style.cssText = 'padding:0.75rem 1.5rem;font-size:1rem;background:#666';
-    closeBtn.onclick = () => {
-      modal.style.display = 'none';
-    };
-    
-    container.appendChild(hoverTilt);
-    container.appendChild(infoText);
-    container.appendChild(closeBtn);
-    modal.appendChild(container);
-    
-    // Check if custom element is actually working
-    setTimeout(() => {
-      console.log('  └─ Checking hover-tilt attributes after mount...');
-      console.log('  └─ tilt-factor:', hoverTilt.getAttribute('tilt-factor'));
-      console.log('  └─ scale-factor:', hoverTilt.getAttribute('scale-factor'));
-      console.log('  └─ Shadow root:', hoverTilt.shadowRoot ? 'Present' : 'Not present');
-      console.log('✅ === HOVER-TILT LIBRARY TEST COMPLETE ===\n');
-    }, 100);
-    
-    modal.onclick = (e) => {
-      if (e.target === modal) {
-        modal.style.display = 'none';
-      }
-    };
+  // Change button to show it's deprecated
+  testLibraryBtn.textContent = '⚠️ Library Test (Deprecated)';
+  testLibraryBtn.disabled = true;
+  testLibraryBtn.style.opacity = '0.5';
+  testLibraryBtn.style.cursor = 'not-allowed';
+  
+  testLibraryBtn.onclick = () => {
+    alert('The hover-tilt library test has been deprecated.\n\nUse "✨ Test Glare (Manual)" instead, which provides the same holographic effect with better reliability.');
   };
 }
 
@@ -456,7 +369,7 @@ export function initDiagnostic() {
       'Sample Card': ownedCards[Object.keys(ownedCards)[0]] || 'None'
     };
     
-    let output = '═══ MTG POCKET DIAGNOSTIC ═══\n\n';
+    let output = '╔══ MTG POCKET DIAGNOSTIC ══╗\n\n';
     
     for (const [key, value] of Object.entries(info)) {
       output += `${key}:\n`;
@@ -467,7 +380,7 @@ export function initDiagnostic() {
       }
     }
     
-    output += '═══ SETS WITH CARDS ═══\n';
+    output += '╔══ SETS WITH CARDS ══╗\n';
     for (const [setCode, cards] of Object.entries(data.cards)) {
       const cardCount = Object.keys(cards).length;
       const totalCount = Object.values(cards).reduce((sum, c) => sum + c.count, 0);

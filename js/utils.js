@@ -1,10 +1,10 @@
 /**
- * MTG Pocket - Utility Functions
+ * MTG Pocket - Utility Functions (WITH HOLOGRAPHIC EFFECTS)
  * 
  * Helper functions used throughout the application.
  */
 
-import { RARITY_THRESHOLDS, MTG_CARD_BACK } from './constants.js';
+import { RARITY_THRESHOLDS, MTG_CARD_BACK, GLARE_CONFIG } from './constants.js';
 
 // ===== RARITY ROLLING =====
 
@@ -93,39 +93,119 @@ export function formatTime(ms) {
 // ===== CARD INTERACTIONS =====
 
 /**
- * Enable 3D tilt effect on mouse/touch movement
- * @param {HTMLElement} element - The element to add tilt to
+ * Enable 3D tilt effect with holographic glare on mouse/touch movement
+ * @param {HTMLElement} element - The card element to add tilt to
  */
 export function enableTilt(element) {
+  // Find the card-inner element for 3D rotation
+  const cardInner = element.querySelector('.card-inner');
+  if (!cardInner) {
+    console.warn('No .card-inner found, skipping tilt effect');
+    return;
+  }
+  
+  // Create glare overlay if it doesn't exist
+  let glare = element.querySelector('.holo-glare');
+  if (!glare) {
+    glare = document.createElement('div');
+    glare.className = 'holo-glare';
+    glare.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+      overflow: hidden;
+      z-index: 10;
+      border-radius: inherit;
+    `;
+    
+    const glareGradient = document.createElement('div');
+    glareGradient.className = 'holo-glare-gradient';
+    glareGradient.style.cssText = `
+      position: absolute;
+      width: ${GLARE_CONFIG.glareSize}px;
+      height: ${GLARE_CONFIG.glareSize}px;
+      background: radial-gradient(
+        circle at center,
+        rgba(255, 255, 255, 0.8) 0%,
+        rgba(255, 255, 255, 0.4) 30%,
+        transparent 70%
+      );
+      transform: translate(-50%, -50%);
+      mix-blend-mode: overlay;
+    `;
+    
+    glare.appendChild(glareGradient);
+    element.style.position = 'relative';
+    element.appendChild(glare);
+  }
+  
+  const glareGradient = glare.querySelector('.holo-glare-gradient');
+  
   // Mouse movement handler
   element.onmousemove = (e) => {
     const rect = element.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width - 0.5;
-    const y = (e.clientY - rect.top) / rect.height - 0.5;
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    
+    const centerX = x - 0.5;
+    const centerY = y - 0.5;
+    
+    // Apply 3D tilt to the card
+    const rotateX = -centerY * GLARE_CONFIG.maxTiltDegrees;
+    const rotateY = centerX * GLARE_CONFIG.maxTiltDegrees;
     
     element.style.transform = 
-      `perspective(800px) rotateX(${-y * 15}deg) rotateY(${x * 15}deg) scale(1.05)`;
+      `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
+    
+    // Position glare gradient
+    if (glareGradient) {
+      glareGradient.style.left = `${x * 100}%`;
+      glareGradient.style.top = `${y * 100}%`;
+    }
+    
+    // Show glare
+    glare.style.opacity = '1';
   };
   
   // Mouse leave handler
   element.onmouseleave = () => {
     element.style.transform = '';
+    glare.style.opacity = '0';
   };
   
   // Touch movement handler
   element.ontouchmove = (e) => {
     const touch = e.touches[0];
     const rect = element.getBoundingClientRect();
-    const x = (touch.clientX - rect.left) / rect.width - 0.5;
-    const y = (touch.clientY - rect.top) / rect.height - 0.5;
+    const x = (touch.clientX - rect.left) / rect.width;
+    const y = (touch.clientY - rect.top) / rect.height;
+    
+    const centerX = x - 0.5;
+    const centerY = y - 0.5;
+    
+    const rotateX = -centerY * GLARE_CONFIG.maxTiltDegrees;
+    const rotateY = centerX * GLARE_CONFIG.maxTiltDegrees;
     
     element.style.transform = 
-      `perspective(800px) rotateX(${-y * 15}deg) rotateY(${x * 15}deg) scale(1.05)`;
+      `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.05)`;
+    
+    if (glareGradient) {
+      glareGradient.style.left = `${x * 100}%`;
+      glareGradient.style.top = `${y * 100}%`;
+    }
+    
+    glare.style.opacity = '1';
   };
   
   // Touch end handler
   element.ontouchend = () => {
     element.style.transform = '';
+    glare.style.opacity = '0';
   };
 }
 

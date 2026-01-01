@@ -1,11 +1,7 @@
 /**
- * MTG Pocket - Main Application (REFACTORED WITH PROPER SEQUENCING)
+ * MTG Pocket - Main Application (FIXED DEV TOOLS)
  * 
  * Entry point for the application. Initializes all modules and sets up event handlers.
- * 
- * CRITICAL FIX: Proper async/await sequencing for carousel rotation
- * - carouselSetChange event triggers loadSet()
- * - loadSet() completes BEFORE carousel re-renders
  */
 
 import { PACK_COST, INTERVAL, COUNTDOWN_UPDATE_INTERVAL } from './constants.js';
@@ -37,7 +33,6 @@ import {
   initDevPanel,
   initAddCard,
   initTestGlareManual,
-  initTestGlareLibrary,
   initDiagnostic
 } from './dev-tools.js';
 
@@ -247,7 +242,7 @@ function initializeUI() {
   
   // Set selector - changing dropdown
   document.getElementById('setSelect').onchange = async (event) => {
-    console.log('📝 === DROPDOWN: Set Changed ===');
+    console.log('🔽 === DROPDOWN: Set Changed ===');
     console.log('  └─ New value:', event.target.value);
     
     console.log('  └─ Updating state...');
@@ -265,11 +260,10 @@ function initializeUI() {
     updateUI();
   };
   
-  // Dev tools
+  // Dev tools (FIXED - removed library test)
   initDevPanel();
   initAddCard();
   initTestGlareManual();
-  initTestGlareLibrary();
   initDiagnostic();
   
   console.log('✅ UI initialized\n');
