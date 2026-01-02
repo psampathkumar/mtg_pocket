@@ -1,7 +1,7 @@
 /**
- * MTG Pocket - Utility Functions (ENHANCED HOLOGRAPHIC SYSTEM)
+ * MTG Pocket - Utility Functions (FIXED MOBILE & GRADIENTS)
  * 
- * Helper functions with advanced holographic effects inspired by hover-tilt library.
+ * Helper functions with properly implemented holographic effects.
  */
 
 import { RARITY_THRESHOLDS, MTG_CARD_BACK, GLARE_CONFIG } from './constants.js';
@@ -100,7 +100,7 @@ function getGlareIntensity(card) {
 }
 
 /**
- * Create advanced LCH-inspired gradient with smooth color transitions
+ * Create advanced gradient CSS (properly structured like library)
  * @param {number} intensity - Intensity multiplier (0-2)
  * @param {number} hue - Hue value in degrees (0-360)
  * @returns {string} - CSS gradient string
@@ -113,9 +113,10 @@ function createAdvancedGradient(intensity, hue = 270) {
   const midAlpha = config.mid.alpha * intensity;
   const edgeAlpha = config.edge.alpha * intensity;
   
-  // Create gradient with smooth transitions
+  // Create gradient with CSS variables for position (like library does)
+  // This prevents artifacts by letting CSS handle the positioning
   return `radial-gradient(
-    farthest-corner circle at var(--gradient-x) var(--gradient-y),
+    farthest-corner circle at var(--gradient-x, 50%) var(--gradient-y, 50%),
     hsla(${hue}, ${config.center.chroma * 10}%, ${config.center.lightness}%, ${centerAlpha}) 8%,
     hsla(${hue}, ${config.mid.chroma * 10}%, ${config.mid.lightness}%, ${midAlpha}) 28%,
     hsla(${hue}, ${config.edge.chroma * 10}%, ${config.edge.lightness}%, ${edgeAlpha}) 90%
@@ -123,32 +124,8 @@ function createAdvancedGradient(intensity, hue = 270) {
 }
 
 /**
- * Create dynamic shadow based on tilt position
- * @param {number} shadowX - Shadow X offset (-1 to 1)
- * @param {number} shadowY - Shadow Y offset (-1 to 1)
- * @param {number} opacity - Current activation opacity (0-1)
- * @returns {string} - CSS box-shadow string
- */
-function createDynamicShadow(shadowX, shadowY, opacity) {
-  if (!GLARE_CONFIG.shadowEnabled) return 'none';
-  
-  const blur = GLARE_CONFIG.shadowBlur;
-  const offset = GLARE_CONFIG.shadowOffsetMultiplier;
-  const shadowOpacity = GLARE_CONFIG.shadowOpacity * opacity;
-  
-  const offsetX = shadowX * blur * offset;
-  const offsetY = shadowY * blur * offset / 2 + blur / 4;
-  const blurRadius = blur / 2;
-  const spread = blur * -0.25;
-  
-  return `
-    ${offsetX}px ${offsetY}px ${blurRadius}px ${spread}px rgba(0, 0, 0, ${shadowOpacity * 0.5}),
-    ${offsetX / 2}px ${offsetY / 2}px ${blurRadius / 2}px ${spread / 2}px rgba(0, 0, 0, ${shadowOpacity * 0.3})
-  `;
-}
-
-/**
  * Enable enhanced 3D tilt effect with advanced holographic glare
+ * FIXED: Proper mobile support and gradient handling
  * @param {HTMLElement} element - The card element to add tilt to
  * @param {Object} cardData - Card data for intensity calculation
  */
@@ -182,41 +159,39 @@ export function enableTilt(element, cardData = {}) {
     glare.className = 'holo-glare';
     glare.style.cssText = `
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      inset: 0;
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.3s ease;
-      overflow: hidden;
-      z-index: 10;
       border-radius: inherit;
       mix-blend-mode: ${GLARE_CONFIG.blendMode};
+      will-change: opacity;
     `;
+    
+    // Set gradient as background-image (not background)
+    glare.style.backgroundImage = createAdvancedGradient(intensity, hue);
     
     element.style.position = 'relative';
     element.appendChild(glare);
   }
   
-  // State for tracking activation
+  // State tracking
   let isActive = false;
   let currentOpacity = 0;
   let currentScale = 1;
-  
-  // Animation frame for smooth updates
   let rafId = null;
   
-  // Mouse movement handler
-  element.onmousemove = (e) => {
-    const rect = element.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / rect.width;
-    const y = (e.clientY - rect.top) / rect.height;
-    
+  // Prevent default touch behaviors that interfere
+  element.style.touchAction = 'none';
+  
+  /**
+   * Update card transform and effects
+   */
+  const updateCard = (x, y, isEntering = false) => {
     const centerX = x - 0.5;
     const centerY = y - 0.5;
     
-    // Calculate rotation with max degrees from config
+    // Calculate rotation
     const rotateX = -centerY * GLARE_CONFIG.maxTiltDegrees;
     const rotateY = centerX * GLARE_CONFIG.maxTiltDegrees;
     
@@ -224,42 +199,61 @@ export function enableTilt(element, cardData = {}) {
     const targetOpacity = GLARE_CONFIG.glareOpacity;
     const targetScale = GLARE_CONFIG.scaleOnHover;
     
-    // Smooth animation
+    // Cancel existing animation
     if (rafId) cancelAnimationFrame(rafId);
     
     const animate = () => {
       // Ease towards target
-      currentOpacity += (targetOpacity - currentOpacity) * 0.15;
-      currentScale += (targetScale - currentScale) * 0.15;
+      const ease = 0.15;
+      currentOpacity += (targetOpacity - currentOpacity) * ease;
+      currentScale += (targetScale - currentScale) * ease;
       
-      // Calculate shadow offset
+      // Calculate shadow offset (convert 0-1 to -1 to 1 like library)
       const shadowX = x * 2 - 1;
       const shadowY = y * 2 - 1;
       
-      // Apply 3D transform with GPU acceleration
+      // Apply 3D transform with GPU acceleration (like library)
       const transform = GLARE_CONFIG.useGPUAcceleration
         ? `scale(${currentScale}) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translate3d(0, 0, ${GLARE_CONFIG.translateZ}px)`
         : `scale(${currentScale}) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
       
       element.style.transform = transform;
       element.style.transformStyle = 'preserve-3d';
+      element.style.willChange = 'transform';
       
-      // Apply dynamic shadow
-      if (GLARE_CONFIG.shadowEnabled) {
-        element.style.boxShadow = createDynamicShadow(shadowX, shadowY, currentOpacity);
-      }
-      
-      // Update glare gradient and position
-      glare.style.background = createAdvancedGradient(intensity, hue);
-      glare.style.backgroundPosition = `${x * 100}% ${y * 100}%`;
-      glare.style.backgroundSize = `${GLARE_CONFIG.glareSize}px ${GLARE_CONFIG.glareSize}px`;
-      glare.style.opacity = currentOpacity;
-      
-      // Set CSS custom properties for advanced effects
+      // Set CSS custom properties (like library does)
+      // This makes the gradient update smoothly without artifacts
       element.style.setProperty('--gradient-x', `${x * 100}%`);
       element.style.setProperty('--gradient-y', `${y * 100}%`);
+      element.style.setProperty('--hover-tilt-x', x);
+      element.style.setProperty('--hover-tilt-y', y);
       element.style.setProperty('--shadow-x', shadowX);
       element.style.setProperty('--shadow-y', shadowY);
+      
+      // Apply dynamic shadow (library's formula)
+      if (GLARE_CONFIG.shadowEnabled) {
+        const blur = GLARE_CONFIG.shadowBlur;
+        const shadowOpacity = GLARE_CONFIG.shadowOpacity * currentOpacity;
+        
+        // Dual-layer shadow like library
+        const offsetX1 = shadowX * blur;
+        const offsetY1 = shadowY * blur / 2 + blur / 4;
+        const blur1 = blur / 2;
+        const spread1 = blur * -0.25;
+        
+        const offsetX2 = shadowX * blur / 2;
+        const offsetY2 = shadowY * blur / 4 + blur / 8;
+        const blur2 = blur / 4;
+        const spread2 = blur * -0.125;
+        
+        element.style.boxShadow = `
+          ${offsetX1}px ${offsetY1}px ${blur1}px ${spread1}px rgba(0, 0, 0, ${shadowOpacity * 0.125}),
+          ${offsetX2}px ${offsetY2}px ${blur2}px ${spread2}px rgba(0, 0, 0, ${shadowOpacity * 0.125})
+        `;
+      }
+      
+      // Update glare opacity
+      glare.style.opacity = currentOpacity;
       
       // Continue animation if not at target
       if (Math.abs(currentOpacity - targetOpacity) > 0.01 || 
@@ -272,8 +266,10 @@ export function enableTilt(element, cardData = {}) {
     animate();
   };
   
-  // Mouse leave handler with smooth exit
-  element.onmouseleave = () => {
+  /**
+   * Reset card to neutral state
+   */
+  const resetCard = () => {
     isActive = false;
     
     if (rafId) cancelAnimationFrame(rafId);
@@ -297,6 +293,7 @@ export function enableTilt(element, cardData = {}) {
       } else {
         element.style.transform = '';
         element.style.boxShadow = '';
+        element.style.willChange = 'auto';
         glare.style.opacity = '0';
       }
     };
@@ -304,36 +301,38 @@ export function enableTilt(element, cardData = {}) {
     animateOut();
   };
   
-  // Touch support
-  element.ontouchmove = (e) => {
-    e.preventDefault();
-    const touch = e.touches[0];
-    const rect = element.getBoundingClientRect();
-    const x = (touch.clientX - rect.left) / rect.width;
-    const y = (touch.clientY - rect.top) / rect.height;
-    
-    const centerX = x - 0.5;
-    const centerY = y - 0.5;
-    
-    const rotateX = -centerY * GLARE_CONFIG.maxTiltDegrees;
-    const rotateY = centerX * GLARE_CONFIG.maxTiltDegrees;
-    
-    const transform = GLARE_CONFIG.useGPUAcceleration
-      ? `scale(${GLARE_CONFIG.scaleOnHover}) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translate3d(0, 0, ${GLARE_CONFIG.translateZ}px)`
-      : `scale(${GLARE_CONFIG.scaleOnHover}) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-    
-    element.style.transform = transform;
-    
-    glare.style.background = createAdvancedGradient(intensity, hue);
-    glare.style.backgroundPosition = `${x * 100}% ${y * 100}%`;
-    glare.style.backgroundSize = `${GLARE_CONFIG.glareSize}px ${GLARE_CONFIG.glareSize}px`;
-    glare.style.opacity = GLARE_CONFIG.glareOpacity;
-  };
+  // ===== POINTER EVENTS (handles both mouse and touch uniformly) =====
   
-  element.ontouchend = () => {
-    element.style.transform = '';
-    glare.style.opacity = '0';
-  };
+  element.addEventListener('pointerenter', (e) => {
+    const rect = element.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    updateCard(x, y, true);
+  });
+  
+  element.addEventListener('pointermove', (e) => {
+    if (!isActive) return;
+    
+    // Prevent default to avoid scroll on mobile
+    e.preventDefault();
+    
+    const rect = element.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+    
+    updateCard(x, y);
+  });
+  
+  element.addEventListener('pointerleave', (e) => {
+    resetCard();
+  });
+  
+  element.addEventListener('pointercancel', (e) => {
+    resetCard();
+  });
+  
+  // Ensure pointer events are enabled
+  element.style.pointerEvents = 'auto';
 }
 
 // ===== ARRAY UTILITIES =====

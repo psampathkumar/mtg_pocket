@@ -64,6 +64,19 @@
   transform: translateY(-2px);
 }
 
+/* ===== HOLOGRAPHIC GLARE LAYER ===== */
+.holo-glare {
+  /* Styles are set via JavaScript for dynamic values */
+  /* But we ensure it renders on top of the card */
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Card modal should allow overflow for shadows and glare */
+#cardViewModal .card {
+  overflow: visible !important;
+}
+
 /* ===== CARD BADGES ===== */
 .count {
   position: absolute;
