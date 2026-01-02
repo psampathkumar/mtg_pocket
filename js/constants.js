@@ -1,5 +1,5 @@
 /**
- * MTG Pocket - Constants
+ * MTG Pocket - Constants (ENHANCED HOLOGRAPHIC EFFECTS)
  * 
  * Global configuration values and constants used throughout the application.
  */
@@ -63,12 +63,63 @@ export const COUNTDOWN_UPDATE_INTERVAL = 1000; // Update countdown timer every 1
 // ===== STORAGE KEYS =====
 export const STORAGE_KEY = 'mtgPocket';
 
-// ===== HOLOGRAPHIC GLARE SETTINGS =====
+// ===== ENHANCED HOLOGRAPHIC GLARE SETTINGS =====
 export const GLARE_CONFIG = {
-  tiltFactor: 1.2,
-  scaleFactor: 1.05,
-  maxTiltDegrees: 20,
-  glareSize: 200  // Width/height of glare gradient in pixels
+  // 3D Tilt Settings
+  maxTiltDegrees: 15,           // Maximum tilt angle (degrees)
+  perspective: 800,              // Perspective distance (px) - higher = more subtle
+  
+  // Scale Settings
+  scaleOnHover: 1.05,           // Scale multiplier on hover
+  
+  // Glare Visual Settings
+  glareSize: 250,               // Base size of glare gradient (px)
+  glareOpacity: 0.9,            // Maximum glare opacity (0-1)
+  
+  // Advanced Gradient Settings (LCH color space inspired)
+  glareGradient: {
+    // Center: bright, high lightness
+    center: {
+      lightness: 95,            // 0-100
+      chroma: 2.7,              // Color intensity
+      alpha: 0.66               // Opacity
+    },
+    // Mid: medium glow
+    mid: {
+      lightness: 88,
+      chroma: 5.5,
+      alpha: 0.5
+    },
+    // Edge: dark falloff
+    edge: {
+      lightness: 5,
+      chroma: 3.5,
+      alpha: 0.25
+    }
+  },
+  
+  // Rarity-specific Intensity Multipliers
+  rarityIntensity: {
+    common: 0.5,                // Subtle effect
+    uncommon: 0.75,             // Medium effect
+    rare: 1.0,                  // Standard effect
+    mythic: 1.5,                // Intense effect
+    fullart: 1.3,               // Enhanced for full-arts
+    masterpiece: 2.0            // Maximum for masterpieces
+  },
+  
+  // Shadow Settings
+  shadowEnabled: true,
+  shadowBlur: 20,               // Shadow blur radius (px)
+  shadowOpacity: 0.3,           // Shadow opacity (0-1)
+  shadowOffsetMultiplier: 1.5,  // How far shadow moves with tilt
+  
+  // Blend Mode
+  blendMode: 'overlay',         // CSS blend mode for glare
+  
+  // Performance
+  useGPUAcceleration: true,     // Force GPU rendering
+  translateZ: 0.01              // Small Z-translate for GPU acceleration (px)
 };
 
 // ===== GYROSCOPE SETTINGS =====

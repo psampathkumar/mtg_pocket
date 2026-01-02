@@ -1,10 +1,10 @@
 /**
- * MTG Pocket - Developer Tools (FIXED HOLOGRAPHIC EFFECTS)
+ * MTG Pocket - Developer Tools (ENHANCED HOLOGRAPHIC TEST)
  * 
  * Development features for testing and debugging.
  */
 
-import { MTG_CARD_BACK, GLARE_CONFIG, GYRO_CONFIG } from './constants.js';
+import { MTG_CARD_BACK } from './constants.js';
 import { 
   getCurrentSet, 
   getAllCards, 
@@ -12,7 +12,7 @@ import {
   addCard,
   save
 } from './state.js';
-import { getCardImages, getRandomElement } from './utils.js';
+import { getCardImages, getRandomElement, enableTilt } from './utils.js';
 import { renderCollection, updateStats } from './collection.js';
 
 // ===== DEV PANEL TOGGLE =====
@@ -92,10 +92,10 @@ export function initAddCard() {
   };
 }
 
-// ===== TEST GLARE (MANUAL IMPLEMENTATION - FIXED) =====
+// ===== TEST ENHANCED HOLOGRAPHIC EFFECT =====
 
 /**
- * Initialize manual glare test
+ * Initialize enhanced holographic test with rarity comparison
  */
 export function initTestGlareManual() {
   const testGlareBtn = document.getElementById('testGlareBtn');
@@ -108,208 +108,124 @@ export function initTestGlareManual() {
   testGlareBtn.onclick = async () => {
     const modal = document.getElementById('cardViewModal');
     modal.style.display = 'flex';
-    modal.innerHTML = '<div style="padding:2rem;color:#fff">Loading card...</div>';
+    modal.innerHTML = '<div style="padding:2rem;color:#fff">Loading cards...</div>';
     
-    // Get a random card from current set
+    // Get cards of different rarities from current set
     const allCards = getAllCards();
-    let testCardData = null;
     
-    if (allCards.length > 0) {
-      const randomCard = getRandomElement(allCards);
-      const imgs = getCardImages(randomCard);
-      testCardData = {
-        front: imgs.front,
-        back: imgs.back,
-        name: randomCard.name
-      };
-    } else {
-      testCardData = {
-        front: MTG_CARD_BACK,
-        back: MTG_CARD_BACK,
-        name: 'Test Card'
-      };
+    const testCards = [
+      { rarity: 'mythic', card: allCards.find(c => c.rarity === 'mythic') },
+      { rarity: 'rare', card: allCards.find(c => c.rarity === 'rare') },
+      { rarity: 'uncommon', card: allCards.find(c => c.rarity === 'uncommon') },
+      { rarity: 'common', card: allCards.find(c => c.rarity === 'common') }
+    ].filter(item => item.card); // Remove any that don't exist
+    
+    if (testCards.length === 0) {
+      modal.innerHTML = '<div style="padding:2rem;color:#fff">No cards available for testing. Please load a set first.</div>';
+      setTimeout(() => modal.style.display = 'none', 2000);
+      return;
     }
     
     modal.innerHTML = '';
     
     const container = document.createElement('div');
-    container.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:1.5rem';
+    container.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:2rem;padding:2rem;max-width:95vw;overflow-y:auto;max-height:90vh';
     
-    const perspectiveDiv = document.createElement('div');
-    perspectiveDiv.style.cssText = 'perspective:1000px;width:300px;height:420px';
+    // Title
+    const title = document.createElement('h2');
+    title.textContent = '✨ Enhanced Holographic Effect Test';
+    title.style.cssText = 'color:#fff;margin:0;text-align:center;font-size:1.5rem';
     
-    const testCard = document.createElement('div');
-    testCard.style.cssText = 'width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 0.1s ease-out;border-radius:12px';
+    const subtitle = document.createElement('p');
+    subtitle.textContent = 'Hover over each card to see rarity-based intensity differences';
+    subtitle.style.cssText = 'color:#aaa;margin:0.5rem 0 0 0;text-align:center;font-size:0.9rem';
     
-    const innerContainer = document.createElement('div');
-    innerContainer.style.cssText = 'width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform 0.6s';
+    container.appendChild(title);
+    container.appendChild(subtitle);
     
-    // Front face
-    const front = document.createElement('div');
-    front.style.cssText = 'position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:12px;overflow:hidden';
-    const frontImg = document.createElement('img');
-    frontImg.src = testCardData.front;
-    frontImg.style.cssText = 'width:100%;height:100%;object-fit:cover';
-    front.appendChild(frontImg);
+    // Create card display grid
+    const cardGrid = document.createElement('div');
+    cardGrid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2rem;width:100%;max-width:900px';
     
-    // Back face
-    const back = document.createElement('div');
-    back.style.cssText = 'position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:12px;transform:rotateY(180deg);overflow:hidden';
-    const backImg = document.createElement('img');
-    backImg.src = testCardData.back;
-    backImg.style.cssText = 'width:100%;height:100%;object-fit:cover';
-    back.appendChild(backImg);
-    
-    // Glare overlay on front
-    const glare = document.createElement('div');
-    glare.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity 0.3s;overflow:hidden';
-    
-    const glareGradient = document.createElement('div');
-    glareGradient.style.cssText = `position:absolute;width:${GLARE_CONFIG.glareSize}px;height:${GLARE_CONFIG.glareSize}px;background:radial-gradient(circle at center, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 30%, transparent 70%);transform:translate(-50%, -50%);mix-blend-mode:overlay`;
-    glare.appendChild(glareGradient);
-    front.appendChild(glare);
-    
-    // Glare overlay on back
-    const glareBack = document.createElement('div');
-    glareBack.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity 0.3s;overflow:hidden';
-    
-    const glareGradientBack = document.createElement('div');
-    glareGradientBack.style.cssText = `position:absolute;width:${GLARE_CONFIG.glareSize}px;height:${GLARE_CONFIG.glareSize}px;background:radial-gradient(circle at center, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.4) 30%, transparent 70%);transform:translate(-50%, -50%);mix-blend-mode:overlay`;
-    glareBack.appendChild(glareGradientBack);
-    back.appendChild(glareBack);
-    
-    innerContainer.appendChild(front);
-    innerContainer.appendChild(back);
-    testCard.appendChild(innerContainer);
-    perspectiveDiv.appendChild(testCard);
-    
-    // Track which face is showing
-    let isFlipped = false;
-    
-    // Mouse movement handler
-    testCard.onmousemove = (e) => {
-      const rect = testCard.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width;
-      const y = (e.clientY - rect.top) / rect.height;
+    testCards.forEach(({ rarity, card }) => {
+      const cardContainer = document.createElement('div');
+      cardContainer.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:0.5rem';
       
-      const centerX = x - 0.5;
-      const centerY = y - 0.5;
+      // Card wrapper
+      const perspectiveDiv = document.createElement('div');
+      perspectiveDiv.style.cssText = 'perspective:800px;width:200px;height:280px';
       
-      const rotateX = -centerY * GLARE_CONFIG.maxTiltDegrees;
-      const rotateY = centerX * GLARE_CONFIG.maxTiltDegrees;
+      const testCard = document.createElement('div');
+      testCard.className = `card rarity-${rarity}`;
+      testCard.style.cssText = 'width:100%;height:100%;position:relative';
       
-      testCard.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+      const innerContainer = document.createElement('div');
+      innerContainer.className = 'card-inner';
+      innerContainer.style.cssText = 'width:100%;height:100%;position:relative';
       
-      // Position glare based on which face is showing
-      if (!isFlipped) {
-        // Front face - normal positioning
-        glareGradient.style.left = `${x * 100}%`;
-        glareGradient.style.top = `${y * 100}%`;
-        glare.style.opacity = '1';
-        glareBack.style.opacity = '0';
-      } else {
-        // Back face - X is the same (card is already visually mirrored)
-        glareGradientBack.style.left = `${x * 100}%`;
-        glareGradientBack.style.top = `${y * 100}%`;
-        glareBack.style.opacity = '1';
-        glare.style.opacity = '0';
-      }
-    };
-    
-    testCard.onmouseleave = () => {
-      testCard.style.transform = 'rotateX(0deg) rotateY(0deg)';
-      glare.style.opacity = '0';
-      glareBack.style.opacity = '0';
-    };
-    
-    // Gyroscope support for mobile
-    let gyroActive = false;
-    let orientationHandler = null;
-    let baseOrientation = { beta: 0, gamma: 0 };
-    let hasBaseOrientation = false;
-    
-    if (window.DeviceOrientationEvent) {
-      orientationHandler = (e) => {
-        if (!e.beta || !e.gamma) return;
-        
-        if (!hasBaseOrientation) {
-          baseOrientation = { beta: e.beta, gamma: e.gamma };
-          hasBaseOrientation = true;
-          return;
-        }
-        
-        const beta = e.beta - baseOrientation.beta;
-        const gamma = e.gamma - baseOrientation.gamma;
-        
-        const tiltX = Math.max(-1, Math.min(1, beta / GYRO_CONFIG.maxTiltAngle));
-        const tiltY = Math.max(-1, Math.min(1, gamma / GYRO_CONFIG.maxTiltAngle));
-        
-        const rotateX = -tiltX * GLARE_CONFIG.maxTiltDegrees;
-        const rotateY = tiltY * GLARE_CONFIG.maxTiltDegrees;
-        
-        testCard.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-        
-        const glareX = (tiltY + 1) / 2;
-        const glareY = (1 - tiltX) / 2;
-        
-        if (!isFlipped) {
-          // Front face
-          glareGradient.style.left = `${glareX * 100}%`;
-          glareGradient.style.top = `${glareY * 100}%`;
-          glare.style.opacity = '1';
-          glareBack.style.opacity = '0';
-        } else {
-          // Back face
-          glareGradientBack.style.left = `${glareX * 100}%`;
-          glareGradientBack.style.top = `${glareY * 100}%`;
-          glareBack.style.opacity = '1';
-          glare.style.opacity = '0';
-        }
+      // Front face
+      const front = document.createElement('div');
+      front.className = 'card-front';
+      front.style.cssText = 'position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:12px;overflow:hidden';
+      const frontImg = document.createElement('img');
+      const imgs = getCardImages(card);
+      frontImg.src = imgs.front;
+      frontImg.style.cssText = 'width:100%;height:100%;object-fit:cover';
+      front.appendChild(frontImg);
+      
+      innerContainer.appendChild(front);
+      testCard.appendChild(innerContainer);
+      perspectiveDiv.appendChild(testCard);
+      
+      // ✨ APPLY ENHANCED HOLOGRAPHIC EFFECT ✨
+      const cardData = { 
+        rarity, 
+        name: card.name,
+        fullart: false,
+        masterpiece: false
       };
+      enableTilt(testCard, cardData);
       
-      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-        DeviceOrientationEvent.requestPermission()
-          .then(permissionState => {
-            if (permissionState === 'granted') {
-              gyroActive = true;
-              window.addEventListener('deviceorientation', orientationHandler);
-            }
-          })
-          .catch(console.error);
-      } else if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        gyroActive = true;
-        window.addEventListener('deviceorientation', orientationHandler);
-      }
-    }
+      // Rarity label
+      const label = document.createElement('div');
+      label.textContent = rarity.toUpperCase();
+      label.style.cssText = `
+        color:#fff;
+        font-weight:700;
+        font-size:0.9rem;
+        text-transform:uppercase;
+        letter-spacing:0.1em;
+        padding:0.5rem 1rem;
+        border-radius:8px;
+        background:${getRarityColor(rarity)};
+      `;
+      
+      // Intensity info
+      const intensityInfo = document.createElement('div');
+      intensityInfo.textContent = `Intensity: ${getIntensityText(rarity)}`;
+      intensityInfo.style.cssText = 'color:#aaa;font-size:0.8rem;text-align:center';
+      
+      cardContainer.appendChild(perspectiveDiv);
+      cardContainer.appendChild(label);
+      cardContainer.appendChild(intensityInfo);
+      cardGrid.appendChild(cardContainer);
+    });
     
-    const flipBtn = document.createElement('button');
-    flipBtn.textContent = '🔄 Flip Test';
-    flipBtn.style.cssText = 'padding:0.75rem 1.5rem;font-size:1rem';
-    flipBtn.onclick = () => {
-      isFlipped = !isFlipped;
-      innerContainer.style.transform = isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)';
-    };
+    container.appendChild(cardGrid);
     
+    // Close button
     const closeBtn = document.createElement('button');
     closeBtn.textContent = 'Close';
-    closeBtn.style.cssText = 'padding:0.5rem 1rem;font-size:0.9rem;background:#666';
+    closeBtn.style.cssText = 'padding:0.75rem 2rem;font-size:1rem;background:#666;margin-top:1rem';
     closeBtn.onclick = () => {
-      if (gyroActive && orientationHandler) {
-        window.removeEventListener('deviceorientation', orientationHandler);
-      }
       modal.style.display = 'none';
     };
     
-    container.appendChild(perspectiveDiv);
-    container.appendChild(flipBtn);
     container.appendChild(closeBtn);
     modal.appendChild(container);
     
     modal.onclick = (e) => {
       if (e.target === modal) {
-        if (gyroActive && orientationHandler) {
-          window.removeEventListener('deviceorientation', orientationHandler);
-        }
         modal.style.display = 'none';
       }
     };
@@ -317,26 +233,36 @@ export function initTestGlareManual() {
 }
 
 /**
+ * Get rarity color for label background
+ */
+function getRarityColor(rarity) {
+  const colors = {
+    mythic: 'linear-gradient(135deg, #ff8000, #ff6000)',
+    rare: 'linear-gradient(135deg, #0070dd, #0050aa)',
+    uncommon: 'linear-gradient(135deg, #1eff00, #00cc00)',
+    common: 'linear-gradient(135deg, #999, #666)'
+  };
+  return colors[rarity] || colors.common;
+}
+
+/**
+ * Get intensity description
+ */
+function getIntensityText(rarity) {
+  const intensities = {
+    mythic: '1.5x (Most Intense)',
+    rare: '1.0x (Standard)',
+    uncommon: '0.75x (Medium)',
+    common: '0.5x (Subtle)'
+  };
+  return intensities[rarity] || '1.0x';
+}
+
+/**
  * Initialize library glare test - REMOVED/DEPRECATED
- * The hover-tilt library is not reliably loading, so we're using manual implementation only
  */
 export function initTestGlareLibrary() {
-  const testLibraryBtn = document.getElementById('testLibraryBtn');
-  
-  if (!testLibraryBtn) {
-    console.warn('Test library button not found - skipping initialization');
-    return;
-  }
-  
-  // Change button to show it's deprecated
-  testLibraryBtn.textContent = '⚠️ Library Test (Deprecated)';
-  testLibraryBtn.disabled = true;
-  testLibraryBtn.style.opacity = '0.5';
-  testLibraryBtn.style.cursor = 'not-allowed';
-  
-  testLibraryBtn.onclick = () => {
-    alert('The hover-tilt library test has been deprecated.\n\nUse "✨ Test Glare (Manual)" instead, which provides the same holographic effect with better reliability.');
-  };
+  // This function is no longer needed
 }
 
 /**

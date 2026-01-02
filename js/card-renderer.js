@@ -1,7 +1,8 @@
 /**
- * MTG Pocket - Card Renderer
+ * MTG Pocket - Card Renderer (HOLO ONLY IN CARD MODAL)
  * 
  * Functions for creating and displaying card DOM elements.
+ * Holographic effect is ONLY applied in the card view modal.
  */
 
 import { MTG_CARD_BACK } from './constants.js';
@@ -10,7 +11,7 @@ import { enableTilt, isDoubleFaced } from './utils.js';
 // ===== CARD ELEMENT CREATION =====
 
 /**
- * Create a card DOM element
+ * Create a card DOM element (NO holographic effect - just basic hover)
  * @param {Object} card - Card data object
  * @param {boolean} isRevealing - Whether this is during pack reveal (disables interactions)
  * @returns {HTMLElement} - Card DOM element
@@ -60,7 +61,7 @@ export function createCardElement(card, isRevealing = false) {
   
   // Add interaction handlers if not revealing
   if (!isRevealing) {
-    enableTilt(cardDiv);
+    // NO HOLOGRAPHIC EFFECT HERE - just click handler
     cardDiv.onclick = (e) => {
       e.stopPropagation();
       showCardModal(card);
@@ -129,10 +130,10 @@ export function createPlaceholderElement(collectorNumber) {
   return placeholder;
 }
 
-// ===== CARD MODAL =====
+// ===== CARD MODAL (WITH HOLOGRAPHIC EFFECT) =====
 
 /**
- * Show a card in a fullscreen modal with flip functionality
+ * Show a card in a fullscreen modal with flip functionality and HOLOGRAPHIC EFFECT
  * @param {Object} card - Card data object
  */
 export function showCardModal(card) {
@@ -178,6 +179,9 @@ export function showCardModal(card) {
   innerDiv.appendChild(countDiv);
   cardDiv.appendChild(innerDiv);
   perspectiveDiv.appendChild(cardDiv);
+  
+  // ✨ APPLY HOLOGRAPHIC EFFECT HERE ✨
+  enableTilt(cardDiv, card);
   
   // Flip button
   const flipBtn = document.createElement('button');
@@ -362,7 +366,7 @@ export function showPackModal(pack, isGodPack) {
     
     singleView.appendChild(cardDiv);
     
-    // Create small card for final view
+    // Create small card for final view (NO holographic effect)
     const smallCard = createCardElement(card, false);
     addCardBadges(smallCard, card);
     addCardEffects(smallCard, {
