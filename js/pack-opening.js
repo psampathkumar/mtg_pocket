@@ -1,7 +1,7 @@
 /**
- * MTG Pocket - Pack Opening Module
+ * MTG Pocket - Pack Opening (REFACTORED)
  * 
- * Handles pack generation, opening animations, and card reveals.
+ * Removed deprecated functions, consolidated pack generation logic.
  */
 
 import { 
@@ -9,7 +9,6 @@ import {
   GODPACK_CHANCE, 
   FULLART_BONUS_CHANCE, 
   MASTERPIECE_CHANCE,
-  PACK_RIP_DURATION,
   CARD_SUFFIXES
 } from './constants.js';
 import { 
@@ -22,181 +21,56 @@ import {
   getFullArtCards,
   getMasterpieceCards,
   getStorySpotlightCards,
-  getSetMetadata,
   setLastPack,
   save
 } from './state.js';
-import { rollRarity, getCardImages, randomChance, getRandomElement, wait } from './utils.js';
+import { rollRarity, getCardImages, randomChance, getRandomElement } from './utils.js';
 import { showPackModal } from './card-renderer.js';
 import { startRipAnimation } from './pack-carousel.js';
 
-// ===== PACK OPENING =====
+// ===== PACK OPENING CONTROLLER =====
 
-/**
- * Check if user can open a pack
- * @param {boolean} freeMode - Whether free mode is enabled
- * @returns {boolean}
- */
 export function canOpenPack(freeMode) {
-  if (freeMode) return true;
-  return getPoints() >= PACK_COST;
+  return freeMode || getPoints() >= PACK_COST;
 }
 
-/**
- * Open a pack and generate cards
- * @param {boolean} freeMode - Whether free mode is enabled
- */
 export async function openPack(freeMode) {
-  if (!canOpenPack(freeMode)) {
-    return;
-  }
+  if (!canOpenPack(freeMode)) return;
   
-  // Play pack ripping animation
   await startRipAnimation();
   
-  // Deduct points
-  if (!freeMode) {
-    subtractPoints(PACK_COST);
-  }
+  if (!freeMode) subtractPoints(PACK_COST);
   
-  // Generate pack
   const currentSet = getCurrentSet();
   const pack = generatePack(currentSet);
   
-  // Save pack opening
   setLastPack(currentSet);
   save();
   
-  // Show pack reveal
   const isGodPack = pack.some(card => card.isGodPack);
   showPackModal(pack, isGodPack);
   
   return pack;
 }
 
-/**
- * Generate a pack of cards
- * @param {string} setCode - The set code
- * @returns {Array} - Array of card objects
- */
+// ===== PACK GENERATION =====
+
 function generatePack(setCode) {
-  const allCards = getAllCards();
-  const fullArtCards = getFullArtCards();
-  const masterpieceCards = getMasterpieceCards();
-  const storySpotlightCards = getStorySpotlightCards();
+  const cardPools = {
+    all: getAllCards(),
+    fullArt: getFullArtCards(),
+    masterpiece: getMasterpieceCards(),
+    spotlight: getStorySpotlightCards()
+  };
   
-  const isGodPack = randomChance(GODPACK_CHANCE) && fullArtCards.length > 0;
-  let pack = [];
+  const isGodPack = randomChance(GODPACK_CHANCE) && cardPools.fullArt.length > 0;
   
   console.log('=== GENERATING PACK ===');
   console.log('Is God Pack:', isGodPack);
   
-  if (isGodPack) {
-    // God pack: 5 full-art cards
-    for (let i = 0; i < 5; i++) {
-      const card = getRandomElement(fullArtCards);
-      const cardId = card.id + CARD_SUFFIXES.fullart;
-      const isNew = !isCardOwned(setCode, cardId);
-      const imgs = getCardImages(card);
-      
-      const cardData = ensureCardExists(setCode, cardId, {
-        name: card.name,
-        rarity: card.rarity,
-        img: imgs.front,
-        backImg: imgs.back,
-        count: 0,
-        fullart: true,
-        collectorNum: card.collector_number
-      });
-      
-      pack.push({ ...cardData, isNew, isGodPack: true });
-    }
-  } else {
-    // Regular pack: 5 cards based on rarity
-    for (let i = 0; i < 5; i++) {
-      let rarity = rollRarity();
-      let pool = allCards.filter(c => c.rarity === rarity);
-      
-      // Fallback: if no cards of rolled rarity, try other rarities in order
-      const fallbackRarities = ['common', 'uncommon', 'rare', 'mythic'].filter(r => r !== rarity);
-      let attempts = 0;
-      
-      while (pool.length === 0 && attempts < fallbackRarities.length) {
-        console.warn(`No cards found for rarity: ${rarity}, trying fallback: ${fallbackRarities[attempts]}`);
-        rarity = fallbackRarities[attempts];
-        pool = allCards.filter(c => c.rarity === rarity);
-        attempts++;
-      }
-      
-      if (pool.length === 0) {
-        console.warn(`No cards available for any rarity in pack slot ${i + 1}, skipping`);
-        continue;
-      }
-      
-      const card = getRandomElement(pool);
-      const cardId = card.id;
-      const isNew = !isCardOwned(setCode, cardId);
-      const isSpotlight = storySpotlightCards.some(sc => sc.id === card.id);
-      const imgs = getCardImages(card);
-      
-      const cardData = ensureCardExists(setCode, cardId, {
-        name: card.name,
-        rarity: card.rarity,
-        img: imgs.front,
-        backImg: imgs.back,
-        count: 0,
-        fullart: false,
-        spotlight: isSpotlight,
-        collectorNum: card.collector_number
-      });
-      
-      pack.push({ ...cardData, isNew });
-    }
-    
-    // Chance for 6th card (full-art bonus)
-    let got6thCard = false;
-    if (randomChance(FULLART_BONUS_CHANCE) && fullArtCards.length > 0) {
-      const card = getRandomElement(fullArtCards);
-      const cardId = card.id + CARD_SUFFIXES.fullart;
-      const isNew = !isCardOwned(setCode, cardId);
-      const imgs = getCardImages(card);
-      
-      const cardData = ensureCardExists(setCode, cardId, {
-        name: card.name,
-        rarity: card.rarity,
-        img: imgs.front,
-        backImg: imgs.back,
-        count: 0,
-        fullart: true,
-        collectorNum: card.collector_number
-      });
-      
-      pack.push({ ...cardData, isNew, isBonus: true });
-      got6thCard = true;
-      console.log('Bonus full-art card added');
-    }
-    
-    // Chance for 7th card (masterpiece) only if 6th card exists
-    if (got6thCard && randomChance(MASTERPIECE_CHANCE) && masterpieceCards.length > 0) {
-      const card = getRandomElement(masterpieceCards);
-      const cardId = card.id + CARD_SUFFIXES.masterpiece;
-      const isNew = !isCardOwned(setCode, cardId);
-      const imgs = getCardImages(card);
-      
-      const cardData = ensureCardExists(setCode, cardId, {
-        name: card.name,
-        rarity: card.rarity,
-        img: imgs.front,
-        backImg: imgs.back,
-        count: 0,
-        masterpiece: true,
-        collectorNum: card.collector_number
-      });
-      
-      pack.push({ ...cardData, isNew, isSecret: true });
-      console.log('Secret masterpiece card added');
-    }
-  }
+  const pack = isGodPack 
+    ? generateGodPack(setCode, cardPools)
+    : generateRegularPack(setCode, cardPools);
   
   console.log('Pack generated with', pack.length, 'cards');
   console.log('=== END GENERATING PACK ===');
@@ -204,60 +78,112 @@ function generatePack(setCode) {
   return pack;
 }
 
-/**
- * Check if a card is already owned
- * @param {string} setCode - The set code
- * @param {string} cardId - The card ID
- * @returns {boolean}
- */
-function isCardOwned(setCode, cardId) {
-  const card = getCard(setCode, cardId);
-  return card !== null;
+function generateGodPack(setCode, pools) {
+  const pack = [];
+  
+  for (let i = 0; i < 5; i++) {
+    const card = getRandomElement(pools.fullArt);
+    const cardId = card.id + CARD_SUFFIXES.fullart;
+    const cardData = createCardData(card, pools, { fullart: true });
+    const isNew = !isCardOwned(setCode, cardId);
+    
+    ensureCardExists(setCode, cardId, cardData);
+    pack.push({ ...cardData, isNew, isGodPack: true });
+  }
+  
+  return pack;
 }
 
-/**
- * Ensure a card exists in the collection and increment its count
- * @param {string} setCode - The set code
- * @param {string} cardId - The card ID
- * @param {Object} cardData - Card data object
- * @returns {Object} - The card data with updated count
- */
+function generateRegularPack(setCode, pools) {
+  const pack = [];
+  
+  // 5 base cards
+  for (let i = 0; i < 5; i++) {
+    const card = selectRandomCard(pools.all, rollRarity());
+    if (!card) continue;
+    
+    const cardId = card.id;
+    const cardData = createCardData(card, pools, { fullart: false });
+    const isNew = !isCardOwned(setCode, cardId);
+    
+    ensureCardExists(setCode, cardId, cardData);
+    pack.push({ ...cardData, isNew });
+  }
+  
+  // Bonus full-art card (10% chance)
+  const got6thCard = addBonusCard(pack, setCode, pools.fullArt, pools, 'fullart');
+  
+  // Masterpiece card (25% chance, only if 6th card exists)
+  if (got6thCard) {
+    addBonusCard(pack, setCode, pools.masterpiece, pools, 'masterpiece');
+  }
+  
+  return pack;
+}
+
+function addBonusCard(pack, setCode, pool, allPools, type) {
+  const chances = { fullart: FULLART_BONUS_CHANCE, masterpiece: MASTERPIECE_CHANCE };
+  const suffixes = { fullart: CARD_SUFFIXES.fullart, masterpiece: CARD_SUFFIXES.masterpiece };
+  const flags = { fullart: 'isBonus', masterpiece: 'isSecret' };
+  
+  if (!randomChance(chances[type]) || pool.length === 0) return false;
+  
+  const card = getRandomElement(pool);
+  const cardId = card.id + suffixes[type];
+  const cardData = createCardData(card, allPools, { [type]: true });
+  const isNew = !isCardOwned(setCode, cardId);
+  
+  ensureCardExists(setCode, cardId, cardData);
+  pack.push({ ...cardData, isNew, [flags[type]]: true });
+  
+  console.log(`${type} card added`);
+  return true;
+}
+
+function selectRandomCard(allCards, targetRarity) {
+  let pool = allCards.filter(c => c.rarity === targetRarity);
+  
+  if (pool.length === 0) {
+    const fallbackRarities = ['common', 'uncommon', 'rare', 'mythic'].filter(r => r !== targetRarity);
+    for (const rarity of fallbackRarities) {
+      pool = allCards.filter(c => c.rarity === rarity);
+      if (pool.length > 0) {
+        console.warn(`Fallback to ${rarity} from ${targetRarity}`);
+        break;
+      }
+    }
+  }
+  
+  if (pool.length === 0) {
+    console.warn('No cards available');
+    return null;
+  }
+  
+  return getRandomElement(pool);
+}
+
+function createCardData(card, pools, flags) {
+  const imgs = getCardImages(card);
+  const isSpotlight = pools.spotlight.some(sc => sc.id === card.id);
+  
+  return {
+    name: card.name,
+    rarity: card.rarity,
+    img: imgs.front,
+    backImg: imgs.back,
+    count: 0,
+    fullart: flags.fullart || false,
+    masterpiece: flags.masterpiece || false,
+    spotlight: isSpotlight,
+    collectorNum: card.collector_number
+  };
+}
+
+function isCardOwned(setCode, cardId) {
+  return getCard(setCode, cardId) !== null;
+}
+
 function ensureCardExists(setCode, cardId, cardData) {
   addCard(setCode, cardId, cardData);
-  
-  // Get the updated card (with incremented count)
   return getCard(setCode, cardId);
-}
-
-/**
- * Update the pack image based on current set
- * NOTE: This function is deprecated with the new carousel system
- * but kept for backward compatibility
- */
-export function updatePackImage() {
-  const currentSet = getCurrentSet();
-  
-  // Check if old single pack elements exist (backward compatibility)
-  const logo = document.getElementById('packLogo');
-  const icon = document.getElementById('packIcon');
-  
-  if (!logo || !icon) {
-    // Using new carousel system, no need to update
-    console.log('Using carousel system, skipping legacy updatePackImage');
-    return;
-  }
-  
-  // Legacy single-pack system
-  logo.src = `https://www.mtgpics.com/graph/sets/logos_big/${currentSet}.png`;
-  logo.onerror = () => { logo.style.display = 'none'; };
-  logo.onload = () => { logo.style.display = 'block'; };
-  
-  const setMetadata = getSetMetadata(currentSet);
-  
-  if (setMetadata && setMetadata.icon) {
-    icon.src = setMetadata.icon;
-    icon.style.display = 'block';
-  } else {
-    icon.style.display = 'none';
-  }
 }
