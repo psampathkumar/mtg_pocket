@@ -1,5 +1,5 @@
 /**
- * MTG Pocket - Developer Tools (ENHANCED HOLOGRAPHIC TEST)
+ * MTG Pocket - Developer Tools (UPDATED TEST WITH REBALANCED INTENSITIES)
  * 
  * Development features for testing and debugging.
  */
@@ -95,7 +95,7 @@ export function initAddCard() {
 // ===== TEST ENHANCED HOLOGRAPHIC EFFECT =====
 
 /**
- * Initialize enhanced holographic test with rarity comparison
+ * Initialize enhanced holographic test with ALL card types including full-art and masterpiece
  */
 export function initTestGlareManual() {
   const testGlareBtn = document.getElementById('testGlareBtn');
@@ -110,14 +110,46 @@ export function initTestGlareManual() {
     modal.style.display = 'flex';
     modal.innerHTML = '<div style="padding:2rem;color:#fff">Loading cards...</div>';
     
-    // Get cards of different rarities from current set
+    // Get cards of different types from current set
     const allCards = getAllCards();
     
     const testCards = [
-      { rarity: 'mythic', card: allCards.find(c => c.rarity === 'mythic') },
-      { rarity: 'rare', card: allCards.find(c => c.rarity === 'rare') },
-      { rarity: 'uncommon', card: allCards.find(c => c.rarity === 'uncommon') },
-      { rarity: 'common', card: allCards.find(c => c.rarity === 'common') }
+      { 
+        type: 'masterpiece', 
+        label: 'MASTERPIECE',
+        card: allCards.find(c => c.rarity === 'mythic'),
+        cardData: { rarity: 'mythic', fullart: false, masterpiece: true }
+      },
+      { 
+        type: 'fullart', 
+        label: 'FULL-ART',
+        card: allCards.find(c => c.rarity === 'rare'),
+        cardData: { rarity: 'rare', fullart: true, masterpiece: false }
+      },
+      { 
+        type: 'mythic', 
+        label: 'MYTHIC',
+        card: allCards.find(c => c.rarity === 'mythic'),
+        cardData: { rarity: 'mythic', fullart: false, masterpiece: false }
+      },
+      { 
+        type: 'rare', 
+        label: 'RARE',
+        card: allCards.find(c => c.rarity === 'rare'),
+        cardData: { rarity: 'rare', fullart: false, masterpiece: false }
+      },
+      { 
+        type: 'uncommon', 
+        label: 'UNCOMMON',
+        card: allCards.find(c => c.rarity === 'uncommon'),
+        cardData: { rarity: 'uncommon', fullart: false, masterpiece: false }
+      },
+      { 
+        type: 'common', 
+        label: 'COMMON',
+        card: allCards.find(c => c.rarity === 'common'),
+        cardData: { rarity: 'common', fullart: false, masterpiece: false }
+      }
     ].filter(item => item.card); // Remove any that don't exist
     
     if (testCards.length === 0) {
@@ -134,29 +166,29 @@ export function initTestGlareManual() {
     // Title
     const title = document.createElement('h2');
     title.textContent = '✨ Enhanced Holographic Effect Test';
-    title.style.cssText = 'color:#fff;margin:0;text-align:center;font-size:1.5rem';
+    title.style.cssText = 'color:#fff;margin:0;text-align:center;font-size:clamp(1.2rem, 4vw, 1.5rem)';
     
     const subtitle = document.createElement('p');
-    subtitle.textContent = 'Hover over each card to see rarity-based intensity differences';
-    subtitle.style.cssText = 'color:#aaa;margin:0.5rem 0 0 0;text-align:center;font-size:0.9rem';
+    subtitle.textContent = 'Hover/touch each card to see intensity differences';
+    subtitle.style.cssText = 'color:#aaa;margin:0.5rem 0 0 0;text-align:center;font-size:clamp(0.8rem, 3vw, 0.9rem)';
     
     container.appendChild(title);
     container.appendChild(subtitle);
     
     // Create card display grid
     const cardGrid = document.createElement('div');
-    cardGrid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2rem;width:100%;max-width:900px';
+    cardGrid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:clamp(1rem, 3vw, 2rem);width:100%;max-width:900px';
     
-    testCards.forEach(({ rarity, card }) => {
+    testCards.forEach(({ type, label, card, cardData }) => {
       const cardContainer = document.createElement('div');
       cardContainer.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:0.5rem';
       
       // Card wrapper
       const perspectiveDiv = document.createElement('div');
-      perspectiveDiv.style.cssText = 'perspective:800px;width:200px;height:280px';
+      perspectiveDiv.style.cssText = 'perspective:800px;width:clamp(140px, 30vw, 200px);height:clamp(196px, 42vw, 280px)';
       
       const testCard = document.createElement('div');
-      testCard.className = `card rarity-${rarity}`;
+      testCard.className = `card rarity-${cardData.rarity}`;
       testCard.style.cssText = 'width:100%;height:100%;position:relative';
       
       const innerContainer = document.createElement('div');
@@ -177,41 +209,46 @@ export function initTestGlareManual() {
       testCard.appendChild(innerContainer);
       perspectiveDiv.appendChild(testCard);
       
-      // ✨ APPLY ENHANCED HOLOGRAPHIC EFFECT ✨
-      const cardData = { 
-        rarity, 
-        name: card.name,
-        fullart: false,
-        masterpiece: false
+      // ✨ APPLY ENHANCED HOLOGRAPHIC EFFECT WITH PROPER CARD DATA ✨
+      const fullCardData = { 
+        ...cardData,
+        name: card.name
       };
-      enableTilt(testCard, cardData);
+      enableTilt(testCard, fullCardData);
       
-      // Rarity label
-      const label = document.createElement('div');
-      label.textContent = rarity.toUpperCase();
-      label.style.cssText = `
+      // Type label
+      const labelDiv = document.createElement('div');
+      labelDiv.textContent = label;
+      labelDiv.style.cssText = `
         color:#fff;
         font-weight:700;
-        font-size:0.9rem;
+        font-size:clamp(0.75rem, 2.5vw, 0.9rem);
         text-transform:uppercase;
         letter-spacing:0.1em;
-        padding:0.5rem 1rem;
-        border-radius:8px;
-        background:${getRarityColor(rarity)};
+        padding:0.4rem 0.8rem;
+        border-radius:6px;
+        background:${getTypeColor(type)};
+        white-space:nowrap;
       `;
       
       // Intensity info
       const intensityInfo = document.createElement('div');
-      intensityInfo.textContent = `Intensity: ${getIntensityText(rarity)}`;
-      intensityInfo.style.cssText = 'color:#aaa;font-size:0.8rem;text-align:center';
+      intensityInfo.textContent = getIntensityText(type);
+      intensityInfo.style.cssText = 'color:#aaa;font-size:clamp(0.7rem, 2vw, 0.8rem);text-align:center';
       
       cardContainer.appendChild(perspectiveDiv);
-      cardContainer.appendChild(label);
+      cardContainer.appendChild(labelDiv);
       cardContainer.appendChild(intensityInfo);
       cardGrid.appendChild(cardContainer);
     });
     
     container.appendChild(cardGrid);
+    
+    // Mobile instruction
+    const mobileNote = document.createElement('p');
+    mobileNote.textContent = '📱 On mobile: Touch and drag to see the effect';
+    mobileNote.style.cssText = 'color:#888;font-size:clamp(0.75rem, 2.5vw, 0.85rem);text-align:center;margin-top:0.5rem';
+    container.appendChild(mobileNote);
     
     // Close button
     const closeBtn = document.createElement('button');
@@ -233,29 +270,33 @@ export function initTestGlareManual() {
 }
 
 /**
- * Get rarity color for label background
+ * Get type color for label background (UPDATED)
  */
-function getRarityColor(rarity) {
+function getTypeColor(type) {
   const colors = {
-    mythic: 'linear-gradient(135deg, #ff8000, #ff6000)',
-    rare: 'linear-gradient(135deg, #0070dd, #0050aa)',
-    uncommon: 'linear-gradient(135deg, #1eff00, #00cc00)',
-    common: 'linear-gradient(135deg, #999, #666)'
+    masterpiece: 'linear-gradient(135deg, #9b59b6, #8e44ad)', // Purple (most intense)
+    fullart: 'linear-gradient(135deg, #e74c3c, #c0392b)',      // Red (very strong)
+    mythic: 'linear-gradient(135deg, #ff8000, #ff6000)',       // Orange
+    rare: 'linear-gradient(135deg, #0070dd, #0050aa)',         // Blue
+    uncommon: 'linear-gradient(135deg, #1eff00, #00cc00)',     // Green
+    common: 'linear-gradient(135deg, #999, #666)'              // Gray
   };
-  return colors[rarity] || colors.common;
+  return colors[type] || colors.common;
 }
 
 /**
- * Get intensity description
+ * Get intensity description (UPDATED)
  */
-function getIntensityText(rarity) {
+function getIntensityText(type) {
   const intensities = {
-    mythic: '1.5x (Most Intense)',
+    masterpiece: '2.0x (Maximum)',
+    fullart: '1.7x (Very Strong)',
+    mythic: '1.3x (Strong)',
     rare: '1.0x (Standard)',
     uncommon: '0.75x (Medium)',
     common: '0.5x (Subtle)'
   };
-  return intensities[rarity] || '1.0x';
+  return intensities[type] || '1.0x';
 }
 
 /**

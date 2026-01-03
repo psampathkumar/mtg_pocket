@@ -3,7 +3,8 @@
 #cardViewModal {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.95);
+  /* Reduced opacity to 0.85 so shadows are more visible */
+  background: rgba(0, 0, 0, 0.85);
   display: none;
   align-items: center;
   justify-content: center;
@@ -11,6 +12,9 @@
   padding: var(--spacing-lg);
   flex-direction: column;
   overflow-y: auto;
+  /* Smoother backdrop on mobile */
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 /* ===== SINGLE CARD VIEW (IN MODALS) ===== */
@@ -27,6 +31,7 @@
 .singleCardView .card {
   width: var(--card-width-modal);
   max-width: 90vw;
+  /* Enhanced shadow visibility with lighter background */
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
 }
 
@@ -56,4 +61,13 @@
 .packCards .card {
   width: var(--card-width-pack);
   max-width: 180px;
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 768px) {
+  #packModal,
+  #cardViewModal {
+    /* Even lighter on mobile for better shadow visibility */
+    background: rgba(0, 0, 0, 0.80);
+  }
 }

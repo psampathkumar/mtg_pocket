@@ -48,6 +48,11 @@
   .packVerticalLabel {
     font-size: clamp(0.6rem, 2vw, 0.75rem);
   }
+  
+  /* Enhanced touch target size for mobile holographic cards */
+  #cardViewModal .card {
+    min-height: 50vh;
+  }
 }
 
 /* Tablets (768px - 1023px) */
@@ -89,9 +94,35 @@
   .packImage.right:active {
     transform: translateX(var(--carousel-spacing)) scale(calc(var(--pack-scale-side) + 0.05));
   }
+  
+  /* Better touch responsiveness for holographic cards on mobile */
+  .card {
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Ensure shadows are visible on mobile with lighter modal */
+  #cardViewModal .card,
+  #packModal .card {
+    /* Shadows more visible with lighter background */
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  }
 }
 
 /* ===== COLLECTION VIEW ===== */
 #collectionView {
   display: none;
+}
+
+/* ===== LANDSCAPE MOBILE OPTIMIZATION ===== */
+@media (max-width: 896px) and (orientation: landscape) {
+  #cardViewModal {
+    /* Even lighter on landscape mobile for better shadow visibility */
+    background: rgba(0, 0, 0, 0.75);
+  }
+  
+  #cardViewModal .card {
+    max-height: 80vh;
+    width: auto;
+  }
 }

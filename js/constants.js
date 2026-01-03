@@ -1,5 +1,5 @@
 /**
- * MTG Pocket - Constants (WITH SET WHITELIST)
+ * MTG Pocket - Constants (REBALANCED GLARE INTENSITIES)
  * 
  * Global configuration values and constants used throughout the application.
  */
@@ -53,7 +53,7 @@ export const MIN_SET_SIZE = 100;
 // Sets that should NEVER be filtered out, regardless of other rules
 // Add set codes here (e.g., 'BLB', 'MH3') to force-include them
 export const WHITELISTED_SETS = [
-    'arn',
+    'arn'
   // Example: 'JMP',  // Jumpstart (normally filtered by keyword)
   // Example: 'CMM',  // Commander Masters (normally filtered by pattern)
   // Add your preferred sets here
@@ -108,14 +108,14 @@ export const GLARE_CONFIG = {
     }
   },
   
-  // Rarity-specific Intensity Multipliers
+  // Rarity-specific Intensity Multipliers (REBALANCED)
   rarityIntensity: {
     common: 0.5,                // Subtle effect
     uncommon: 0.75,             // Medium effect
     rare: 1.0,                  // Standard effect
-    mythic: 1.5,                // Intense effect
-    fullart: 1.3,               // Enhanced for full-arts
-    masterpiece: 2.0            // Maximum for masterpieces
+    mythic: 1.3,                // Strong effect (reduced from 1.5)
+    fullart: 1.7,               // Very strong (upgraded from 1.3)
+    masterpiece: 2.0            // MAXIMUM intensity (unchanged)
   },
   
   // Shadow Settings
