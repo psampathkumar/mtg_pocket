@@ -1,8 +1,9 @@
 /**
- * MTG Pocket - Card Renderer (HOLO ONLY IN CARD MODAL)
+ * MTG Pocket - Card Renderer (FIXED - NO HOLO IN COLLECTION)
  * 
- * Functions for creating and displaying card DOM elements.
- * Holographic effect is ONLY applied in the card view modal.
+ * CRITICAL FIX: Holographic effect is ONLY applied in card view modal.
+ * Collection cards have NO holographic effect, NO touch blocking.
+ * This allows free scrolling on mobile.
  */
 
 import { MTG_CARD_BACK } from './constants.js';
@@ -11,7 +12,7 @@ import { enableTilt, isDoubleFaced } from './utils.js';
 // ===== CARD ELEMENT CREATION =====
 
 /**
- * Create a card DOM element (NO holographic effect - just basic hover)
+ * Create a card DOM element (NO holographic effect - allows scrolling)
  * @param {Object} card - Card data object
  * @param {boolean} isRevealing - Whether this is during pack reveal (disables interactions)
  * @returns {HTMLElement} - Card DOM element
@@ -19,6 +20,10 @@ import { enableTilt, isDoubleFaced } from './utils.js';
 export function createCardElement(card, isRevealing = false) {
   const cardDiv = document.createElement('div');
   cardDiv.className = `card rarity-${card.rarity}`;
+  
+  // ✅ NO touch-action: none on collection cards
+  // ✅ NO pointer event handlers
+  // ✅ Allows natural scrolling
   
   const innerDiv = document.createElement('div');
   innerDiv.className = 'card-inner';
@@ -61,11 +66,15 @@ export function createCardElement(card, isRevealing = false) {
   
   // Add interaction handlers if not revealing
   if (!isRevealing) {
-    // NO HOLOGRAPHIC EFFECT HERE - just click handler
+    // ✅ ONLY click handler - no holographic effect
+    // ✅ NO touch-action blocking
     cardDiv.onclick = (e) => {
       e.stopPropagation();
       showCardModal(card);
     };
+    
+    // ✅ Simple hover effect (CSS only, no JS interference)
+    // See cards.css: .card:hover for basic transform
   }
   
   return cardDiv;
@@ -134,6 +143,7 @@ export function createPlaceholderElement(collectorNumber) {
 
 /**
  * Show a card in a fullscreen modal with flip functionality and HOLOGRAPHIC EFFECT
+ * ✅ THIS IS THE ONLY PLACE WHERE HOLOGRAPHIC EFFECT IS APPLIED
  * @param {Object} card - Card data object
  */
 export function showCardModal(card) {
@@ -180,7 +190,8 @@ export function showCardModal(card) {
   cardDiv.appendChild(innerDiv);
   perspectiveDiv.appendChild(cardDiv);
   
-  // ✨ APPLY HOLOGRAPHIC EFFECT HERE ✨
+  // ✨ APPLY HOLOGRAPHIC EFFECT ONLY HERE ✨
+  // This sets touch-action: none ONLY on the modal card
   enableTilt(cardDiv, card);
   
   // Flip button
@@ -314,7 +325,7 @@ export function showPackModal(pack, isGodPack) {
   function showCardInPack(card, isBonus, isSecret) {
     singleView.innerHTML = '';
     
-    // Create large card for single view
+    // Create large card for single view (NO holographic effect during reveal)
     const cardDiv = document.createElement('div');
     cardDiv.className = `card rarity-${card.rarity}`;
     cardDiv.style.cssText = 'width:100%;max-width:400px';

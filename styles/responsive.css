@@ -49,8 +49,15 @@
     font-size: clamp(0.6rem, 2vw, 0.75rem);
   }
   
-  /* Enhanced touch target size for mobile holographic cards */
+  /* ✅ CRITICAL FIX: Collection cards allow scrolling on mobile */
+  #collectionView .card {
+    touch-action: auto !important;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+  }
+  
+  /* ✅ ONLY modal cards get holographic touch blocking */
   #cardViewModal .card {
+    /* JS sets touch-action: none when enableTilt() is called */
     min-height: 50vh;
   }
 }
@@ -95,15 +102,28 @@
     transform: translateX(var(--carousel-spacing)) scale(calc(var(--pack-scale-side) + 0.05));
   }
   
-  /* Better touch responsiveness for holographic cards on mobile */
-  .card {
-    touch-action: none;
-    -webkit-tap-highlight-color: transparent;
+  /* ✅ CRITICAL FIX: Collection grid allows natural scrolling */
+  #collectionView {
+    /* Enable smooth scrolling */
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
   }
   
-  /* Ensure shadows are visible on mobile with lighter modal */
+  #collectionView .cards {
+    /* Ensure grid doesn't block touch */
+    touch-action: auto !important;
+  }
+  
+  #collectionView .card {
+    /* Cards in collection view allow scrolling */
+    touch-action: auto !important;
+    -webkit-tap-highlight-color: rgba(79, 172, 254, 0.2);
+  }
+  
+  /* ✅ ONLY cards inside modal get touch blocking for holographic effect */
   #cardViewModal .card,
   #packModal .card {
+    /* JS will set touch-action: none when enableTilt() is called */
     /* Shadows more visible with lighter background */
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
   }
@@ -112,6 +132,9 @@
 /* ===== COLLECTION VIEW ===== */
 #collectionView {
   display: none;
+  /* ✅ Ensure it's scrollable when visible */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ===== LANDSCAPE MOBILE OPTIMIZATION ===== */

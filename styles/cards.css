@@ -14,6 +14,22 @@
   cursor: pointer;
   overflow: visible;
   transition: transform 0.2s, box-shadow 0.3s;
+  
+  /* ✅ CRITICAL FIX: Allow scrolling by default */
+  /* Holographic effect will override this ONLY in modal */
+  touch-action: auto !important;
+  pointer-events: auto;
+}
+
+/* ✅ ENSURE collection cards can be scrolled past on mobile */
+#collectionView .card {
+  touch-action: auto !important;
+  pointer-events: auto;
+}
+
+/* ✅ ONLY modal cards get touch blocking (set by JS) */
+#cardViewModal .card {
+  /* JS will set touch-action: none when enableTilt() is called */
 }
 
 .card .card-inner {
@@ -56,8 +72,11 @@
   height: 100%;
   display: block;
   object-fit: cover;
+  /* ✅ Allow pointer events on images for click */
+  pointer-events: auto;
 }
 
+/* ✅ Simple hover for collection (no JS interference) */
 .card:hover,
 .card:active {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
@@ -87,6 +106,8 @@
   border-radius: 8px;
   font-size: var(--font-xs);
   z-index: 2;
+  /* ✅ Don't block parent clicks */
+  pointer-events: none;
 }
 
 .flip-indicator {
@@ -98,6 +119,8 @@
   border-radius: 8px;
   font-size: var(--font-xs);
   z-index: 2;
+  /* ✅ Don't block parent clicks */
+  pointer-events: none;
 }
 
 .new-card::after {
@@ -112,6 +135,8 @@
   border-radius: 4px;
   font-size: var(--font-xs);
   z-index: 10;
+  /* ✅ Don't block parent clicks */
+  pointer-events: none;
 }
 
 .story-card::before {
@@ -126,6 +151,8 @@
   border-radius: 4px;
   font-size: var(--font-xs);
   z-index: 10;
+  /* ✅ Don't block parent clicks */
+  pointer-events: none;
 }
 
 /* ===== CARD PLACEHOLDER ===== */
@@ -142,6 +169,9 @@
   color: #666;
   font-size: var(--font-base);
   font-weight: 600;
+  /* ✅ Allow scrolling */
+  touch-action: auto !important;
+  pointer-events: none; /* Placeholders aren't clickable */
 }
 
 /* ===== RARITY BORDERS ===== */
