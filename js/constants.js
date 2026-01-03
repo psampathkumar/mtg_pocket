@@ -1,5 +1,5 @@
 /**
- * MTG Pocket - Constants (ENHANCED HOLOGRAPHIC EFFECTS)
+ * MTG Pocket - Constants (WITH SET WHITELIST)
  * 
  * Global configuration values and constants used throughout the application.
  */
@@ -48,6 +48,16 @@ export const EXCLUDED_SET_PATTERNS = [
 
 // Minimum card count for a set to be included
 export const MIN_SET_SIZE = 100;
+
+// ===== SET WHITELIST =====
+// Sets that should NEVER be filtered out, regardless of other rules
+// Add set codes here (e.g., 'BLB', 'MH3') to force-include them
+export const WHITELISTED_SETS = [
+    'arn',
+  // Example: 'JMP',  // Jumpstart (normally filtered by keyword)
+  // Example: 'CMM',  // Commander Masters (normally filtered by pattern)
+  // Add your preferred sets here
+];
 
 // ===== CARD TYPES =====
 export const CARD_RARITIES = ['common', 'uncommon', 'rare', 'mythic'];

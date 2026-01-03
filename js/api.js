@@ -1,5 +1,5 @@
 /**
- * MTG Pocket - API Module
+ * MTG Pocket - API Module (WITH SET WHITELIST)
  * 
  * Handles all interactions with the Scryfall API including pagination,
  * set loading, and card queries.
@@ -11,7 +11,8 @@ import {
   EXCLUDED_SET_KEYWORDS,
   EXCLUDED_SET_PATTERNS,
   MIN_SET_SIZE,
-  CARD_RARITIES
+  CARD_RARITIES,
+  WHITELISTED_SETS
 } from './constants.js';
 
 // ===== CORE API FUNCTIONS =====
@@ -53,12 +54,18 @@ export async function fetchAllSets() {
 }
 
 /**
- * Filter sets based on app requirements
+ * Filter sets based on app requirements WITH WHITELIST SUPPORT
  * @param {Array} sets - Array of set objects from Scryfall
  * @returns {Array} - Filtered array of sets
  */
 export function filterSets(sets) {
   return sets.filter(set => {
+    // ✨ WHITELIST CHECK - Always include whitelisted sets
+    if (WHITELISTED_SETS.includes(set.code)) {
+      console.log(`✅ Whitelisted set included: ${set.code} - ${set.name}`);
+      return true;
+    }
+    
     // Must have a release date
     if (!set.released_at) return false;
     

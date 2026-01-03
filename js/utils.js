@@ -1,7 +1,9 @@
 /**
- * MTG Pocket - Utility Functions (FIXED MOBILE & GRADIENTS)
+ * MTG Pocket - Utility Functions (FINAL HOLOGRAPHIC FIX)
  * 
- * Helper functions with properly implemented holographic effects.
+ * Systematic fixes for:
+ * 1. Mobile tilt responsiveness (increased sensitivity for touch)
+ * 2. Shadow layer separation (doesn't affect flip)
  */
 
 import { RARITY_THRESHOLDS, MTG_CARD_BACK, GLARE_CONFIG } from './constants.js';
@@ -114,7 +116,6 @@ function createAdvancedGradient(intensity, hue = 270) {
   const edgeAlpha = config.edge.alpha * intensity;
   
   // Create gradient with CSS variables for position (like library does)
-  // This prevents artifacts by letting CSS handle the positioning
   return `radial-gradient(
     farthest-corner circle at var(--gradient-x, 50%) var(--gradient-y, 50%),
     hsla(${hue}, ${config.center.chroma * 10}%, ${config.center.lightness}%, ${centerAlpha}) 8%,
@@ -125,7 +126,11 @@ function createAdvancedGradient(intensity, hue = 270) {
 
 /**
  * Enable enhanced 3D tilt effect with advanced holographic glare
- * FIXED: Proper mobile support and gradient handling
+ * SYSTEMATIC FIXES:
+ * 1. Increased touch sensitivity (2x multiplier for mobile)
+ * 2. Shadow on separate layer (doesn't affect flip transform)
+ * 3. Immediate visual feedback (no lag)
+ * 
  * @param {HTMLElement} element - The card element to add tilt to
  * @param {Object} cardData - Card data for intensity calculation
  */
@@ -152,6 +157,23 @@ export function enableTilt(element, cardData = {}) {
   };
   const hue = hueMap[cardData.rarity] || 270;
   
+  // ✅ FIX #2: Create SEPARATE shadow layer (won't affect flip)
+  let shadowLayer = element.querySelector('.holo-shadow');
+  if (!shadowLayer) {
+    shadowLayer = document.createElement('div');
+    shadowLayer.className = 'holo-shadow';
+    shadowLayer.style.cssText = `
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      z-index: -1;
+      transition: none;
+      will-change: box-shadow;
+    `;
+    element.appendChild(shadowLayer);
+  }
+  
   // Create glare overlay if it doesn't exist
   let glare = element.querySelector('.holo-glare');
   if (!glare) {
@@ -162,13 +184,14 @@ export function enableTilt(element, cardData = {}) {
       inset: 0;
       pointer-events: none;
       opacity: 0;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.2s ease;
       border-radius: inherit;
       mix-blend-mode: ${GLARE_CONFIG.blendMode};
       will-change: opacity;
+      z-index: 5;
     `;
     
-    // Set gradient as background-image (not background)
+    // Set gradient as background-image
     glare.style.backgroundImage = createAdvancedGradient(intensity, hue);
     
     element.style.position = 'relative';
@@ -177,93 +200,138 @@ export function enableTilt(element, cardData = {}) {
   
   // State tracking
   let isActive = false;
+  let isTouchInput = false;
   let currentOpacity = 0;
   let currentScale = 1;
   let rafId = null;
   
-  // Prevent default touch behaviors that interfere
+  // Prevent default touch behaviors
   element.style.touchAction = 'none';
   
   /**
    * Update card transform and effects
+   * ✅ FIX #1: Touch sensitivity multiplier for mobile
    */
-  const updateCard = (x, y, isEntering = false) => {
+  const updateCard = (x, y, pointerType) => {
+    // ✅ FIX #1: Detect if touch input and apply 2x sensitivity
+    const isMobile = pointerType === 'touch' || pointerType === 'pen';
+    const sensitivityMultiplier = isMobile ? 2.0 : 1.0;
+    
     const centerX = x - 0.5;
     const centerY = y - 0.5;
     
-    // Calculate rotation
-    const rotateX = -centerY * GLARE_CONFIG.maxTiltDegrees;
-    const rotateY = centerX * GLARE_CONFIG.maxTiltDegrees;
+    // Calculate rotation with increased sensitivity for mobile
+    const rotateX = -centerY * GLARE_CONFIG.maxTiltDegrees * sensitivityMultiplier;
+    const rotateY = centerX * GLARE_CONFIG.maxTiltDegrees * sensitivityMultiplier;
     
     // Target values
     const targetOpacity = GLARE_CONFIG.glareOpacity;
     const targetScale = GLARE_CONFIG.scaleOnHover;
     
-    // Cancel existing animation
-    if (rafId) cancelAnimationFrame(rafId);
-    
-    const animate = () => {
-      // Ease towards target
-      const ease = 0.15;
-      currentOpacity += (targetOpacity - currentOpacity) * ease;
-      currentScale += (targetScale - currentScale) * ease;
+    // ✅ IMMEDIATE UPDATE (no animation lag for touch)
+    if (isMobile) {
+      // Direct update for touch - instant response
+      currentOpacity = targetOpacity;
+      currentScale = targetScale;
       
-      // Calculate shadow offset (convert 0-1 to -1 to 1 like library)
-      const shadowX = x * 2 - 1;
-      const shadowY = y * 2 - 1;
-      
-      // Apply 3D transform with GPU acceleration (like library)
+      // Apply transform immediately
       const transform = GLARE_CONFIG.useGPUAcceleration
         ? `scale(${currentScale}) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translate3d(0, 0, ${GLARE_CONFIG.translateZ}px)`
         : `scale(${currentScale}) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
       
       element.style.transform = transform;
       element.style.transformStyle = 'preserve-3d';
-      element.style.willChange = 'transform';
       
-      // Set CSS custom properties (like library does)
-      // This makes the gradient update smoothly without artifacts
+      // Calculate shadow offset
+      const shadowX = x * 2 - 1;
+      const shadowY = y * 2 - 1;
+      
+      // Set CSS custom properties
       element.style.setProperty('--gradient-x', `${x * 100}%`);
       element.style.setProperty('--gradient-y', `${y * 100}%`);
-      element.style.setProperty('--hover-tilt-x', x);
-      element.style.setProperty('--hover-tilt-y', y);
-      element.style.setProperty('--shadow-x', shadowX);
-      element.style.setProperty('--shadow-y', shadowY);
       
-      // Apply dynamic shadow (library's formula)
+      // ✅ FIX #2: Apply shadow to SEPARATE layer
       if (GLARE_CONFIG.shadowEnabled) {
         const blur = GLARE_CONFIG.shadowBlur;
-        const shadowOpacity = GLARE_CONFIG.shadowOpacity * currentOpacity;
+        const shadowOpacity = GLARE_CONFIG.shadowOpacity;
         
-        // Dual-layer shadow like library
-        const offsetX1 = shadowX * blur;
-        const offsetY1 = shadowY * blur / 2 + blur / 4;
-        const blur1 = blur / 2;
-        const spread1 = blur * -0.25;
+        // More dramatic shadow for better visibility
+        const offsetX1 = shadowX * blur * 1.5;
+        const offsetY1 = shadowY * blur * 0.75 + blur / 3;
+        const blur1 = blur;
         
-        const offsetX2 = shadowX * blur / 2;
-        const offsetY2 = shadowY * blur / 4 + blur / 8;
-        const blur2 = blur / 4;
-        const spread2 = blur * -0.125;
+        const offsetX2 = shadowX * blur * 0.75;
+        const offsetY2 = shadowY * blur * 0.375 + blur / 6;
+        const blur2 = blur / 2;
         
-        element.style.boxShadow = `
-          ${offsetX1}px ${offsetY1}px ${blur1}px ${spread1}px rgba(0, 0, 0, ${shadowOpacity * 0.125}),
-          ${offsetX2}px ${offsetY2}px ${blur2}px ${spread2}px rgba(0, 0, 0, ${shadowOpacity * 0.125})
+        shadowLayer.style.boxShadow = `
+          ${offsetX1}px ${offsetY1}px ${blur1}px rgba(0, 0, 0, ${shadowOpacity * 0.4}),
+          ${offsetX2}px ${offsetY2}px ${blur2}px rgba(0, 0, 0, ${shadowOpacity * 0.3})
         `;
       }
       
       // Update glare opacity
       glare.style.opacity = currentOpacity;
       
-      // Continue animation if not at target
-      if (Math.abs(currentOpacity - targetOpacity) > 0.01 || 
-          Math.abs(currentScale - targetScale) > 0.001) {
-        rafId = requestAnimationFrame(animate);
-      }
-    };
+    } else {
+      // Mouse input - smooth animation
+      if (rafId) cancelAnimationFrame(rafId);
+      
+      const animate = () => {
+        // Ease towards target
+        const ease = 0.2; // Faster easing
+        currentOpacity += (targetOpacity - currentOpacity) * ease;
+        currentScale += (targetScale - currentScale) * ease;
+        
+        // Calculate shadow offset
+        const shadowX = x * 2 - 1;
+        const shadowY = y * 2 - 1;
+        
+        // Apply 3D transform
+        const transform = GLARE_CONFIG.useGPUAcceleration
+          ? `scale(${currentScale}) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translate3d(0, 0, ${GLARE_CONFIG.translateZ}px)`
+          : `scale(${currentScale}) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        
+        element.style.transform = transform;
+        element.style.transformStyle = 'preserve-3d';
+        
+        // Set CSS custom properties
+        element.style.setProperty('--gradient-x', `${x * 100}%`);
+        element.style.setProperty('--gradient-y', `${y * 100}%`);
+        
+        // ✅ FIX #2: Apply shadow to SEPARATE layer
+        if (GLARE_CONFIG.shadowEnabled) {
+          const blur = GLARE_CONFIG.shadowBlur;
+          const shadowOpacity = GLARE_CONFIG.shadowOpacity * currentOpacity;
+          
+          const offsetX1 = shadowX * blur * 1.5;
+          const offsetY1 = shadowY * blur * 0.75 + blur / 3;
+          const blur1 = blur;
+          
+          const offsetX2 = shadowX * blur * 0.75;
+          const offsetY2 = shadowY * blur * 0.375 + blur / 6;
+          const blur2 = blur / 2;
+          
+          shadowLayer.style.boxShadow = `
+            ${offsetX1}px ${offsetY1}px ${blur1}px rgba(0, 0, 0, ${shadowOpacity * 0.4}),
+            ${offsetX2}px ${offsetY2}px ${blur2}px rgba(0, 0, 0, ${shadowOpacity * 0.3})
+          `;
+        }
+        
+        // Update glare opacity
+        glare.style.opacity = currentOpacity;
+        
+        // Continue animation if not at target
+        if (Math.abs(currentOpacity - targetOpacity) > 0.01 || 
+            Math.abs(currentScale - targetScale) > 0.001) {
+          rafId = requestAnimationFrame(animate);
+        }
+      };
+      
+      animate();
+    }
     
     isActive = true;
-    animate();
   };
   
   /**
@@ -282,9 +350,10 @@ export function enableTilt(element, cardData = {}) {
       element.style.transform = `scale(${currentScale})`;
       glare.style.opacity = currentOpacity;
       
+      // ✅ FIX #2: Reset shadow on separate layer
       if (GLARE_CONFIG.shadowEnabled) {
         const shadowOpacity = currentOpacity * GLARE_CONFIG.shadowOpacity;
-        element.style.boxShadow = `0 4px 12px rgba(0, 0, 0, ${shadowOpacity * 0.3})`;
+        shadowLayer.style.boxShadow = `0 4px 12px rgba(0, 0, 0, ${shadowOpacity * 0.3})`;
       }
       
       // Continue until fully reset
@@ -292,8 +361,7 @@ export function enableTilt(element, cardData = {}) {
         rafId = requestAnimationFrame(animateOut);
       } else {
         element.style.transform = '';
-        element.style.boxShadow = '';
-        element.style.willChange = 'auto';
+        shadowLayer.style.boxShadow = '';
         glare.style.opacity = '0';
       }
     };
@@ -301,13 +369,14 @@ export function enableTilt(element, cardData = {}) {
     animateOut();
   };
   
-  // ===== POINTER EVENTS (handles both mouse and touch uniformly) =====
+  // ===== POINTER EVENTS (handles both mouse and touch) =====
   
   element.addEventListener('pointerenter', (e) => {
+    isTouchInput = e.pointerType === 'touch' || e.pointerType === 'pen';
     const rect = element.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width;
     const y = (e.clientY - rect.top) / rect.height;
-    updateCard(x, y, true);
+    updateCard(x, y, e.pointerType);
   });
   
   element.addEventListener('pointermove', (e) => {
@@ -316,11 +385,13 @@ export function enableTilt(element, cardData = {}) {
     // Prevent default to avoid scroll on mobile
     e.preventDefault();
     
+    isTouchInput = e.pointerType === 'touch' || e.pointerType === 'pen';
+    
     const rect = element.getBoundingClientRect();
     const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
     
-    updateCard(x, y);
+    updateCard(x, y, e.pointerType);
   });
   
   element.addEventListener('pointerleave', (e) => {
