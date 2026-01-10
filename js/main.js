@@ -2,6 +2,7 @@
  * MTG Pocket - Main Application (FIXED DEV TOOLS)
  * 
  * Entry point for the application. Initializes all modules and sets up event handlers.
+ * BUG FIX #3: Added initRefreshSet() to dev tools initialization
  */
 
 import { PACK_COST, INTERVAL, COUNTDOWN_UPDATE_INTERVAL } from './constants.js';
@@ -33,7 +34,8 @@ import {
   initDevPanel,
   initAddCard,
   initTestGlareManual,
-  initDiagnostic
+  initDiagnostic,
+  initRefreshSet
 } from './dev-tools.js';
 
 // ===== INITIALIZATION =====
@@ -260,11 +262,12 @@ function initializeUI() {
     updateUI();
   };
   
-  // Dev tools (FIXED - removed library test)
+  // Dev tools (UPDATED - Added initRefreshSet)
   initDevPanel();
   initAddCard();
   initTestGlareManual();
   initDiagnostic();
+  initRefreshSet(); // ✅ BUG FIX #3: Initialize refresh functionality
   
   console.log('✅ UI initialized\n');
 }

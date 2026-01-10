@@ -2,6 +2,7 @@
  * MTG Pocket - Pack Opening (REFACTORED)
  * 
  * Removed deprecated functions, consolidated pack generation logic.
+ * BUG FIX #1: Card counts now display correctly during reveal
  */
 
 import { 
@@ -88,7 +89,10 @@ function generateGodPack(setCode, pools) {
     const isNew = !isCardOwned(setCode, cardId);
     
     ensureCardExists(setCode, cardId, cardData);
-    pack.push({ ...cardData, isNew, isGodPack: true });
+    
+    // ✅ FIX: Get updated card data with correct count
+    const updatedCard = getCard(setCode, cardId);
+    pack.push({ ...updatedCard, isNew, isGodPack: true });
   }
   
   return pack;
@@ -107,7 +111,10 @@ function generateRegularPack(setCode, pools) {
     const isNew = !isCardOwned(setCode, cardId);
     
     ensureCardExists(setCode, cardId, cardData);
-    pack.push({ ...cardData, isNew });
+    
+    // ✅ FIX: Get updated card data with correct count
+    const updatedCard = getCard(setCode, cardId);
+    pack.push({ ...updatedCard, isNew });
   }
   
   // Bonus full-art card (10% chance)
@@ -134,7 +141,10 @@ function addBonusCard(pack, setCode, pool, allPools, type) {
   const isNew = !isCardOwned(setCode, cardId);
   
   ensureCardExists(setCode, cardId, cardData);
-  pack.push({ ...cardData, isNew, [flags[type]]: true });
+  
+  // ✅ FIX: Get updated card data with correct count
+  const updatedCard = getCard(setCode, cardId);
+  pack.push({ ...updatedCard, isNew, [flags[type]]: true });
   
   console.log(`${type} card added`);
   return true;

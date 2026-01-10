@@ -3,6 +3,7 @@
  * 
  * Handles all interactions with the Scryfall API including pagination,
  * set loading, and card queries.
+ * BUG FIX #2: Filters out sets with future release dates
  */
 
 import { 
@@ -55,10 +56,13 @@ export async function fetchAllSets() {
 
 /**
  * Filter sets based on app requirements WITH WHITELIST SUPPORT
+ * BUG FIX #2: Now filters out sets with future release dates
  * @param {Array} sets - Array of set objects from Scryfall
  * @returns {Array} - Filtered array of sets
  */
 export function filterSets(sets) {
+  const today = new Date();
+  
   return sets.filter(set => {
     // ✨ WHITELIST CHECK - Always include whitelisted sets
     if (WHITELISTED_SETS.includes(set.code)) {
@@ -68,6 +72,13 @@ export function filterSets(sets) {
     
     // Must have a release date
     if (!set.released_at) return false;
+    
+    // ✅ BUG FIX #2: Filter out sets with future release dates
+    const releaseDate = new Date(set.released_at);
+    if (releaseDate > today) {
+      console.log(`⏭️ Skipping future release: ${set.code} - ${set.name} (${set.released_at})`);
+      return false;
+    }
     
     // Must have sufficient cards
     if (set.card_count <= MIN_SET_SIZE) return false;

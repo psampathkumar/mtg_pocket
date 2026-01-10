@@ -2,6 +2,7 @@
  * MTG Pocket - Developer Tools (UPDATED TEST WITH REBALANCED INTENSITIES)
  * 
  * Development features for testing and debugging.
+ * BUG FIX #3: Added refresh set functionality
  */
 
 import { MTG_CARD_BACK } from './constants.js';
@@ -299,12 +300,7 @@ function getIntensityText(type) {
   return intensities[type] || '1.0x';
 }
 
-/**
- * Initialize library glare test - REMOVED/DEPRECATED
- */
-export function initTestGlareLibrary() {
-  // This function is no longer needed
-}
+// ===== DIAGNOSTIC TOOL =====
 
 /**
  * Initialize diagnostic tool
@@ -356,5 +352,65 @@ export function initDiagnostic() {
     
     console.log(output);
     alert('Diagnostic info logged to console! Press F12 to view.');
+  };
+}
+
+// ===== REFRESH SET DATA (BUG FIX #3) =====
+
+/**
+ * Initialize refresh set functionality
+ * BUG FIX #3: Allows refreshing current set data from API
+ */
+export function initRefreshSet() {
+  const refreshBtn = document.getElementById('refreshSetBtn');
+  
+  if (!refreshBtn) {
+    console.warn('Refresh set button not found - skipping initialization');
+    return;
+  }
+  
+  refreshBtn.onclick = async () => {
+    const { getCurrentSet } = await import('./state.js');
+    const currentSet = getCurrentSet();
+    
+    if (!currentSet) {
+      alert('No set selected to refresh!');
+      return;
+    }
+    
+    if (!confirm(`🔄 Refresh data for set "${currentSet}"?\n\nThis will reload card data from the API to get the latest card counts and information.`)) {
+      return;
+    }
+    
+    console.log('🔄 === REFRESHING SET DATA ===');
+    console.log('  └─ Set:', currentSet);
+    
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = '⏳ Refreshing...';
+    
+    try {
+      // Dispatch event to reload set (handled by main.js)
+      const event = new CustomEvent('carouselSetChange', { 
+        detail: { 
+          setCode: currentSet,
+          source: 'refresh-button',
+          timestamp: Date.now()
+        } 
+      });
+      document.dispatchEvent(event);
+      
+      // Wait a bit for API calls
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      console.log('✅ === SET DATA REFRESHED ===\n');
+      alert(`✅ Set "${currentSet}" data refreshed!\n\nCard counts and data have been updated from the API.`);
+      
+    } catch (error) {
+      console.error('❌ Error refreshing set:', error);
+      alert('❌ Failed to refresh set data. Check console for details.');
+    } finally {
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = '🔄 Refresh Current Set Data';
+    }
   };
 }
