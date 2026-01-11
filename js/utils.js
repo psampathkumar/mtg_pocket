@@ -1,8 +1,8 @@
 /**
- * MTG Pocket - Utility Functions (REFACTORED)
+ * MTG Pocket - Utility Functions (WITH GYROSCOPE SUPPORT)
  * 
- * Consolidated holographic effect with cleaner separation of concerns.
- * Extracted configuration, reduced duplication.
+ * Added gyroscope/device orientation for mobile holographic effect.
+ * Fixed black background interference with card flipping.
  */
 
 import { RARITY_THRESHOLDS, MTG_CARD_BACK, GLARE_CONFIG } from './constants.js';
@@ -212,7 +212,7 @@ class HolographicRenderer {
   }
 }
 
-// ===== HOLOGRAPHIC CONTROLLER =====
+// ===== HOLOGRAPHIC CONTROLLER (WITH GYROSCOPE) =====
 
 class HolographicController {
   constructor(element, renderer, config) {
@@ -224,12 +224,126 @@ class HolographicController {
       isActive: false,
       currentOpacity: 0,
       currentScale: 1,
-      rafId: null
+      rafId: null,
+      isGyroActive: false,
+      gyroBaseline: { beta: 0, gamma: 0 }, // Baseline when modal opens
+      useGyro: false
     };
+    
+    this.boundHandleOrientation = null;
   }
   
   initialize() {
-    this.element.style.touchAction = 'none';
+    // Detect if device supports gyroscope
+    this.detectGyroSupport();
+    
+    if (this.state.useGyro) {
+      console.log('🎮 Gyroscope enabled for holographic effect');
+      this.initGyroscope();
+    } else {
+      console.log('🖱️ Using pointer events for holographic effect');
+      this.initPointerEvents();
+    }
+  }
+  
+  detectGyroSupport() {
+    // Check if DeviceOrientationEvent exists and is likely to work
+    this.state.useGyro = typeof DeviceOrientationEvent !== 'undefined' && 
+                         /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  }
+  
+  // ===== GYROSCOPE INITIALIZATION =====
+  
+  initGyroscope() {
+    // Request permission on iOS 13+
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission()
+        .then(permissionState => {
+          if (permissionState === 'granted') {
+            this.startGyroscope();
+          } else {
+            console.warn('⚠️ Gyroscope permission denied, falling back to pointer');
+            this.state.useGyro = false;
+            this.initPointerEvents();
+          }
+        })
+        .catch(error => {
+          console.error('❌ Gyroscope permission error:', error);
+          this.state.useGyro = false;
+          this.initPointerEvents();
+        });
+    } else {
+      // Android or older iOS - just start
+      this.startGyroscope();
+    }
+  }
+  
+  startGyroscope() {
+    // Capture baseline orientation when card opens
+    const captureBaseline = (event) => {
+      if (event.beta !== null && event.gamma !== null) {
+        this.state.gyroBaseline = {
+          beta: event.beta,
+          gamma: event.gamma
+        };
+        console.log('📍 Gyroscope baseline captured:', this.state.gyroBaseline);
+        this.state.isGyroActive = true;
+        
+        // Remove baseline capture listener
+        window.removeEventListener('deviceorientation', captureBaseline);
+      }
+    };
+    
+    // Start listening for baseline
+    window.addEventListener('deviceorientation', captureBaseline, { once: true });
+    
+    // Main orientation handler
+    this.boundHandleOrientation = (event) => this.handleOrientation(event);
+    window.addEventListener('deviceorientation', this.boundHandleOrientation);
+    
+    // Also add pointer events as fallback/supplement
+    this.initPointerEvents();
+  }
+  
+  handleOrientation(event) {
+    if (!this.state.isGyroActive || event.beta === null || event.gamma === null) return;
+    
+    // Get relative angles from baseline
+    const beta = event.beta - this.state.gyroBaseline.beta;   // X-axis (forward/back tilt)
+    const gamma = event.gamma - this.state.gyroBaseline.gamma; // Y-axis (left/right tilt)
+    
+    // Normalize to -1 to 1 range (±45 degrees)
+    const maxTilt = 45;
+    const normalizedX = Math.max(-1, Math.min(1, gamma / maxTilt));
+    const normalizedY = Math.max(-1, Math.min(1, beta / maxTilt));
+    
+    // Convert to 0-1 range for gradient position
+    const x = (normalizedX + 1) / 2;
+    const y = (normalizedY + 1) / 2;
+    
+    // Calculate rotation (inverted for natural feel)
+    const rotateX = -normalizedY * GLARE_CONFIG.maxTiltDegrees;
+    const rotateY = normalizedX * GLARE_CONFIG.maxTiltDegrees;
+    
+    const renderState = {
+      x, y,
+      rotateX, rotateY,
+      scale: GLARE_CONFIG.scaleOnHover,
+      opacity: GLARE_CONFIG.glareOpacity
+    };
+    
+    // Immediate update for gyro (no animation lag)
+    this.state.currentOpacity = renderState.opacity;
+    this.state.currentScale = renderState.scale;
+    this.renderer.render(renderState);
+    this.state.isActive = true;
+  }
+  
+  // ===== POINTER EVENT INITIALIZATION =====
+  
+  initPointerEvents() {
+    // Allow touch events but don't block scrolling on card itself
+    // Only block when actively interacting with holographic effect
     this.element.style.pointerEvents = 'auto';
     
     this.element.addEventListener('pointerenter', (e) => this.onPointerEnter(e));
@@ -244,7 +358,10 @@ class HolographicController {
   }
   
   onPointerMove(e) {
+    // Don't interfere with gyro if it's active
+    if (this.state.isGyroActive && this.state.useGyro) return;
     if (!this.state.isActive) return;
+    
     e.preventDefault();
     
     const { x, y } = this.getPointerPosition(e);
@@ -252,6 +369,8 @@ class HolographicController {
   }
   
   onPointerLeave() {
+    // Don't reset if gyro is controlling
+    if (this.state.isGyroActive && this.state.useGyro) return;
     this.resetCard();
   }
   
@@ -341,6 +460,19 @@ class HolographicController {
     };
     
     animateOut();
+  }
+  
+  // ===== CLEANUP =====
+  
+  destroy() {
+    // Clean up event listeners
+    if (this.boundHandleOrientation) {
+      window.removeEventListener('deviceorientation', this.boundHandleOrientation);
+    }
+    
+    if (this.state.rafId) {
+      cancelAnimationFrame(this.state.rafId);
+    }
   }
 }
 

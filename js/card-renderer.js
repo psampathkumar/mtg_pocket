@@ -1,8 +1,8 @@
 /**
- * MTG Pocket - Card Renderer (REFACTORED)
+ * MTG Pocket - Card Renderer (FINAL - CLICK OUTSIDE FIXED)
  * 
- * Consolidated card creation with shared builders.
- * Removed duplication, added reusable components.
+ * Fixed click-outside-to-close functionality while maintaining flip interaction.
+ * Uses event.stopPropagation() on content wrapper to distinguish background clicks.
  */
 
 import { MTG_CARD_BACK } from './constants.js';
@@ -153,14 +153,16 @@ export function showCardModal(card) {
   modal.innerHTML = '';
   
   const container = document.createElement('div');
-  container.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:1.5rem;max-width:90vw';
+  container.className = 'modal-content-wrapper';
+  container.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:1.5rem;max-width:90vw;pointer-events:auto';
   
   // Card with perspective wrapper
   const perspectiveDiv = document.createElement('div');
-  perspectiveDiv.style.cssText = 'perspective:1000px;max-width:400px;width:clamp(250px,60vw,400px)';
+  perspectiveDiv.style.cssText = 'perspective:1000px;max-width:400px;width:clamp(250px,60vw,400px);pointer-events:auto';
   
   const cardDiv = document.createElement('div');
   cardDiv.className = `card rarity-${card.rarity}`;
+  cardDiv.style.pointerEvents = 'auto';
   
   const innerDiv = createCardInner(card, { showCount: false }); // Hide count in modal
   cardDiv.appendChild(innerDiv);
@@ -172,21 +174,42 @@ export function showCardModal(card) {
   // Flip button
   const flipBtn = createFlipButton(innerDiv);
   
-  // Allow clicking card to flip
-  innerDiv.onclick = (e) => {
-    if (e.target.tagName === 'IMG') {
-      toggleFlip(innerDiv);
-    }
+  // ✅ FLIP HANDLER: Allow clicking card OR images to flip
+  const flipHandler = (e) => {
+    e.stopPropagation(); // Don't let this bubble to modal close handler
+    toggleFlip(innerDiv);
+  };
+  
+  // Click on the inner div (which contains images)
+  innerDiv.onclick = flipHandler;
+  
+  // Also allow clicking images directly
+  const images = innerDiv.querySelectorAll('img');
+  images.forEach(img => {
+    img.style.cursor = 'pointer';
+    img.style.pointerEvents = 'auto';
+    img.onclick = flipHandler;
+  });
+  
+  // ✅ PREVENT CONTAINER CLICKS FROM CLOSING MODAL
+  container.onclick = (e) => {
+    e.stopPropagation(); // Stop clicks on container from reaching modal
   };
   
   container.appendChild(perspectiveDiv);
   container.appendChild(flipBtn);
   modal.appendChild(container);
   
-  // Close on background click
+  // ✅ CLOSE ON MODAL BACKGROUND CLICK
   modal.onclick = (e) => {
-    if (e.target === modal) modal.style.display = 'none';
+    // Check if click was directly on modal (not on children)
+    if (e.target === modal) {
+      console.log('🚪 Clicked outside card - closing modal');
+      modal.style.display = 'none';
+    }
   };
+  
+  console.log('🃏 Card modal opened');
 }
 
 /**
@@ -195,8 +218,11 @@ export function showCardModal(card) {
 function createFlipButton(innerDiv) {
   const flipBtn = document.createElement('button');
   flipBtn.textContent = '🔄 Flip Card';
-  flipBtn.style.cssText = 'padding:0.75rem 1.5rem;font-size:1rem';
-  flipBtn.onclick = () => toggleFlip(innerDiv);
+  flipBtn.style.cssText = 'padding:0.75rem 1.5rem;font-size:1rem;pointer-events:auto';
+  flipBtn.onclick = (e) => {
+    e.stopPropagation(); // Don't close modal
+    toggleFlip(innerDiv);
+  };
   return flipBtn;
 }
 
@@ -207,6 +233,7 @@ function toggleFlip(innerDiv) {
   const current = innerDiv.style.transform || 'rotateY(0deg)';
   const isFlipped = current.includes('180');
   innerDiv.style.transform = isFlipped ? 'rotateY(0deg)' : 'rotateY(180deg)';
+  console.log('🔄 Card flipped:', isFlipped ? 'back to front' : 'front to back');
 }
 
 /**
@@ -242,7 +269,7 @@ export function showPackModal(pack, isGodPack) {
  */
 function createGodPackHeader() {
   return `
-    <div style="text-align:center;margin-bottom:1rem">
+    <div style="text-align:center;margin-bottom:1rem;pointer-events:none">
       <h2 style="color:#ffd700;font-size:2rem;text-shadow:0 0 20px rgba(255,215,0,0.8)">
         🌟 GOD PACK! 🌟
       </h2>
@@ -344,7 +371,7 @@ class PackRevealer {
     // Create large card for single view
     const cardDiv = document.createElement('div');
     cardDiv.className = `card rarity-${card.rarity}`;
-    cardDiv.style.cssText = 'width:100%;max-width:400px';
+    cardDiv.style.cssText = 'width:100%;max-width:400px;pointer-events:auto';
     
     const innerDiv = createCardInner(card);
     cardDiv.appendChild(innerDiv);
