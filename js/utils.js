@@ -1,7 +1,8 @@
 /**
- * MTG Pocket - Utility Functions (MINIMAL WORKING FIX)
+ * MTG Pocket - Utility Functions (MOBILE SENSITIVITY FIXED)
  * 
- * Back to basics - restore working tilt, minimal flip adjustment
+ * Fixed: Mobile gyroscope now uses 45° max tilt (3x stronger than desktop)
+ * Desktop pointer uses 15° max tilt (precise)
  */
 
 import { RARITY_THRESHOLDS, MTG_CARD_BACK, GLARE_CONFIG } from './constants.js';
@@ -70,7 +71,7 @@ export function formatTime(ms) {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-// ===== HOLOGRAPHIC EFFECT (BACK TO WORKING BASELINE) =====
+// ===== HOLOGRAPHIC EFFECT =====
 
 export function enableTilt(element, cardData = {}) {
   console.log('✨ Enabling tilt...');
@@ -80,10 +81,10 @@ export function enableTilt(element, cardData = {}) {
   
   let inputHandler;
   if (device.shouldUseGyroscope()) {
-    console.log('📱 Gyroscope');
+    console.log('📱 Gyroscope (45° max)');
     inputHandler = new GyroscopeInput(renderer, config);
   } else {
-    console.log('🖱️ Pointer');
+    console.log('🖱️ Pointer (15° max)');
     inputHandler = new PointerInput(element, renderer, config);
   }
   
@@ -131,7 +132,7 @@ class HolographicConfig {
   }
 }
 
-// ===== RENDERER (RESTORED WORKING VERSION) =====
+// ===== RENDERER =====
 
 class HolographicRenderer {
   constructor(element, config) {
@@ -171,7 +172,7 @@ class HolographicRenderer {
   }
   
   render(state) {
-    // ✅ RESTORE TILT - Apply transform to CARD element (not card-inner)
+    // Apply transform to CARD element (not card-inner)
     const transform = `scale(${state.scale}) rotateX(${state.rotateX}deg) rotateY(${state.rotateY}deg)`;
     this.element.style.transform = transform;
     this.element.style.transformStyle = 'preserve-3d';
@@ -181,14 +182,16 @@ class HolographicRenderer {
     this.element.style.setProperty('--gradient-y', `${state.y * 100}%`);
     
     // Shadow
-    const shadowX = state.x * 2 - 1;
-    const shadowY = state.y * 2 - 1;
-    const blur = GLARE_CONFIG.shadowBlur;
-    const opacity = GLARE_CONFIG.shadowOpacity * state.opacity;
-    
-    const shadow1 = `${shadowX * blur * 1.5}px ${shadowY * blur * 0.75 + blur / 3}px ${blur}px rgba(0,0,0,${opacity * 0.4})`;
-    const shadow2 = `${shadowX * blur * 0.75}px ${shadowY * blur * 0.375 + blur / 6}px ${blur / 2}px rgba(0,0,0,${opacity * 0.3})`;
-    this.shadowLayer.style.boxShadow = `${shadow1}, ${shadow2}`;
+    if (GLARE_CONFIG.shadowEnabled) {
+      const shadowX = state.x * 2 - 1;
+      const shadowY = state.y * 2 - 1;
+      const blur = GLARE_CONFIG.shadowBlur;
+      const opacity = GLARE_CONFIG.shadowOpacity * state.opacity;
+      
+      const shadow1 = `${shadowX * blur * 1.5}px ${shadowY * blur * 0.75 + blur / 3}px ${blur}px rgba(0,0,0,${opacity * 0.4})`;
+      const shadow2 = `${shadowX * blur * 0.75}px ${shadowY * blur * 0.375 + blur / 6}px ${blur / 2}px rgba(0,0,0,${opacity * 0.3})`;
+      this.shadowLayer.style.boxShadow = `${shadow1}, ${shadow2}`;
+    }
     
     // Glare
     this.glareLayer.style.opacity = state.opacity;
@@ -201,7 +204,7 @@ class HolographicRenderer {
   }
 }
 
-// ===== GYROSCOPE INPUT (SIMPLIFIED) =====
+// ===== GYROSCOPE INPUT (45° MAX TILT) =====
 
 class GyroscopeInput {
   constructor(renderer, config) {
@@ -209,6 +212,12 @@ class GyroscopeInput {
     this.config = config;
     this.baseline = null;
     this.boundHandler = null;
+    
+    // ✅ MOBILE: 45° max tilt for strong visible effect
+    this.maxTiltDegrees = 45;
+    this.deviceMaxTilt = 45; // Device tilt range for normalization
+    
+    console.log(`📱 Mobile tilt: ${this.maxTiltDegrees}° max`);
   }
   
   async initialize() {
@@ -245,6 +254,7 @@ class GyroscopeInput {
     
     setTimeout(() => {
       if (!this.baseline) {
+        console.warn('⚠️ No gyro data, using default');
         this.baseline = { beta: 0, gamma: 0 };
         window.removeEventListener('deviceorientation', captureHandler);
         this.start();
@@ -261,18 +271,21 @@ class GyroscopeInput {
   handle(event) {
     if (!this.baseline || event.beta === null || event.gamma === null) return;
     
+    // Relative to baseline
     const beta = event.beta - this.baseline.beta;
     const gamma = event.gamma - this.baseline.gamma;
     
-    const maxTilt = 45;
-    const normX = Math.max(-1, Math.min(1, gamma / maxTilt));
-    const normY = Math.max(-1, Math.min(1, beta / maxTilt));
+    // Normalize to -1 to 1 based on device tilt range
+    const normX = Math.max(-1, Math.min(1, gamma / this.deviceMaxTilt));
+    const normY = Math.max(-1, Math.min(1, beta / this.deviceMaxTilt));
     
+    // Convert to 0-1 for gradient
     const x = (normX + 1) / 2;
     const y = (normY + 1) / 2;
     
-    const rotateX = -normY * GLARE_CONFIG.maxTiltDegrees;
-    const rotateY = normX * GLARE_CONFIG.maxTiltDegrees;
+    // ✅ Apply MOBILE max tilt (45°)
+    const rotateX = -normY * this.maxTiltDegrees;
+    const rotateY = normX * this.maxTiltDegrees;
     
     this.renderer.render({
       x, y,
@@ -287,10 +300,11 @@ class GyroscopeInput {
       window.removeEventListener('deviceorientation', this.boundHandler);
     }
     this.renderer.reset();
+    console.log('🔴 Gyroscope destroyed');
   }
 }
 
-// ===== POINTER INPUT (RESTORED WORKING VERSION) =====
+// ===== POINTER INPUT (15° MAX TILT) =====
 
 class PointerInput {
   constructor(element, renderer, config) {
@@ -300,6 +314,11 @@ class PointerInput {
     this.currentOpacity = 0;
     this.currentScale = 1;
     this.rafId = null;
+    
+    // ✅ DESKTOP: 15° max tilt for precise control
+    this.maxTiltDegrees = 15;
+    
+    console.log(`🖱️ Desktop tilt: ${this.maxTiltDegrees}° max`);
   }
   
   initialize() {
@@ -335,8 +354,9 @@ class PointerInput {
     const centerX = x - 0.5;
     const centerY = y - 0.5;
     
-    const rotateX = -centerY * GLARE_CONFIG.maxTiltDegrees;
-    const rotateY = centerX * GLARE_CONFIG.maxTiltDegrees;
+    // ✅ Apply DESKTOP max tilt (15°)
+    const rotateX = -centerY * this.maxTiltDegrees * 2; // *2 because centerX/Y are -0.5 to 0.5
+    const rotateY = centerX * this.maxTiltDegrees * 2;
     
     this.animateTo({
       x, y,
@@ -395,6 +415,7 @@ class PointerInput {
   destroy() {
     if (this.rafId) cancelAnimationFrame(this.rafId);
     this.renderer.reset();
+    console.log('🔴 Pointer destroyed');
   }
 }
 
