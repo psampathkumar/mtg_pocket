@@ -1,13 +1,15 @@
 /**
- * MTG Pocket - Utility Functions (VERIFIED COMPLETE)
+ * MTG Pocket - Utility Functions (FLIP-AWARE HOLOGRAPHIC SYSTEM)
  * 
- * Device detection + Unified tilt system
- * Flip now works correctly on both mobile and desktop
+ * Fixed holographic effect to work correctly with flipped cards
+ * - Tracks flip state
+ * - Adjusts coordinates when flipped
+ * - Works on both desktop and mobile
  */
 
 import { RARITY_THRESHOLDS, MTG_CARD_BACK, GLARE_CONFIG } from './constants.js';
 
-// ===== DEVICE DETECTION (SINGLE SOURCE OF TRUTH) =====
+// ===== DEVICE DETECTION =====
 
 class DeviceDetector {
   constructor() {
@@ -30,17 +32,14 @@ class DeviceDetector {
   }
   
   shouldUseGyroscope() {
-    // Use gyroscope ONLY on mobile devices with gyro support
     return this.isMobile && this.hasGyro;
   }
   
   requiresPermission() {
-    // iOS 13+ requires explicit permission
     return this.isIOS && typeof DeviceOrientationEvent.requestPermission === 'function';
   }
 }
 
-// Global device detector instance
 export const device = new DeviceDetector();
 
 // ===== RARITY ROLLING =====
@@ -86,31 +85,36 @@ export function formatTime(ms) {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-// ===== HOLOGRAPHIC EFFECT SYSTEM =====
+// ===== HOLOGRAPHIC EFFECT SYSTEM (FLIP-AWARE) =====
 
 /**
  * Enable holographic tilt effect on a card element
+ * Now flip-aware - tracks and adjusts for card rotation
  */
 export function enableTilt(element, cardData = {}) {
-  console.log('✨ Enabling tilt effect...');
+  console.log('✨ Enabling flip-aware tilt effect...');
   
   const config = new HolographicConfig(cardData);
   const renderer = new HolographicRenderer(element, config);
+  
+  // Create flip state tracker
+  const flipTracker = new FlipStateTracker(element);
   
   // Choose input method based on device
   let inputHandler;
   if (device.shouldUseGyroscope()) {
     console.log('📱 Using gyroscope input');
-    inputHandler = new GyroscopeInput(renderer, config);
+    inputHandler = new GyroscopeInput(renderer, config, flipTracker);
   } else {
     console.log('🖱️ Using pointer input');
-    inputHandler = new PointerInput(element, renderer, config);
+    inputHandler = new PointerInput(element, renderer, config, flipTracker);
   }
   
   inputHandler.initialize();
   
-  // Store reference for cleanup
+  // Store references for cleanup
   element._holoInputHandler = inputHandler;
+  element._holoFlipTracker = flipTracker;
 }
 
 /**
@@ -120,6 +124,63 @@ export function disableTilt(element) {
   if (element._holoInputHandler) {
     element._holoInputHandler.destroy();
     delete element._holoInputHandler;
+  }
+  if (element._holoFlipTracker) {
+    element._holoFlipTracker.destroy();
+    delete element._holoFlipTracker;
+  }
+}
+
+// ===== FLIP STATE TRACKER =====
+
+class FlipStateTracker {
+  constructor(cardElement) {
+    this.cardElement = cardElement;
+    this.cardInner = cardElement.querySelector('.card-inner');
+    this.isFlipped = false;
+    this.observer = null;
+    
+    this.setupObserver();
+  }
+  
+  setupObserver() {
+    if (!this.cardInner) return;
+    
+    // Watch for transform changes on card-inner
+    this.observer = new MutationObserver(() => {
+      this.updateFlipState();
+    });
+    
+    this.observer.observe(this.cardInner, {
+      attributes: true,
+      attributeFilter: ['style']
+    });
+    
+    // Initial check
+    this.updateFlipState();
+  }
+  
+  updateFlipState() {
+    if (!this.cardInner) return;
+    
+    const transform = this.cardInner.style.transform || '';
+    const wasFlipped = this.isFlipped;
+    this.isFlipped = transform.includes('180deg');
+    
+    if (wasFlipped !== this.isFlipped) {
+      console.log('🔄 Flip state changed:', this.isFlipped ? 'FLIPPED' : 'NORMAL');
+    }
+  }
+  
+  getIsFlipped() {
+    return this.isFlipped;
+  }
+  
+  destroy() {
+    if (this.observer) {
+      this.observer.disconnect();
+      this.observer = null;
+    }
   }
 }
 
@@ -156,7 +217,7 @@ class HolographicConfig {
   }
 }
 
-// ===== HOLOGRAPHIC RENDERER =====
+// ===== HOLOGRAPHIC RENDERER (FLIP-AWARE) =====
 
 class HolographicRenderer {
   constructor(element, config) {
@@ -212,19 +273,14 @@ class HolographicRenderer {
   }
   
   render(state) {
-    this.renderTransform(state);
+    // Don't apply tilt transform - let card-inner handle its own flip
+    // Only apply scale
+    this.element.style.transform = `scale(${state.scale})`;
+    this.element.style.transformStyle = 'preserve-3d';
+    
     this.renderGradientPosition(state);
     this.renderShadow(state);
     this.renderGlareOpacity(state);
-  }
-  
-  renderTransform(state) {
-    const transform = GLARE_CONFIG.useGPUAcceleration
-      ? `scale(${state.scale}) rotateX(${state.rotateX}deg) rotateY(${state.rotateY}deg) translate3d(0, 0, ${GLARE_CONFIG.translateZ}px)`
-      : `scale(${state.scale}) rotateX(${state.rotateX}deg) rotateY(${state.rotateY}deg)`;
-    
-    this.element.style.transform = transform;
-    this.element.style.transformStyle = 'preserve-3d';
   }
   
   renderGradientPosition(state) {
@@ -257,12 +313,13 @@ class HolographicRenderer {
   }
 }
 
-// ===== GYROSCOPE INPUT HANDLER =====
+// ===== GYROSCOPE INPUT HANDLER (FLIP-AWARE) =====
 
 class GyroscopeInput {
-  constructor(renderer, config) {
+  constructor(renderer, config, flipTracker) {
     this.renderer = renderer;
     this.config = config;
+    this.flipTracker = flipTracker;
     this.baseline = null;
     this.isActive = false;
     this.boundHandler = null;
@@ -272,7 +329,6 @@ class GyroscopeInput {
   async initialize() {
     console.log('🎮 Initializing gyroscope input...');
     
-    // Request permission if needed (iOS 13+)
     if (device.requiresPermission()) {
       try {
         const permission = await DeviceOrientationEvent.requestPermission();
@@ -289,11 +345,9 @@ class GyroscopeInput {
         return;
       }
     } else {
-      // Android or older iOS - permission not needed
       this.permissionGranted = true;
     }
     
-    // Capture baseline orientation
     this.captureBaseline();
   }
   
@@ -308,21 +362,16 @@ class GyroscopeInput {
         };
         
         console.log('✅ Baseline captured:', this.baseline);
-        
-        // Remove baseline capture listener
         window.removeEventListener('deviceorientation', captureHandler);
-        
-        // Start main orientation handler
         this.startOrientationTracking();
       }
     };
     
     window.addEventListener('deviceorientation', captureHandler);
     
-    // Fallback: if no event after 2 seconds, set default baseline
     setTimeout(() => {
       if (!this.baseline) {
-        console.warn('⚠️ No gyroscope data received, using default baseline');
+        console.warn('⚠️ No gyroscope data, using default baseline');
         this.baseline = { beta: 0, gamma: 0 };
         window.removeEventListener('deviceorientation', captureHandler);
         this.startOrientationTracking();
@@ -340,27 +389,26 @@ class GyroscopeInput {
   handleOrientation(event) {
     if (!this.baseline || event.beta === null || event.gamma === null) return;
     
-    // Calculate relative angles from baseline
     const beta = event.beta - this.baseline.beta;
     const gamma = event.gamma - this.baseline.gamma;
     
-    // Normalize to -1 to 1 range (±45 degrees)
     const maxTilt = 45;
-    const normalizedX = Math.max(-1, Math.min(1, gamma / maxTilt));
-    const normalizedY = Math.max(-1, Math.min(1, beta / maxTilt));
+    let normalizedX = Math.max(-1, Math.min(1, gamma / maxTilt));
+    let normalizedY = Math.max(-1, Math.min(1, beta / maxTilt));
     
-    // Convert to 0-1 range for gradient
+    // ✅ FIX: Mirror coordinates when flipped
+    if (this.flipTracker.getIsFlipped()) {
+      normalizedX = -normalizedX;
+      normalizedY = -normalizedY;
+    }
+    
     const x = (normalizedX + 1) / 2;
     const y = (normalizedY + 1) / 2;
     
-    // Calculate rotation (inverted for natural feel)
-    const rotateX = -normalizedY * GLARE_CONFIG.maxTiltDegrees;
-    const rotateY = normalizedX * GLARE_CONFIG.maxTiltDegrees;
-    
-    // Render immediately (no animation lag)
     this.renderer.render({
       x, y,
-      rotateX, rotateY,
+      rotateX: 0, // Don't apply rotation
+      rotateY: 0, // Don't apply rotation
       scale: GLARE_CONFIG.scaleOnHover,
       opacity: GLARE_CONFIG.glareOpacity
     });
@@ -377,13 +425,14 @@ class GyroscopeInput {
   }
 }
 
-// ===== POINTER INPUT HANDLER =====
+// ===== POINTER INPUT HANDLER (FLIP-AWARE) =====
 
 class PointerInput {
-  constructor(element, renderer, config) {
+  constructor(element, renderer, config, flipTracker) {
     this.element = element;
     this.renderer = renderer;
     this.config = config;
+    this.flipTracker = flipTracker;
     this.isActive = false;
     this.currentOpacity = 0;
     this.currentScale = 1;
@@ -393,7 +442,6 @@ class PointerInput {
   initialize() {
     console.log('🖱️ Initializing pointer input...');
     
-    // DON'T block pointer events - let clicks propagate
     this.element.addEventListener('pointerenter', (e) => this.onPointerEnter(e));
     this.element.addEventListener('pointermove', (e) => this.onPointerMove(e));
     this.element.addEventListener('pointerleave', () => this.onPointerLeave());
@@ -410,8 +458,6 @@ class PointerInput {
   
   onPointerMove(e) {
     if (!this.isActive) return;
-    
-    // Don't prevent default - let clicks propagate
     const { x, y } = this.getPointerPosition(e);
     this.updateCard(x, y);
   }
@@ -422,27 +468,27 @@ class PointerInput {
   
   getPointerPosition(e) {
     const rect = this.element.getBoundingClientRect();
-    return {
-      x: Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)),
-      y: Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height))
-    };
+    let x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    let y = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+    
+    // ✅ FIX: Mirror coordinates when flipped
+    if (this.flipTracker.getIsFlipped()) {
+      x = 1 - x;
+      y = 1 - y;
+    }
+    
+    return { x, y };
   }
   
   updateCard(x, y) {
-    const centerX = x - 0.5;
-    const centerY = y - 0.5;
-    
-    const rotateX = -centerY * GLARE_CONFIG.maxTiltDegrees;
-    const rotateY = centerX * GLARE_CONFIG.maxTiltDegrees;
-    
     const targetState = {
       x, y,
-      rotateX, rotateY,
+      rotateX: 0, // Don't apply rotation
+      rotateY: 0, // Don't apply rotation
       scale: GLARE_CONFIG.scaleOnHover,
       opacity: GLARE_CONFIG.glareOpacity
     };
     
-    // Animated update for smooth mouse movement
     this.animateToState(targetState);
   }
   
@@ -479,7 +525,8 @@ class PointerInput {
       
       this.renderer.render({
         x: 0.5, y: 0.5,
-        rotateX: 0, rotateY: 0,
+        rotateX: 0,
+        rotateY: 0,
         scale: this.currentScale,
         opacity: this.currentOpacity
       });
