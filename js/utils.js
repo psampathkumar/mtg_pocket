@@ -1,11 +1,47 @@
 /**
- * MTG Pocket - Utility Functions (WITH GYROSCOPE SUPPORT)
+ * MTG Pocket - Utility Functions (VERIFIED COMPLETE)
  * 
- * Added gyroscope/device orientation for mobile holographic effect.
- * Fixed black background interference with card flipping.
+ * Device detection + Unified tilt system
+ * Flip now works correctly on both mobile and desktop
  */
 
 import { RARITY_THRESHOLDS, MTG_CARD_BACK, GLARE_CONFIG } from './constants.js';
+
+// ===== DEVICE DETECTION (SINGLE SOURCE OF TRUTH) =====
+
+class DeviceDetector {
+  constructor() {
+    this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    this.hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    this.hasGyro = typeof DeviceOrientationEvent !== 'undefined';
+    this.isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    this.isAndroid = /Android/i.test(navigator.userAgent);
+    this.screenWidth = window.innerWidth;
+    this.screenHeight = window.innerHeight;
+    
+    console.log('🔍 Device Detection:', {
+      isMobile: this.isMobile,
+      hasTouch: this.hasTouch,
+      hasGyro: this.hasGyro,
+      isIOS: this.isIOS,
+      isAndroid: this.isAndroid,
+      screen: `${this.screenWidth}x${this.screenHeight}`
+    });
+  }
+  
+  shouldUseGyroscope() {
+    // Use gyroscope ONLY on mobile devices with gyro support
+    return this.isMobile && this.hasGyro;
+  }
+  
+  requiresPermission() {
+    // iOS 13+ requires explicit permission
+    return this.isIOS && typeof DeviceOrientationEvent.requestPermission === 'function';
+  }
+}
+
+// Global device detector instance
+export const device = new DeviceDetector();
 
 // ===== RARITY ROLLING =====
 
@@ -20,7 +56,6 @@ export function rollRarity() {
 // ===== CARD IMAGE EXTRACTION =====
 
 export function getCardImages(card) {
-  // Single-faced card with top-level image_uris
   if (card.image_uris) {
     return {
       front: card.image_uris.normal,
@@ -28,7 +63,6 @@ export function getCardImages(card) {
     };
   }
   
-  // Multi-faced card with images in card_faces
   if (card.card_faces?.[0]?.image_uris) {
     return {
       front: card.card_faces[0].image_uris.normal,
@@ -36,7 +70,6 @@ export function getCardImages(card) {
     };
   }
   
-  // Fallback
   return { front: MTG_CARD_BACK, back: MTG_CARD_BACK };
 }
 
@@ -57,13 +90,37 @@ export function formatTime(ms) {
 
 /**
  * Enable holographic tilt effect on a card element
- * ONLY called from card modal - never in collection
  */
 export function enableTilt(element, cardData = {}) {
+  console.log('✨ Enabling tilt effect...');
+  
   const config = new HolographicConfig(cardData);
   const renderer = new HolographicRenderer(element, config);
-  const controller = new HolographicController(element, renderer, config);
-  controller.initialize();
+  
+  // Choose input method based on device
+  let inputHandler;
+  if (device.shouldUseGyroscope()) {
+    console.log('📱 Using gyroscope input');
+    inputHandler = new GyroscopeInput(renderer, config);
+  } else {
+    console.log('🖱️ Using pointer input');
+    inputHandler = new PointerInput(element, renderer, config);
+  }
+  
+  inputHandler.initialize();
+  
+  // Store reference for cleanup
+  element._holoInputHandler = inputHandler;
+}
+
+/**
+ * Disable holographic effect and clean up
+ */
+export function disableTilt(element) {
+  if (element._holoInputHandler) {
+    element._holoInputHandler.destroy();
+    delete element._holoInputHandler;
+  }
 }
 
 // ===== HOLOGRAPHIC CONFIGURATION =====
@@ -84,10 +141,6 @@ class HolographicConfig {
   calculateHue() {
     const hueMap = { mythic: 30, rare: 220, uncommon: 150, common: 270 };
     return hueMap[this.cardData.rarity] || 270;
-  }
-  
-  getSensitivity(isMobile) {
-    return isMobile ? 2.0 : 1.0;
   }
   
   getGradient() {
@@ -111,20 +164,16 @@ class HolographicRenderer {
     this.config = config;
     this.shadowLayer = null;
     this.glareLayer = null;
-    this.cardInner = element.querySelector('.card-inner');
     
     this.setupLayers();
   }
   
   setupLayers() {
-    // Set perspective
     this.element.style.perspective = `${GLARE_CONFIG.perspective}px`;
     
-    // Create shadow layer
     this.shadowLayer = this.createShadowLayer();
     this.element.appendChild(this.shadowLayer);
     
-    // Create glare layer
     this.glareLayer = this.createGlareLayer();
     this.element.appendChild(this.glareLayer);
   }
@@ -191,14 +240,10 @@ class HolographicRenderer {
     const blur = GLARE_CONFIG.shadowBlur;
     const opacity = GLARE_CONFIG.shadowOpacity * state.opacity;
     
-    const shadow1 = this.createShadowString(shadowX * blur * 1.5, shadowY * blur * 0.75 + blur / 3, blur, opacity * 0.4);
-    const shadow2 = this.createShadowString(shadowX * blur * 0.75, shadowY * blur * 0.375 + blur / 6, blur / 2, opacity * 0.3);
+    const shadow1 = `${shadowX * blur * 1.5}px ${shadowY * blur * 0.75 + blur / 3}px ${blur}px rgba(0, 0, 0, ${opacity * 0.4})`;
+    const shadow2 = `${shadowX * blur * 0.75}px ${shadowY * blur * 0.375 + blur / 6}px ${blur / 2}px rgba(0, 0, 0, ${opacity * 0.3})`;
     
     this.shadowLayer.style.boxShadow = `${shadow1}, ${shadow2}`;
-  }
-  
-  createShadowString(x, y, blur, opacity) {
-    return `${x}px ${y}px ${blur}px rgba(0, 0, 0, ${opacity})`;
   }
   
   renderGlareOpacity(state) {
@@ -212,112 +257,99 @@ class HolographicRenderer {
   }
 }
 
-// ===== HOLOGRAPHIC CONTROLLER (WITH GYROSCOPE) =====
+// ===== GYROSCOPE INPUT HANDLER =====
 
-class HolographicController {
-  constructor(element, renderer, config) {
-    this.element = element;
+class GyroscopeInput {
+  constructor(renderer, config) {
     this.renderer = renderer;
     this.config = config;
-    
-    this.state = {
-      isActive: false,
-      currentOpacity: 0,
-      currentScale: 1,
-      rafId: null,
-      isGyroActive: false,
-      gyroBaseline: { beta: 0, gamma: 0 }, // Baseline when modal opens
-      useGyro: false
-    };
-    
-    this.boundHandleOrientation = null;
+    this.baseline = null;
+    this.isActive = false;
+    this.boundHandler = null;
+    this.permissionGranted = false;
   }
   
-  initialize() {
-    // Detect if device supports gyroscope
-    this.detectGyroSupport();
+  async initialize() {
+    console.log('🎮 Initializing gyroscope input...');
     
-    if (this.state.useGyro) {
-      console.log('🎮 Gyroscope enabled for holographic effect');
-      this.initGyroscope();
+    // Request permission if needed (iOS 13+)
+    if (device.requiresPermission()) {
+      try {
+        const permission = await DeviceOrientationEvent.requestPermission();
+        this.permissionGranted = permission === 'granted';
+        
+        if (!this.permissionGranted) {
+          console.warn('⚠️ Gyroscope permission denied');
+          return;
+        }
+        
+        console.log('✅ Gyroscope permission granted');
+      } catch (error) {
+        console.error('❌ Gyroscope permission error:', error);
+        return;
+      }
     } else {
-      console.log('🖱️ Using pointer events for holographic effect');
-      this.initPointerEvents();
+      // Android or older iOS - permission not needed
+      this.permissionGranted = true;
     }
+    
+    // Capture baseline orientation
+    this.captureBaseline();
   }
   
-  detectGyroSupport() {
-    // Check if DeviceOrientationEvent exists and is likely to work
-    this.state.useGyro = typeof DeviceOrientationEvent !== 'undefined' && 
-                         /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  }
-  
-  // ===== GYROSCOPE INITIALIZATION =====
-  
-  initGyroscope() {
-    // Request permission on iOS 13+
-    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-      DeviceOrientationEvent.requestPermission()
-        .then(permissionState => {
-          if (permissionState === 'granted') {
-            this.startGyroscope();
-          } else {
-            console.warn('⚠️ Gyroscope permission denied, falling back to pointer');
-            this.state.useGyro = false;
-            this.initPointerEvents();
-          }
-        })
-        .catch(error => {
-          console.error('❌ Gyroscope permission error:', error);
-          this.state.useGyro = false;
-          this.initPointerEvents();
-        });
-    } else {
-      // Android or older iOS - just start
-      this.startGyroscope();
-    }
-  }
-  
-  startGyroscope() {
-    // Capture baseline orientation when card opens
-    const captureBaseline = (event) => {
+  captureBaseline() {
+    console.log('📍 Capturing gyroscope baseline...');
+    
+    const captureHandler = (event) => {
       if (event.beta !== null && event.gamma !== null) {
-        this.state.gyroBaseline = {
+        this.baseline = {
           beta: event.beta,
           gamma: event.gamma
         };
-        console.log('📍 Gyroscope baseline captured:', this.state.gyroBaseline);
-        this.state.isGyroActive = true;
+        
+        console.log('✅ Baseline captured:', this.baseline);
         
         // Remove baseline capture listener
-        window.removeEventListener('deviceorientation', captureBaseline);
+        window.removeEventListener('deviceorientation', captureHandler);
+        
+        // Start main orientation handler
+        this.startOrientationTracking();
       }
     };
     
-    // Start listening for baseline
-    window.addEventListener('deviceorientation', captureBaseline, { once: true });
+    window.addEventListener('deviceorientation', captureHandler);
     
-    // Main orientation handler
-    this.boundHandleOrientation = (event) => this.handleOrientation(event);
-    window.addEventListener('deviceorientation', this.boundHandleOrientation);
-    
-    // Also add pointer events as fallback/supplement
-    this.initPointerEvents();
+    // Fallback: if no event after 2 seconds, set default baseline
+    setTimeout(() => {
+      if (!this.baseline) {
+        console.warn('⚠️ No gyroscope data received, using default baseline');
+        this.baseline = { beta: 0, gamma: 0 };
+        window.removeEventListener('deviceorientation', captureHandler);
+        this.startOrientationTracking();
+      }
+    }, 2000);
+  }
+  
+  startOrientationTracking() {
+    this.boundHandler = (event) => this.handleOrientation(event);
+    window.addEventListener('deviceorientation', this.boundHandler);
+    this.isActive = true;
+    console.log('✅ Gyroscope tracking active');
   }
   
   handleOrientation(event) {
-    if (!this.state.isGyroActive || event.beta === null || event.gamma === null) return;
+    if (!this.baseline || event.beta === null || event.gamma === null) return;
     
-    // Get relative angles from baseline
-    const beta = event.beta - this.state.gyroBaseline.beta;   // X-axis (forward/back tilt)
-    const gamma = event.gamma - this.state.gyroBaseline.gamma; // Y-axis (left/right tilt)
+    // Calculate relative angles from baseline
+    const beta = event.beta - this.baseline.beta;
+    const gamma = event.gamma - this.baseline.gamma;
     
     // Normalize to -1 to 1 range (±45 degrees)
     const maxTilt = 45;
     const normalizedX = Math.max(-1, Math.min(1, gamma / maxTilt));
     const normalizedY = Math.max(-1, Math.min(1, beta / maxTilt));
     
-    // Convert to 0-1 range for gradient position
+    // Convert to 0-1 range for gradient
     const x = (normalizedX + 1) / 2;
     const y = (normalizedY + 1) / 2;
     
@@ -325,52 +357,66 @@ class HolographicController {
     const rotateX = -normalizedY * GLARE_CONFIG.maxTiltDegrees;
     const rotateY = normalizedX * GLARE_CONFIG.maxTiltDegrees;
     
-    const renderState = {
+    // Render immediately (no animation lag)
+    this.renderer.render({
       x, y,
       rotateX, rotateY,
       scale: GLARE_CONFIG.scaleOnHover,
       opacity: GLARE_CONFIG.glareOpacity
-    };
-    
-    // Immediate update for gyro (no animation lag)
-    this.state.currentOpacity = renderState.opacity;
-    this.state.currentScale = renderState.scale;
-    this.renderer.render(renderState);
-    this.state.isActive = true;
+    });
   }
   
-  // ===== POINTER EVENT INITIALIZATION =====
+  destroy() {
+    if (this.boundHandler) {
+      window.removeEventListener('deviceorientation', this.boundHandler);
+      this.boundHandler = null;
+    }
+    this.isActive = false;
+    this.renderer.reset();
+    console.log('🔴 Gyroscope input destroyed');
+  }
+}
+
+// ===== POINTER INPUT HANDLER =====
+
+class PointerInput {
+  constructor(element, renderer, config) {
+    this.element = element;
+    this.renderer = renderer;
+    this.config = config;
+    this.isActive = false;
+    this.currentOpacity = 0;
+    this.currentScale = 1;
+    this.rafId = null;
+  }
   
-  initPointerEvents() {
-    // Allow touch events but don't block scrolling on card itself
-    // Only block when actively interacting with holographic effect
-    this.element.style.pointerEvents = 'auto';
+  initialize() {
+    console.log('🖱️ Initializing pointer input...');
     
+    // DON'T block pointer events - let clicks propagate
     this.element.addEventListener('pointerenter', (e) => this.onPointerEnter(e));
     this.element.addEventListener('pointermove', (e) => this.onPointerMove(e));
     this.element.addEventListener('pointerleave', () => this.onPointerLeave());
     this.element.addEventListener('pointercancel', () => this.onPointerLeave());
+    
+    this.isActive = true;
+    console.log('✅ Pointer input active');
   }
   
   onPointerEnter(e) {
     const { x, y } = this.getPointerPosition(e);
-    this.updateCard(x, y, e.pointerType);
+    this.updateCard(x, y);
   }
   
   onPointerMove(e) {
-    // Don't interfere with gyro if it's active
-    if (this.state.isGyroActive && this.state.useGyro) return;
-    if (!this.state.isActive) return;
+    if (!this.isActive) return;
     
-    e.preventDefault();
-    
+    // Don't prevent default - let clicks propagate
     const { x, y } = this.getPointerPosition(e);
-    this.updateCard(x, y, e.pointerType);
+    this.updateCard(x, y);
   }
   
   onPointerLeave() {
-    // Don't reset if gyro is controlling
-    if (this.state.isGyroActive && this.state.useGyro) return;
     this.resetCard();
   }
   
@@ -382,55 +428,41 @@ class HolographicController {
     };
   }
   
-  updateCard(x, y, pointerType) {
-    const isMobile = pointerType === 'touch' || pointerType === 'pen';
-    const sensitivity = this.config.getSensitivity(isMobile);
-    
+  updateCard(x, y) {
     const centerX = x - 0.5;
     const centerY = y - 0.5;
     
-    const rotateX = -centerY * GLARE_CONFIG.maxTiltDegrees * sensitivity;
-    const rotateY = centerX * GLARE_CONFIG.maxTiltDegrees * sensitivity;
+    const rotateX = -centerY * GLARE_CONFIG.maxTiltDegrees;
+    const rotateY = centerX * GLARE_CONFIG.maxTiltDegrees;
     
-    const renderState = {
+    const targetState = {
       x, y,
       rotateX, rotateY,
       scale: GLARE_CONFIG.scaleOnHover,
       opacity: GLARE_CONFIG.glareOpacity
     };
     
-    if (isMobile) {
-      // Immediate update for touch
-      this.state.currentOpacity = renderState.opacity;
-      this.state.currentScale = renderState.scale;
-      this.renderer.render(renderState);
-    } else {
-      // Animated update for mouse
-      this.animateToState(renderState);
-    }
-    
-    this.state.isActive = true;
+    // Animated update for smooth mouse movement
+    this.animateToState(targetState);
   }
   
   animateToState(targetState) {
-    if (this.state.rafId) cancelAnimationFrame(this.state.rafId);
+    if (this.rafId) cancelAnimationFrame(this.rafId);
     
     const animate = () => {
       const ease = 0.2;
-      this.state.currentOpacity += (targetState.opacity - this.state.currentOpacity) * ease;
-      this.state.currentScale += (targetState.scale - this.state.currentScale) * ease;
+      this.currentOpacity += (targetState.opacity - this.currentOpacity) * ease;
+      this.currentScale += (targetState.scale - this.currentScale) * ease;
       
-      const renderState = {
+      this.renderer.render({
         ...targetState,
-        opacity: this.state.currentOpacity,
-        scale: this.state.currentScale
-      };
+        opacity: this.currentOpacity,
+        scale: this.currentScale
+      });
       
-      this.renderer.render(renderState);
-      
-      if (Math.abs(this.state.currentOpacity - targetState.opacity) > 0.01 || 
-          Math.abs(this.state.currentScale - targetState.scale) > 0.001) {
-        this.state.rafId = requestAnimationFrame(animate);
+      if (Math.abs(this.currentOpacity - targetState.opacity) > 0.01 || 
+          Math.abs(this.currentScale - targetState.scale) > 0.001) {
+        this.rafId = requestAnimationFrame(animate);
       }
     };
     
@@ -438,22 +470,22 @@ class HolographicController {
   }
   
   resetCard() {
-    this.state.isActive = false;
-    if (this.state.rafId) cancelAnimationFrame(this.state.rafId);
+    this.isActive = false;
+    if (this.rafId) cancelAnimationFrame(this.rafId);
     
     const animateOut = () => {
-      this.state.currentOpacity *= 0.85;
-      this.state.currentScale += (1 - this.state.currentScale) * 0.15;
+      this.currentOpacity *= 0.85;
+      this.currentScale += (1 - this.currentScale) * 0.15;
       
       this.renderer.render({
         x: 0.5, y: 0.5,
         rotateX: 0, rotateY: 0,
-        scale: this.state.currentScale,
-        opacity: this.state.currentOpacity
+        scale: this.currentScale,
+        opacity: this.currentOpacity
       });
       
-      if (this.state.currentOpacity > 0.01 || Math.abs(this.state.currentScale - 1) > 0.001) {
-        this.state.rafId = requestAnimationFrame(animateOut);
+      if (this.currentOpacity > 0.01 || Math.abs(this.currentScale - 1) > 0.001) {
+        this.rafId = requestAnimationFrame(animateOut);
       } else {
         this.renderer.reset();
       }
@@ -462,17 +494,14 @@ class HolographicController {
     animateOut();
   }
   
-  // ===== CLEANUP =====
-  
   destroy() {
-    // Clean up event listeners
-    if (this.boundHandleOrientation) {
-      window.removeEventListener('deviceorientation', this.boundHandleOrientation);
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
     }
-    
-    if (this.state.rafId) {
-      cancelAnimationFrame(this.state.rafId);
-    }
+    this.isActive = false;
+    this.renderer.reset();
+    console.log('🔴 Pointer input destroyed');
   }
 }
 
@@ -530,12 +559,10 @@ export function calculateCollectionStats(ownedCards, allCards) {
     mythic: { owned: 0, total: 0 }
   };
   
-  // Count totals
   allCards.forEach(card => {
     if (stats[card.rarity]) stats[card.rarity].total++;
   });
   
-  // Count owned (only non-fullart variants)
   const ownedNames = new Set();
   Object.values(ownedCards).forEach(card => {
     if (card.fullart === false && !ownedNames.has(card.name)) {

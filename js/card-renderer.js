@@ -1,19 +1,14 @@
 /**
- * MTG Pocket - Card Renderer (FINAL - CLICK OUTSIDE FIXED)
+ * MTG Pocket - Card Renderer (FLIP FIXED)
  * 
- * Fixed click-outside-to-close functionality while maintaining flip interaction.
- * Uses event.stopPropagation() on content wrapper to distinguish background clicks.
+ * Fixed flip functionality - simplified event handling
  */
 
 import { MTG_CARD_BACK } from './constants.js';
-import { enableTilt, isDoubleFaced } from './utils.js';
+import { enableTilt, disableTilt, isDoubleFaced, device } from './utils.js';
 
 // ===== SHARED CARD STRUCTURE BUILDERS =====
 
-/**
- * Create the inner card structure (front, back, badges)
- * Reusable across all card types
- */
 function createCardInner(card, options = {}) {
   const { showCount = true, showFlipIndicator = true } = options;
   
@@ -58,17 +53,11 @@ function createCardInner(card, options = {}) {
   return innerDiv;
 }
 
-/**
- * Apply special badges (NEW, STORY) to a card element
- */
 function applyBadges(cardElement, card) {
   if (card.isNew) cardElement.classList.add('new-card');
   if (card.spotlight === true) cardElement.classList.add('story-card');
 }
 
-/**
- * Apply special effects (god pack, bonus glow, masterpiece)
- */
 function applyEffects(cardElement, options = {}) {
   const { isGodPack, isBonus, isSecret, isMasterpiece } = options;
   
@@ -87,9 +76,6 @@ function applyEffects(cardElement, options = {}) {
   }
 }
 
-/**
- * Create a bonus glow element
- */
 function createGlowElement(color = 'rgba(255,107,107,0.4)') {
   const glowDiv = document.createElement('div');
   glowDiv.className = 'bonus-glow';
@@ -100,10 +86,6 @@ function createGlowElement(color = 'rgba(255,107,107,0.4)') {
 
 // ===== PUBLIC API =====
 
-/**
- * Create a card DOM element for collection/grid view
- * NO holographic effect - allows natural scrolling
- */
 export function createCardElement(card, isRevealing = false) {
   const cardDiv = document.createElement('div');
   cardDiv.className = `card rarity-${card.rarity}`;
@@ -111,7 +93,6 @@ export function createCardElement(card, isRevealing = false) {
   const innerDiv = createCardInner(card);
   cardDiv.appendChild(innerDiv);
   
-  // Add interaction only if not revealing
   if (!isRevealing) {
     cardDiv.onclick = (e) => {
       e.stopPropagation();
@@ -122,9 +103,6 @@ export function createCardElement(card, isRevealing = false) {
   return cardDiv;
 }
 
-/**
- * Create a card placeholder for uncollected cards
- */
 export function createPlaceholderElement(collectorNumber) {
   const placeholder = document.createElement('div');
   placeholder.className = 'card-placeholder';
@@ -132,10 +110,6 @@ export function createPlaceholderElement(collectorNumber) {
   return placeholder;
 }
 
-/**
- * Add badges and effects to an existing card element
- * Consolidated public API for pack opening
- */
 export function decorateCard(cardElement, card, effects = {}) {
   applyBadges(cardElement, card);
   applyEffects(cardElement, effects);
@@ -144,106 +118,115 @@ export function decorateCard(cardElement, card, effects = {}) {
 // ===== MODAL SYSTEMS =====
 
 /**
- * Show card in fullscreen modal with holographic effect
- * ONLY place where holographic effect is applied
- */
-export function showCardModal(card) {
-  const modal = document.getElementById('cardViewModal');
-  modal.style.display = 'flex';
-  modal.innerHTML = '';
-  
-  const container = document.createElement('div');
-  container.className = 'modal-content-wrapper';
-  container.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:1.5rem;max-width:90vw;pointer-events:auto';
-  
-  // Card with perspective wrapper
-  const perspectiveDiv = document.createElement('div');
-  perspectiveDiv.style.cssText = 'perspective:1000px;max-width:400px;width:clamp(250px,60vw,400px);pointer-events:auto';
-  
-  const cardDiv = document.createElement('div');
-  cardDiv.className = `card rarity-${card.rarity}`;
-  cardDiv.style.pointerEvents = 'auto';
-  
-  const innerDiv = createCardInner(card, { showCount: false }); // Hide count in modal
-  cardDiv.appendChild(innerDiv);
-  perspectiveDiv.appendChild(cardDiv);
-  
-  // Apply holographic effect (ONLY in modal)
-  enableTilt(cardDiv, card);
-  
-  // Flip button
-  const flipBtn = createFlipButton(innerDiv);
-  
-  // ✅ FLIP HANDLER: Allow clicking card OR images to flip
-  const flipHandler = (e) => {
-    e.stopPropagation(); // Don't let this bubble to modal close handler
-    toggleFlip(innerDiv);
-  };
-  
-  // Click on the inner div (which contains images)
-  innerDiv.onclick = flipHandler;
-  
-  // Also allow clicking images directly
-  const images = innerDiv.querySelectorAll('img');
-  images.forEach(img => {
-    img.style.cursor = 'pointer';
-    img.style.pointerEvents = 'auto';
-    img.onclick = flipHandler;
-  });
-  
-  // ✅ PREVENT CONTAINER CLICKS FROM CLOSING MODAL
-  container.onclick = (e) => {
-    e.stopPropagation(); // Stop clicks on container from reaching modal
-  };
-  
-  container.appendChild(perspectiveDiv);
-  container.appendChild(flipBtn);
-  modal.appendChild(container);
-  
-  // ✅ CLOSE ON MODAL BACKGROUND CLICK
-  modal.onclick = (e) => {
-    // Check if click was directly on modal (not on children)
-    if (e.target === modal) {
-      console.log('🚪 Clicked outside card - closing modal');
-      modal.style.display = 'none';
-    }
-  };
-  
-  console.log('🃏 Card modal opened');
-}
-
-/**
- * Create flip button
- */
-function createFlipButton(innerDiv) {
-  const flipBtn = document.createElement('button');
-  flipBtn.textContent = '🔄 Flip Card';
-  flipBtn.style.cssText = 'padding:0.75rem 1.5rem;font-size:1rem;pointer-events:auto';
-  flipBtn.onclick = (e) => {
-    e.stopPropagation(); // Don't close modal
-    toggleFlip(innerDiv);
-  };
-  return flipBtn;
-}
-
-/**
  * Toggle card flip state
  */
 function toggleFlip(innerDiv) {
   const current = innerDiv.style.transform || 'rotateY(0deg)';
   const isFlipped = current.includes('180');
   innerDiv.style.transform = isFlipped ? 'rotateY(0deg)' : 'rotateY(180deg)';
-  console.log('🔄 Card flipped:', isFlipped ? 'back to front' : 'front to back');
+  console.log('🔄 Card flipped:', isFlipped ? 'back → front' : 'front → back');
 }
 
 /**
- * Show pack opening modal with card-by-card reveal
+ * Show card in fullscreen modal with holographic effect
  */
+export function showCardModal(card) {
+  console.log('🃏 Opening card modal...');
+  
+  const modal = document.getElementById('cardViewModal');
+  modal.style.display = 'flex';
+  modal.innerHTML = '';
+  
+  // Content wrapper
+  const wrapper = document.createElement('div');
+  wrapper.className = 'modal-content-wrapper';
+  wrapper.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    max-width: 90vw;
+  `;
+  
+  // Perspective container for 3D
+  const perspectiveDiv = document.createElement('div');
+  perspectiveDiv.style.cssText = `
+    perspective: 1000px;
+    max-width: 400px;
+    width: clamp(250px, 60vw, 400px);
+  `;
+  
+  // Card element
+  const cardDiv = document.createElement('div');
+  cardDiv.className = `card rarity-${card.rarity}`;
+  
+  // Card inner (flippable)
+  const innerDiv = createCardInner(card, { showCount: false });
+  cardDiv.appendChild(innerDiv);
+  perspectiveDiv.appendChild(cardDiv);
+  
+  // ✅ FIX: Direct click handler on card div
+  cardDiv.addEventListener('click', (e) => {
+    // Don't flip if clicking the flip button
+    if (e.target.tagName === 'BUTTON') {
+      return;
+    }
+    
+    console.log('🔄 Card clicked, flipping...');
+    toggleFlip(innerDiv);
+    e.stopPropagation(); // Don't close modal
+  });
+  
+  // Apply tilt effect
+  enableTilt(cardDiv, card);
+  
+  // Flip button
+  const flipBtn = document.createElement('button');
+  flipBtn.textContent = '🔄 Flip Card';
+  flipBtn.style.cssText = 'padding:0.75rem 1.5rem;font-size:1rem;';
+  flipBtn.onclick = (e) => {
+    console.log('🔄 Button clicked, flipping...');
+    toggleFlip(innerDiv);
+    e.stopPropagation(); // Don't close modal
+  };
+  
+  // Assemble
+  wrapper.appendChild(perspectiveDiv);
+  wrapper.appendChild(flipBtn);
+  modal.appendChild(wrapper);
+  
+  // ✅ FIX: Simplified modal close - only on background
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      console.log('🚪 Background clicked, closing modal');
+      closeModal(modal);
+    }
+  };
+  
+  console.log('✅ Card modal ready');
+}
+
+/**
+ * Close modal and cleanup
+ */
+function closeModal(modal) {
+  // Cleanup tilt effect if active
+  const cardDiv = modal.querySelector('.card');
+  if (cardDiv) {
+    disableTilt(cardDiv);
+  }
+  
+  modal.style.display = 'none';
+  modal.innerHTML = '';
+  console.log('✅ Modal closed');
+}
+
+// ===== PACK OPENING MODAL =====
+
 export function showPackModal(pack, isGodPack) {
   const modal = document.getElementById('packModal');
   modal.style.display = 'flex';
   
-  // Create modal structure
   modal.innerHTML = isGodPack 
     ? createGodPackHeader() + createModalViews()
     : createModalViews();
@@ -252,21 +235,15 @@ export function showPackModal(pack, isGodPack) {
   const allView = modal.querySelector('.allCardsView');
   const allCardsContainer = modal.querySelector('.packCards');
   
-  // Separate cards by type
   const cardsByType = separateCardsByType(pack);
   const allPackCards = [...cardsByType.regular, ...cardsByType.bonus, ...cardsByType.secret];
   
-  // Reveal controller
   const revealer = new PackRevealer(singleView, allView, allCardsContainer, allPackCards);
   revealer.start();
   
-  // Modal close handlers
   setupModalCloseHandlers(modal, singleView, allView, () => revealer.isComplete());
 }
 
-/**
- * Create god pack header HTML
- */
 function createGodPackHeader() {
   return `
     <div style="text-align:center;margin-bottom:1rem;pointer-events:none">
@@ -277,9 +254,6 @@ function createGodPackHeader() {
   `;
 }
 
-/**
- * Create modal views HTML
- */
 function createModalViews() {
   return `
     <div class="singleCardView"></div>
@@ -287,9 +261,6 @@ function createModalViews() {
   `;
 }
 
-/**
- * Separate pack cards by type
- */
 function separateCardsByType(pack) {
   return {
     regular: pack.filter(c => !c.isBonus && !c.isSecret),
@@ -298,36 +269,24 @@ function separateCardsByType(pack) {
   };
 }
 
-/**
- * Setup modal close handlers
- */
 function setupModalCloseHandlers(modal, singleView, allView, isCompleteCallback) {
   modal.onclick = (e) => {
     if (isCompleteCallback() && e.target === modal) {
-      closeModal(modal);
+      modal.style.display = 'none';
+      modal.innerHTML = '';
     }
   };
   
   allView.onclick = (e) => {
     if (e.target === allView || e.target.closest('.packCards')) {
-      closeModal(modal);
+      modal.style.display = 'none';
+      modal.innerHTML = '';
     }
   };
 }
 
-/**
- * Close modal
- */
-function closeModal(modal) {
-  modal.style.display = 'none';
-  modal.innerHTML = '';
-}
-
 // ===== PACK REVEALER CLASS =====
 
-/**
- * Manages pack card-by-card reveal animation
- */
 class PackRevealer {
   constructor(singleView, allView, allCardsContainer, cards) {
     this.singleView = singleView;
@@ -356,7 +315,6 @@ class PackRevealer {
   }
   
   revealCard(card) {
-    // Animate out existing card
     if (this.singleView.children.length > 0) {
       this.animateCardExit(this.singleView.children[0]);
       setTimeout(() => this.displayCard(card), 500);
@@ -368,10 +326,9 @@ class PackRevealer {
   displayCard(card) {
     this.singleView.innerHTML = '';
     
-    // Create large card for single view
     const cardDiv = document.createElement('div');
     cardDiv.className = `card rarity-${card.rarity}`;
-    cardDiv.style.cssText = 'width:100%;max-width:400px;pointer-events:auto';
+    cardDiv.style.cssText = 'width:100%;max-width:400px;';
     
     const innerDiv = createCardInner(card);
     cardDiv.appendChild(innerDiv);
@@ -385,7 +342,6 @@ class PackRevealer {
     
     this.singleView.appendChild(cardDiv);
     
-    // Create small card for final view
     const smallCard = createCardElement(card, false);
     decorateCard(smallCard, card, {
       isGodPack: card.isGodPack,
