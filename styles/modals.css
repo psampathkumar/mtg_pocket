@@ -1,23 +1,48 @@
-/* ===== MODALS ===== */
+/* ===== MODALS (3D TRANSFORM COMPATIBLE) ===== */
 #packModal,
 #cardViewModal {
   position: fixed;
   inset: 0;
-  /* Reduced opacity to 0.85 so shadows are more visible */
-  background: rgba(0, 0, 0, 0.85);
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
   padding: var(--spacing-lg);
   flex-direction: column;
   overflow-y: auto;
-  /* Smoother backdrop on mobile */
+  pointer-events: auto;
+  
+  /* ✅ FIX: Create stacking context but don't interfere with 3D */
+  z-index: 1000;
+  
+  /* ✅ FIX: Background as pseudo-element so it doesn't block 3D transforms */
+}
+
+/* ✅ Background layer - behind everything, doesn't interfere with 3D */
+#packModal::before,
+#cardViewModal::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  
-  /* ✅ FIX: Keep pointer-events enabled for background clicks */
-  pointer-events: auto;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Mobile: lighter background */
+@media (max-width: 768px) {
+  #packModal::before,
+  #cardViewModal::before {
+    background: rgba(0, 0, 0, 0.65);
+  }
+}
+
+/* ===== MODAL CONTENT (3D ENABLED) ===== */
+.modal-content-wrapper {
+  position: relative;
+  /* ✅ Enable 3D transforms for children */
+  transform-style: preserve-3d;
 }
 
 /* ===== SINGLE CARD VIEW (IN MODALS) ===== */
@@ -30,14 +55,19 @@
   cursor: pointer;
   perspective: 1000px;
   pointer-events: auto;
+  
+  /* ✅ Preserve 3D for card */
+  transform-style: preserve-3d;
 }
 
 .singleCardView .card {
   width: var(--card-width-modal);
   max-width: 90vw;
-  /* Enhanced shadow visibility with lighter background */
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
   pointer-events: auto;
+  
+  /* ✅ Ensure 3D transforms work properly */
+  transform-style: preserve-3d;
 }
 
 #cardViewModal .card {
@@ -69,13 +99,4 @@
   width: var(--card-width-pack);
   max-width: 180px;
   pointer-events: auto;
-}
-
-/* Mobile-specific adjustments */
-@media (max-width: 768px) {
-  #packModal,
-  #cardViewModal {
-    /* Even lighter on mobile for better shadow visibility */
-    background: rgba(0, 0, 0, 0.80);
-  }
 }

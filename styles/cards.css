@@ -15,27 +15,26 @@
   overflow: visible;
   transition: transform 0.2s, box-shadow 0.3s;
   
-  /* ✅ CRITICAL FIX: Allow scrolling by default */
-  /* Holographic effect will override this ONLY in modal */
+  /* ✅ Allow scrolling in collection */
   touch-action: auto !important;
   pointer-events: auto;
+  
+  /* ✅ CRITICAL: Enable 3D transforms */
+  transform-style: preserve-3d;
 }
 
-/* ✅ ENSURE collection cards can be scrolled past on mobile */
+/* ✅ Collection cards can be scrolled past on mobile */
 #collectionView .card {
   touch-action: auto !important;
   pointer-events: auto;
 }
 
-/* ✅ ONLY modal cards get touch blocking (set by JS) */
-#cardViewModal .card {
-  /* JS will set touch-action: none when enableTilt() is called */
-}
-
+/* ===== CARD INNER (3D FLIPPABLE) ===== */
 .card .card-inner {
   position: relative;
   width: 100%;
   padding-bottom: 140%;
+  /* ✅ CRITICAL: Enable 3D transforms */
   transform-style: preserve-3d;
   transition: transform 0.6s;
 }
@@ -44,6 +43,7 @@
   transition: none;
 }
 
+/* ===== CARD FACES ===== */
 .card-front,
 .card-back {
   position: absolute;
@@ -72,28 +72,7 @@
   height: 100%;
   display: block;
   object-fit: cover;
-  /* ✅ Allow pointer events on images for click */
   pointer-events: auto;
-}
-
-/* ✅ Simple hover for collection (no JS interference) */
-.card:hover,
-.card:active {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-  transform: translateY(-2px);
-}
-
-/* ===== HOLOGRAPHIC GLARE LAYER ===== */
-.holo-glare {
-  /* Styles are set via JavaScript for dynamic values */
-  /* But we ensure it renders on top of the card */
-  z-index: 10;
-  pointer-events: none;
-}
-
-/* Card modal should allow overflow for shadows and glare */
-#cardViewModal .card {
-  overflow: visible !important;
 }
 
 /* ===== CARD BADGES ===== */
@@ -106,7 +85,6 @@
   border-radius: 8px;
   font-size: var(--font-xs);
   z-index: 2;
-  /* ✅ Don't block parent clicks */
   pointer-events: none;
 }
 
@@ -119,78 +97,5 @@
   border-radius: 8px;
   font-size: var(--font-xs);
   z-index: 2;
-  /* ✅ Don't block parent clicks */
   pointer-events: none;
-}
-
-.new-card::after {
-  content: 'NEW';
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  background: #ffd700;
-  color: #000;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: var(--font-xs);
-  z-index: 10;
-  /* ✅ Don't block parent clicks */
-  pointer-events: none;
-}
-
-.story-card::before {
-  content: 'STORY';
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  background: #3498db;
-  color: #fff;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: var(--font-xs);
-  z-index: 10;
-  /* ✅ Don't block parent clicks */
-  pointer-events: none;
-}
-
-/* ===== CARD PLACEHOLDER ===== */
-.card-placeholder {
-  position: relative;
-  background: #1a1a2a;
-  border: 2px dashed #333;
-  border-radius: clamp(12px, 3vw, 16px);
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  aspect-ratio: 2.5/3.5;
-  color: #666;
-  font-size: var(--font-base);
-  font-weight: 600;
-  /* ✅ Allow scrolling */
-  touch-action: auto !important;
-  pointer-events: none; /* Placeholders aren't clickable */
-}
-
-/* ===== RARITY BORDERS ===== */
-.rarity-common {
-  border: 2px solid #999;
-}
-
-.rarity-uncommon {
-  border: 2px solid #1eff00;
-}
-
-.rarity-rare {
-  border: 2px solid #0070dd;
-}
-
-.rarity-mythic {
-  border: 2px solid #ff8000;
-}
-
-.card.exiting {
-  border: none !important;
 }
