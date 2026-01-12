@@ -1,13 +1,13 @@
 /**
- * MTG Pocket - Card Renderer (FLIP FIXED)
+ * MTG Pocket - Card Renderer (COMPLETE - 3D PERSPECTIVE FIX)
  * 
- * Fixed flip functionality - simplified event handling
+ * Fixed: Proper 3D hierarchy prevents card from going behind modal
  */
 
 import { MTG_CARD_BACK } from './constants.js';
 import { enableTilt, disableTilt, isDoubleFaced, device } from './utils.js';
 
-// ===== SHARED CARD STRUCTURE BUILDERS =====
+// ===== CARD STRUCTURE BUILDERS =====
 
 function createCardInner(card, options = {}) {
   const { showCount = true, showFlipIndicator = true } = options;
@@ -15,7 +15,6 @@ function createCardInner(card, options = {}) {
   const innerDiv = document.createElement('div');
   innerDiv.className = 'card-inner';
   
-  // Front face
   const frontDiv = document.createElement('div');
   frontDiv.className = 'card-front';
   const frontImg = document.createElement('img');
@@ -23,7 +22,6 @@ function createCardInner(card, options = {}) {
   frontImg.alt = card.name;
   frontDiv.appendChild(frontImg);
   
-  // Back face
   const backDiv = document.createElement('div');
   backDiv.className = 'card-back';
   const backImg = document.createElement('img');
@@ -34,7 +32,6 @@ function createCardInner(card, options = {}) {
   innerDiv.appendChild(frontDiv);
   innerDiv.appendChild(backDiv);
   
-  // Count badge
   if (showCount) {
     const countDiv = document.createElement('div');
     countDiv.className = 'count';
@@ -42,7 +39,6 @@ function createCardInner(card, options = {}) {
     innerDiv.appendChild(countDiv);
   }
   
-  // Flip indicator for double-faced cards
   if (showFlipIndicator && isDoubleFaced(card.backImg)) {
     const flipDiv = document.createElement('div');
     flipDiv.className = 'flip-indicator';
@@ -84,6 +80,13 @@ function createGlowElement(color = 'rgba(255,107,107,0.4)') {
   return glowDiv;
 }
 
+function toggleFlip(innerDiv) {
+  const current = innerDiv.style.transform || 'rotateY(0deg)';
+  const isFlipped = current.includes('180');
+  innerDiv.style.transform = isFlipped ? 'rotateY(0deg)' : 'rotateY(180deg)';
+  console.log('🔄 Flipped:', isFlipped ? 'back → front' : 'front → back');
+}
+
 // ===== PUBLIC API =====
 
 export function createCardElement(card, isRevealing = false) {
@@ -115,21 +118,8 @@ export function decorateCard(cardElement, card, effects = {}) {
   applyEffects(cardElement, effects);
 }
 
-// ===== MODAL SYSTEMS =====
+// ===== CARD MODAL =====
 
-/**
- * Toggle card flip state
- */
-function toggleFlip(innerDiv) {
-  const current = innerDiv.style.transform || 'rotateY(0deg)';
-  const isFlipped = current.includes('180');
-  innerDiv.style.transform = isFlipped ? 'rotateY(0deg)' : 'rotateY(180deg)';
-  console.log('🔄 Card flipped:', isFlipped ? 'back → front' : 'front → back');
-}
-
-/**
- * Show card in fullscreen modal with holographic effect
- */
 export function showCardModal(card) {
   console.log('🃏 Opening card modal...');
   
@@ -137,7 +127,6 @@ export function showCardModal(card) {
   modal.style.display = 'flex';
   modal.innerHTML = '';
   
-  // Content wrapper
   const wrapper = document.createElement('div');
   wrapper.className = 'modal-content-wrapper';
   wrapper.style.cssText = `
@@ -148,80 +137,60 @@ export function showCardModal(card) {
     max-width: 90vw;
   `;
   
-  // Perspective container for 3D
+  // ✅ Perspective wrapper with increased depth
   const perspectiveDiv = document.createElement('div');
   perspectiveDiv.style.cssText = `
-    perspective: 1000px;
+    perspective: 1200px;
+    perspective-origin: center center;
     max-width: 400px;
     width: clamp(250px, 60vw, 400px);
   `;
   
-  // Card element
   const cardDiv = document.createElement('div');
   cardDiv.className = `card rarity-${card.rarity}`;
+  cardDiv.style.transformStyle = 'preserve-3d';
   
-  // Card inner (flippable)
   const innerDiv = createCardInner(card, { showCount: false });
   cardDiv.appendChild(innerDiv);
   perspectiveDiv.appendChild(cardDiv);
   
-  // ✅ FIX: Direct click handler on card div
   cardDiv.addEventListener('click', (e) => {
-    // Don't flip if clicking the flip button
-    if (e.target.tagName === 'BUTTON') {
-      return;
-    }
-    
-    console.log('🔄 Card clicked, flipping...');
+    if (e.target.tagName === 'BUTTON') return;
     toggleFlip(innerDiv);
-    e.stopPropagation(); // Don't close modal
+    e.stopPropagation();
   });
   
-  // Apply tilt effect
   enableTilt(cardDiv, card);
   
-  // Flip button
   const flipBtn = document.createElement('button');
   flipBtn.textContent = '🔄 Flip Card';
   flipBtn.style.cssText = 'padding:0.75rem 1.5rem;font-size:1rem;';
   flipBtn.onclick = (e) => {
-    console.log('🔄 Button clicked, flipping...');
     toggleFlip(innerDiv);
-    e.stopPropagation(); // Don't close modal
+    e.stopPropagation();
   };
   
-  // Assemble
   wrapper.appendChild(perspectiveDiv);
   wrapper.appendChild(flipBtn);
   modal.appendChild(wrapper);
   
-  // ✅ FIX: Simplified modal close - only on background
   modal.onclick = (e) => {
     if (e.target === modal) {
-      console.log('🚪 Background clicked, closing modal');
       closeModal(modal);
     }
   };
   
-  console.log('✅ Card modal ready');
+  console.log('✅ Modal ready');
 }
 
-/**
- * Close modal and cleanup
- */
 function closeModal(modal) {
-  // Cleanup tilt effect if active
   const cardDiv = modal.querySelector('.card');
-  if (cardDiv) {
-    disableTilt(cardDiv);
-  }
-  
+  if (cardDiv) disableTilt(cardDiv);
   modal.style.display = 'none';
   modal.innerHTML = '';
-  console.log('✅ Modal closed');
 }
 
-// ===== PACK OPENING MODAL =====
+// ===== PACK MODAL =====
 
 export function showPackModal(pack, isGodPack) {
   const modal = document.getElementById('packModal');
@@ -245,20 +214,13 @@ export function showPackModal(pack, isGodPack) {
 }
 
 function createGodPackHeader() {
-  return `
-    <div style="text-align:center;margin-bottom:1rem;pointer-events:none">
-      <h2 style="color:#ffd700;font-size:2rem;text-shadow:0 0 20px rgba(255,215,0,0.8)">
-        🌟 GOD PACK! 🌟
-      </h2>
-    </div>
-  `;
+  return `<div style="text-align:center;margin-bottom:1rem;pointer-events:none">
+    <h2 style="color:#ffd700;font-size:2rem;text-shadow:0 0 20px rgba(255,215,0,0.8)">🌟 GOD PACK! 🌟</h2>
+  </div>`;
 }
 
 function createModalViews() {
-  return `
-    <div class="singleCardView"></div>
-    <div class="allCardsView"><div class="packCards"></div></div>
-  `;
+  return `<div class="singleCardView"></div><div class="allCardsView"><div class="packCards"></div></div>`;
 }
 
 function separateCardsByType(pack) {
@@ -284,8 +246,6 @@ function setupModalCloseHandlers(modal, singleView, allView, isCompleteCallback)
     }
   };
 }
-
-// ===== PACK REVEALER CLASS =====
 
 class PackRevealer {
   constructor(singleView, allView, allCardsContainer, cards) {
