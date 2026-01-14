@@ -1,8 +1,8 @@
 /**
- * MTG Pocket - Pack Opening (REFACTORED)
+ * MTG Pocket - Pack Opening (UPDATED - Phase 1 Imports)
  * 
  * Removed deprecated functions, consolidated pack generation logic.
- * BUG FIX #1: Card counts now display correctly during reveal
+ * UPDATED: Uses new modular imports from Phase 1 refactoring
  */
 
 import { 
@@ -25,7 +25,8 @@ import {
   setLastPack,
   save
 } from './state.js';
-import { rollRarity, getCardImages, randomChance, getRandomElement } from './utils.js';
+import { rollRarity, randomChance, getRandomElement } from './game-logic/rarity.js';
+import { getCardImages } from './ui/image-loader.js';
 import { showPackModal } from './card-renderer.js';
 import { startRipAnimation } from './pack-carousel.js';
 

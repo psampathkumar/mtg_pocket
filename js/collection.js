@@ -1,7 +1,8 @@
 /**
- * MTG Pocket - Collection Module
+ * MTG Pocket - Collection Module (UPDATED - Phase 1 Imports)
  * 
  * Handles collection view rendering, filtering, and statistics.
+ * UPDATED: Uses new modular imports from Phase 1 refactoring
  */
 
 import { FILTER_TYPES } from './constants.js';
@@ -19,7 +20,7 @@ import {
   groupCardsByName, 
   calculateCollectionStats, 
   calculatePercentage 
-} from './utils.js';
+} from './core/helpers.js';
 import { createCardElement, createPlaceholderElement } from './card-renderer.js';
 
 // ===== COLLECTION RENDERING =====

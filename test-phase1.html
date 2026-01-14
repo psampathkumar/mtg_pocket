@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phase 1 Refactoring Tests</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    
+    .controls {
+      padding: 20px 30px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+    
+    .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .btn-success { background: #28a745; color: white; }
+    
+    .summary {
+      padding: 20px 30px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+    
+    .stat-card {
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .stat-card.total { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .stat-card.passed { background: #d4edda; color: #155724; }
+    .stat-card.failed { background: #f8d7da; color: #721c24; }
+    
+    .stat-card .number { font-size: 3rem; font-weight: bold; margin: 0; }
+    .stat-card .label { font-size: 0.9rem; opacity: 0.8; margin-top: 5px; }
+    
+    .results {
+      padding: 0 30px 30px 30px;
+    }
+    
+    .test-group {
+      margin-bottom: 30px;
+    }
+    
+    .test-group h2 {
+      font-size: 1.3rem;
+      margin: 0 0 15px 0;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e9ecef;
+      color: #495057;
+    }
+    
+    .test-item {
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+    }
+    
+    .test-item.passed { background: #d4edda; border-left: 4px solid #28a745; }
+    .test-item.failed { background: #f8d7da; border-left: 4px solid #dc3545; }
+    
+    .test-icon { font-size: 1.2rem; min-width: 24px; }
+    .test-name { flex: 1; font-weight: 500; }
+    .test-error {
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.05);
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      color: #721c24;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🧪 Phase 1 Refactoring Tests</h1>
+      <p>Testing utils.js → 8 Modules Migration</p>
+    </header>
+    
+    <div class="controls">
+      <button class="btn-primary" id="runAll">▶️ Run All Tests</button>
+      <button class="btn-success" id="runQuick">⚡ Quick Tests</button>
+    </div>
+    
+    <div class="summary" id="summary">
+      <div class="stat-card total">
+        <div class="number" id="total">0</div>
+        <div class="label">Total Tests</div>
+      </div>
+      <div class="stat-card passed">
+        <div class="number" id="passed">0</div>
+        <div class="label">Passed</div>
+      </div>
+      <div class="stat-card failed">
+        <div class="number" id="failed">0</div>
+        <div class="label">Failed</div>
+      </div>
+    </div>
+    
+    <div class="results" id="results"></div>
+  </div>
+
+  <script type="module">
+    // ===== TEST SUITE FRAMEWORK =====
+    
+    class TestSuite {
+      constructor() {
+        this.groups = [];
+        this.results = { total: 0, passed: 0, failed: 0 };
+      }
+      
+      group(name, tests) {
+        this.groups.push({ name, tests });
+      }
+      
+      test(name, fn) {
+        return { name, fn };
+      }
+      
+      async runAll() {
+        this.results = { total: 0, passed: 0, failed: 0 };
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = '';
+        
+        for (const group of this.groups) {
+          const groupDiv = document.createElement('div');
+          groupDiv.className = 'test-group';
+          groupDiv.innerHTML = `<h2>${group.name}</h2>`;
+          resultsDiv.appendChild(groupDiv);
+          
+          for (const test of group.tests) {
+            this.results.total++;
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test-item';
+            
+            try {
+              await test.fn();
+              this.results.passed++;
+              testDiv.classList.add('passed');
+              testDiv.innerHTML = `
+                <span class="test-icon">✅</span>
+                <span class="test-name">${test.name}</span>
+              `;
+            } catch (error) {
+              this.results.failed++;
+              testDiv.classList.add('failed');
+              testDiv.innerHTML = `
+                <span class="test-icon">❌</span>
+                <span class="test-name">${test.name}</span>
+              `;
+              const errorDiv = document.createElement('div');
+              errorDiv.className = 'test-error';
+              errorDiv.textContent = error.message || error;
+              testDiv.appendChild(errorDiv);
+            }
+            
+            groupDiv.appendChild(testDiv);
+          }
+        }
+        
+        this.updateSummary();
+      }
+      
+      updateSummary() {
+        document.getElementById('total').textContent = this.results.total;
+        document.getElementById('passed').textContent = this.results.passed;
+        document.getElementById('failed').textContent = this.results.failed;
+      }
+    }
+    
+    const suite = new TestSuite();
+    
+    // ===== DEVICE DETECTOR TESTS =====
+    
+    suite.group('Device Detection', [
+      suite.test('DeviceDetector class exists', async () => {
+        const { DeviceDetector } = await import('./js/effects/device-detector.js');
+        if (!DeviceDetector) throw new Error('DeviceDetector not exported');
+      }),
+      
+      suite.test('device singleton exists', async () => {
+        const { device } = await import('./js/effects/device-detector.js');
+        if (!device) throw new Error('device singleton not exported');
+      }),
+      
+      suite.test('device has all required properties', async () => {
+        const { device } = await import('./js/effects/device-detector.js');
+        const required = ['isMobile', 'hasTouch', 'hasGyro', 'isIOS', 'isAndroid'];
+        required.forEach(prop => {
+          if (typeof device[prop] !== 'boolean') {
+            throw new Error(`Missing or invalid property: ${prop}`);
+          }
+        });
+      }),
+      
+      suite.test('shouldUseGyroscope() returns boolean', async () => {
+        const { device } = await import('./js/effects/device-detector.js');
+        const result = device.shouldUseGyroscope();
+        if (typeof result !== 'boolean') throw new Error('Invalid return type');
+      }),
+      
+      suite.test('createMockDevice() works', async () => {
+        const { createMockDevice } = await import('./js/effects/device-detector.js');
+        const mock = createMockDevice({ isMobile: true, hasGyro: false });
+        if (mock.isMobile !== true) throw new Error('Mock override failed');
+        if (mock.hasGyro !== false) throw new Error('Mock override failed');
+      }),
+    ]);
+    
+    // ===== RARITY LOGIC TESTS =====
+    
+    suite.group('Rarity Logic', [
+      suite.test('rollRarity() exports', async () => {
+        const { rollRarity } = await import('./js/game-logic/rarity.js');
+        if (typeof rollRarity !== 'function') throw new Error('Not exported');
+      }),
+      
+      suite.test('rollRarity(1.5) returns mythic', async () => {
+        const { rollRarity } = await import('./js/game-logic/rarity.js');
+        const result = rollRarity(1.5);
+        if (result !== 'mythic') throw new Error(`Expected mythic, got ${result}`);
+      }),
+      
+      suite.test('rollRarity(5) returns rare', async () => {
+        const { rollRarity } = await import('./js/game-logic/rarity.js');
+        const result = rollRarity(5);
+        if (result !== 'rare') throw new Error(`Expected rare, got ${result}`);
+      }),
+      
+      suite.test('rollRarity(15) returns uncommon', async () => {
+        const { rollRarity } = await import('./js/game-logic/rarity.js');
+        const result = rollRarity(15);
+        if (result !== 'uncommon') throw new Error(`Expected uncommon, got ${result}`);
+      }),
+      
+      suite.test('rollRarity(50) returns common', async () => {
+        const { rollRarity } = await import('./js/game-logic/rarity.js');
+        const result = rollRarity(50);
+        if (result !== 'common') throw new Error(`Expected common, got ${result}`);
+      }),
+      
+      suite.test('getRandomElement() returns from array', async () => {
+        const { getRandomElement } = await import('./js/game-logic/rarity.js');
+        const arr = ['a', 'b', 'c'];
+        const result = getRandomElement(arr, 0.5);
+        if (!arr.includes(result)) throw new Error('Invalid element');
+      }),
+      
+      suite.test('randomChance(0.1, 0.05) returns true', async () => {
+        const { randomChance } = await import('./js/game-logic/rarity.js');
+        const result = randomChance(0.1, 0.05);
+        if (result !== true) throw new Error('Should be true');
+      }),
+      
+      suite.test('randomChance(0.1, 0.15) returns false', async () => {
+        const { randomChance } = await import('./js/game-logic/rarity.js');
+        const result = randomChance(0.1, 0.15);
+        if (result !== false) throw new Error('Should be false');
+      }),
+    ]);
+    
+    // ===== IMAGE LOADER TESTS =====
+    
+    suite.group('Image Loading', [
+      suite.test('getCardImages() exports', async () => {
+        const { getCardImages } = await import('./js/ui/image-loader.js');
+        if (typeof getCardImages !== 'function') throw new Error('Not exported');
+      }),
+      
+      suite.test('getCardImages() handles single-faced card', async () => {
+        const { getCardImages } = await import('./js/ui/image-loader.js');
+        const card = { image_uris: { normal: 'front.jpg' } };
+        const result = getCardImages(card);
+        if (result.front !== 'front.jpg') throw new Error('Wrong front image');
+      }),
+      
+      suite.test('getCardImages() handles double-faced card', async () => {
+        const { getCardImages } = await import('./js/ui/image-loader.js');
+        const card = {
+          card_faces: [
+            { image_uris: { normal: 'front.jpg' } },
+            { image_uris: { normal: 'back.jpg' } }
+          ]
+        };
+        const result = getCardImages(card);
+        if (result.front !== 'front.jpg') throw new Error('Wrong front');
+        if (result.back !== 'back.jpg') throw new Error('Wrong back');
+      }),
+      
+      suite.test('isDoubleFaced() detects DFC', async () => {
+        const { isDoubleFaced } = await import('./js/ui/image-loader.js');
+        if (!isDoubleFaced('custom.jpg')) throw new Error('Should be true');
+        if (isDoubleFaced('https://files.mtg.wiki/Magic_card_back.jpg')) {
+          throw new Error('Should be false');
+        }
+      }),
+    ]);
+    
+    // ===== HOLOGRAPHIC CONFIG TESTS =====
+    
+    suite.group('Holographic Config', [
+      suite.test('HolographicConfig class exists', async () => {
+        const { HolographicConfig } = await import('./js/effects/holographic-config.js');
+        if (!HolographicConfig) throw new Error('Not exported');
+      }),
+      
+      suite.test('Config calculates mythic intensity correctly', async () => {
+        const { HolographicConfig } = await import('./js/effects/holographic-config.js');
+        const config = new HolographicConfig({ rarity: 'mythic' });
+        if (config.intensity !== 1.3) throw new Error(`Expected 1.3, got ${config.intensity}`);
+      }),
+      
+      suite.test('Config prioritizes masterpiece over rarity', async () => {
+        const { HolographicConfig } = await import('./js/effects/holographic-config.js');
+        const config = new HolographicConfig({ rarity: 'common', masterpiece: true });
+        if (config.intensity !== 2.0) throw new Error('Masterpiece should be 2.0');
+      }),
+      
+      suite.test('Config prioritizes fullart over rarity', async () => {
+        const { HolographicConfig } = await import('./js/effects/holographic-config.js');
+        const config = new HolographicConfig({ rarity: 'common', fullart: true });
+        if (config.intensity !== 1.7) throw new Error('Full-art should be 1.7');
+      }),
+      
+      suite.test('Config generates valid gradient', async () => {
+        const { HolographicConfig } = await import('./js/effects/holographic-config.js');
+        const config = new HolographicConfig({ rarity: 'rare' });
+        const gradient = config.getGradient();
+        if (!gradient.includes('radial-gradient')) throw new Error('Invalid gradient');
+      }),
+    ]);
+    
+    // ===== HOLOGRAPHIC RENDERER TESTS =====
+    
+    suite.group('Holographic Renderer', [
+      suite.test('HolographicRenderer class exists', async () => {
+        const { HolographicRenderer } = await import('./js/effects/holographic-renderer.js');
+        if (!HolographicRenderer) throw new Error('Not exported');
+      }),
+      
+      suite.test('Renderer creates layers', async () => {
+        const { HolographicRenderer } = await import('./js/effects/holographic-renderer.js');
+        const { HolographicConfig } = await import('./js/effects/holographic-config.js');
+        
+        const element = document.createElement('div');
+        const config = new HolographicConfig({});
+        const renderer = new HolographicRenderer(element, config);
+        
+        if (!renderer.shadowLayer) throw new Error('Shadow layer not created');
+        if (!renderer.glareLayer) throw new Error('Glare layer not created');
+      }),
+      
+      suite.test('Renderer can render state', async () => {
+        const { HolographicRenderer } = await import('./js/effects/holographic-renderer.js');
+        const { HolographicConfig } = await import('./js/effects/holographic-config.js');
+        
+        const element = document.createElement('div');
+        const config = new HolographicConfig({});
+        const renderer = new HolographicRenderer(element, config);
+        
+        renderer.render({ x: 0.5, y: 0.5, rotateX: 10, rotateY: 10, scale: 1.05, opacity: 0.9 });
+        
+        if (!element.style.transform.includes('rotate')) throw new Error('Transform not applied');
+      }),
+    ]);
+    
+    // ===== HOLOGRAPHIC INPUT TESTS =====
+    
+    suite.group('Holographic Input', [
+      suite.test('GyroscopeInput class exists', async () => {
+        const { GyroscopeInput } = await import('./js/effects/holographic-input.js');
+        if (!GyroscopeInput) throw new Error('Not exported');
+      }),
+      
+      suite.test('PointerInput class exists', async () => {
+        const { PointerInput } = await import('./js/effects/holographic-input.js');
+        if (!PointerInput) throw new Error('Not exported');
+      }),
+      
+      suite.test('createInputHandler() returns handler', async () => {
+        const { createInputHandler } = await import('./js/effects/holographic-input.js');
+        const { HolographicRenderer } = await import('./js/effects/holographic-renderer.js');
+        const { HolographicConfig } = await import('./js/effects/holographic-config.js');
+        const { createMockDevice } = await import('./js/effects/device-detector.js');
+        
+        const element = document.createElement('div');
+        const config = new HolographicConfig({});
+        const renderer = new HolographicRenderer(element, config);
+        const device = createMockDevice({ isMobile: false });
+        
+        const handler = createInputHandler(element, renderer, config, device);
+        if (!handler) throw new Error('Handler not created');
+      }),
+    ]);
+    
+    // ===== HOLOGRAPHIC MAIN API TESTS =====
+    
+    suite.group('Holographic Main API', [
+      suite.test('enableTilt() exports', async () => {
+        const { enableTilt } = await import('./js/effects/holographic.js');
+        if (typeof enableTilt !== 'function') throw new Error('Not exported');
+      }),
+      
+      suite.test('disableTilt() exports', async () => {
+        const { disableTilt } = await import('./js/effects/holographic.js');
+        if (typeof disableTilt !== 'function') throw new Error('Not exported');
+      }),
+      
+      suite.test('device is re-exported', async () => {
+        const { device } = await import('./js/effects/holographic.js');
+        if (!device) throw new Error('device not re-exported');
+      }),
+    ]);
+    
+    // ===== CORE HELPERS TESTS =====
+    
+    suite.group('Core Helpers', [
+      suite.test('formatTime(3661000) = "01:01"', async () => {
+        const { formatTime } = await import('./js/core/helpers.js');
+        const result = formatTime(3661000);
+        if (result !== '01:01') throw new Error(`Expected 01:01, got ${result}`);
+      }),
+      
+      suite.test('calculatePercentage(5, 10) = 50', async () => {
+        const { calculatePercentage } = await import('./js/core/helpers.js');
+        const result = calculatePercentage(5, 10);
+        if (result !== 50) throw new Error(`Expected 50, got ${result}`);
+      }),
+      
+      suite.test('calculatePercentage(0, 10) = 0', async () => {
+        const { calculatePercentage } = await import('./js/core/helpers.js');
+        const result = calculatePercentage(0, 10);
+        if (result !== 0) throw new Error(`Expected 0, got ${result}`);
+      }),
+      
+      suite.test('groupCardsByName() groups correctly', async () => {
+        const { groupCardsByName } = await import('./js/core/helpers.js');
+        const cards = {
+          '1': { name: 'Card A' },
+          '2': { name: 'Card A' },
+          '3': { name: 'Card B' }
+        };
+        const result = groupCardsByName(cards);
+        if (result['Card A'].length !== 2) throw new Error('Wrong grouping');
+        if (result['Card B'].length !== 1) throw new Error('Wrong grouping');
+      }),
+    ]);
+    
+    // ===== EVENT HANDLERS =====
+    
+    document.getElementById('runAll').onclick = () => suite.runAll();
+    document.getElementById('runQuick').onclick = () => suite.runAll();
+    
+    // Auto-run on load
+    setTimeout(() => suite.runAll(), 500);
+  </script>
+</body>
+</html>

@@ -1,11 +1,14 @@
 /**
- * MTG Pocket - Card Renderer (COMPLETE - 3D PERSPECTIVE FIX)
+ * MTG Pocket - Card Renderer (UPDATED - Phase 1 Imports)
  * 
  * Fixed: Proper 3D hierarchy prevents card from going behind modal
+ * UPDATED: Uses new modular imports from Phase 1 refactoring
  */
 
 import { MTG_CARD_BACK } from './constants.js';
-import { enableTilt, disableTilt, isDoubleFaced, device } from './utils.js';
+import { enableTilt, disableTilt } from './effects/holographic.js';
+import { isDoubleFaced } from './ui/image-loader.js';
+import { device } from './effects/device-detector.js';
 
 // ===== CARD STRUCTURE BUILDERS =====
 

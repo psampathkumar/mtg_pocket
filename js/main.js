@@ -1,8 +1,8 @@
 /**
- * MTG Pocket - Main Application (FIXED DEV TOOLS)
+ * MTG Pocket - Main Application (UPDATED - Phase 1 Imports)
  * 
  * Entry point for the application. Initializes all modules and sets up event handlers.
- * BUG FIX #3: Added initRefreshSet() to dev tools initialization
+ * UPDATED: Uses new modular imports from Phase 1 refactoring
  */
 
 import { PACK_COST, INTERVAL, COUNTDOWN_UPDATE_INTERVAL } from './constants.js';
@@ -26,7 +26,7 @@ import {
   sortSetsByDate,
   loadCompleteSetData
 } from './api.js';
-import { formatTime } from './utils.js';
+import { formatTime } from './core/helpers.js';
 import { openPack } from './pack-opening.js';
 import { showCollectionView, showHomeScreen, updateStats } from './collection.js';
 import { initPackCarousel, renderPackCarousel } from './pack-carousel.js';
@@ -221,7 +221,7 @@ function initializeUI() {
   
   // Open pack button
   document.getElementById('openPackHome').onclick = () => {
-    console.log('🔘 === BUTTON: Open Pack ===');
+    console.log('📘 === BUTTON: Open Pack ===');
     const currentSet = getCurrentSet();
     console.log('  └─ getCurrentSet():', currentSet);
     
@@ -233,18 +233,18 @@ function initializeUI() {
   
   // Navigation
   document.getElementById('viewCollection').onclick = () => {
-    console.log('🔘 === BUTTON: View Collection ===');
+    console.log('📘 === BUTTON: View Collection ===');
     showCollectionView();
   };
   
   document.getElementById('backHome').onclick = () => {
-    console.log('🔘 === BUTTON: Back Home ===');
+    console.log('📘 === BUTTON: Back Home ===');
     showHomeScreen();
   };
   
   // Set selector - changing dropdown
   document.getElementById('setSelect').onchange = async (event) => {
-    console.log('🔽 === DROPDOWN: Set Changed ===');
+    console.log('📽 === DROPDOWN: Set Changed ===');
     console.log('  └─ New value:', event.target.value);
     
     console.log('  └─ Updating state...');
@@ -258,16 +258,16 @@ function initializeUI() {
   
   // Free mode toggle
   document.getElementById('freeMode').onchange = () => {
-    console.log('🔘 === TOGGLE: Free Mode ===');
+    console.log('📘 === TOGGLE: Free Mode ===');
     updateUI();
   };
   
-  // Dev tools (UPDATED - Added initRefreshSet)
+  // Dev tools
   initDevPanel();
   initAddCard();
   initTestGlareManual();
   initDiagnostic();
-  initRefreshSet(); // ✅ BUG FIX #3: Initialize refresh functionality
+  initRefreshSet();
   
   console.log('✅ UI initialized\n');
 }

@@ -1,8 +1,8 @@
 /**
- * MTG Pocket - Developer Tools (UPDATED TEST WITH REBALANCED INTENSITIES)
+ * MTG Pocket - Developer Tools (UPDATED - Phase 1 Imports)
  * 
  * Development features for testing and debugging.
- * BUG FIX #3: Added refresh set functionality
+ * UPDATED: Uses new modular imports from Phase 1 refactoring
  */
 
 import { MTG_CARD_BACK } from './constants.js';
@@ -13,7 +13,9 @@ import {
   addCard,
   save
 } from './state.js';
-import { getCardImages, getRandomElement, enableTilt } from './utils.js';
+import { getCardImages } from './ui/image-loader.js';
+import { getRandomElement } from './game-logic/rarity.js';
+import { enableTilt } from './effects/holographic.js';
 import { renderCollection, updateStats } from './collection.js';
 
 // ===== DEV PANEL TOGGLE =====
@@ -271,7 +273,7 @@ export function initTestGlareManual() {
 }
 
 /**
- * Get type color for label background (UPDATED)
+ * Get type color for label background
  */
 function getTypeColor(type) {
   const colors = {
@@ -286,7 +288,7 @@ function getTypeColor(type) {
 }
 
 /**
- * Get intensity description (UPDATED)
+ * Get intensity description
  */
 function getIntensityText(type) {
   const intensities = {
@@ -355,11 +357,10 @@ export function initDiagnostic() {
   };
 }
 
-// ===== REFRESH SET DATA (BUG FIX #3) =====
+// ===== REFRESH SET DATA =====
 
 /**
  * Initialize refresh set functionality
- * BUG FIX #3: Allows refreshing current set data from API
  */
 export function initRefreshSet() {
   const refreshBtn = document.getElementById('refreshSetBtn');
