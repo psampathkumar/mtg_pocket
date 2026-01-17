@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phase 2 Refactoring Tests</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    
+    .controls {
+      padding: 20px 30px;
+      background: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+    
+    .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    
+    .summary {
+      padding: 20px 30px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+    
+    .stat-card {
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .stat-card.total { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .stat-card.passed { background: #d4edda; color: #155724; }
+    .stat-card.failed { background: #f8d7da; color: #721c24; }
+    
+    .stat-card .number { font-size: 3rem; font-weight: bold; margin: 0; }
+    .stat-card .label { font-size: 0.9rem; opacity: 0.8; margin-top: 5px; }
+    
+    .results {
+      padding: 0 30px 30px 30px;
+    }
+    
+    .test-group {
+      margin-bottom: 30px;
+    }
+    
+    .test-group h2 {
+      font-size: 1.3rem;
+      margin: 0 0 15px 0;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e9ecef;
+      color: #495057;
+    }
+    
+    .test-item {
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+    }
+    
+    .test-item.passed { background: #d4edda; border-left: 4px solid #28a745; }
+    .test-item.failed { background: #f8d7da; border-left: 4px solid #dc3545; }
+    
+    .test-icon { font-size: 1.2rem; min-width: 24px; }
+    .test-name { flex: 1; font-weight: 500; }
+    .test-error {
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.05);
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      color: #721c24;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🧪 Phase 2 Refactoring Tests</h1>
+      <p>Testing card-renderer.js → 4 Modules Split</p>
+    </header>
+    
+    <div class="controls">
+      <button class="btn-primary" id="runAll">▶️ Run All Tests</button>
+    </div>
+    
+    <div class="summary" id="summary">
+      <div class="stat-card total">
+        <div class="number" id="total">0</div>
+        <div class="label">Total Tests</div>
+      </div>
+      <div class="stat-card passed">
+        <div class="number" id="passed">0</div>
+        <div class="label">Passed</div>
+      </div>
+      <div class="stat-card failed">
+        <div class="number" id="failed">0</div>
+        <div class="label">Failed</div>
+      </div>
+    </div>
+    
+    <div class="results" id="results"></div>
+  </div>
+
+  <script type="module">
+    // ===== TEST SUITE FRAMEWORK =====
+    
+    class TestSuite {
+      constructor() {
+        this.groups = [];
+        this.results = { total: 0, passed: 0, failed: 0 };
+      }
+      
+      group(name, tests) {
+        this.groups.push({ name, tests });
+      }
+      
+      test(name, fn) {
+        return { name, fn };
+      }
+      
+      async runAll() {
+        this.results = { total: 0, passed: 0, failed: 0 };
+        const resultsDiv = document.getElementById('results');
+        resultsDiv.innerHTML = '';
+        
+        for (const group of this.groups) {
+          const groupDiv = document.createElement('div');
+          groupDiv.className = 'test-group';
+          groupDiv.innerHTML = `<h2>${group.name}</h2>`;
+          resultsDiv.appendChild(groupDiv);
+          
+          for (const test of group.tests) {
+            this.results.total++;
+            const testDiv = document.createElement('div');
+            testDiv.className = 'test-item';
+            
+            try {
+              await test.fn();
+              this.results.passed++;
+              testDiv.classList.add('passed');
+              testDiv.innerHTML = `
+                <span class="test-icon">✅</span>
+                <span class="test-name">${test.name}</span>
+              `;
+            } catch (error) {
+              this.results.failed++;
+              testDiv.classList.add('failed');
+              testDiv.innerHTML = `
+                <span class="test-icon">❌</span>
+                <span class="test-name">${test.name}</span>
+              `;
+              const errorDiv = document.createElement('div');
+              errorDiv.className = 'test-error';
+              errorDiv.textContent = error.message || error;
+              testDiv.appendChild(errorDiv);
+            }
+            
+            groupDiv.appendChild(testDiv);
+          }
+        }
+        
+        this.updateSummary();
+      }
+      
+      updateSummary() {
+        document.getElementById('total').textContent = this.results.total;
+        document.getElementById('passed').textContent = this.results.passed;
+        document.getElementById('failed').textContent = this.results.failed;
+      }
+    }
+    
+    const suite = new TestSuite();
+    
+    // ===== CARD FACTORY TESTS =====
+    
+    suite.group('Card Factory Module', [
+      suite.test('createCardInner() creates inner div', async () => {
+        const { createCardInner } = await import('./js/rendering/card-factory.js');
+        const card = { img: 'front.jpg', backImg: 'back.jpg', name: 'Test', count: 2 };
+        const inner = createCardInner(card);
+        if (inner.className !== 'card-inner') throw new Error('Wrong class');
+        if (!inner.querySelector('.card-front')) throw new Error('Missing front');
+        if (!inner.querySelector('.card-back')) throw new Error('Missing back');
+      }),
+      
+      suite.test('createCardInner() adds count badge', async () => {
+        const { createCardInner } = await import('./js/rendering/card-factory.js');
+        const card = { img: 'front.jpg', name: 'Test', count: 3 };
+        const inner = createCardInner(card, { showCount: true });
+        const count = inner.querySelector('.count');
+        if (!count) throw new Error('Count badge missing');
+        if (count.textContent !== 'x3') throw new Error('Wrong count text');
+      }),
+      
+      suite.test('createCardElement() creates complete card', async () => {
+        const { createCardElement } = await import('./js/rendering/card-factory.js');
+        const card = { img: 'test.jpg', name: 'Test', rarity: 'rare', count: 1 };
+        const cardEl = createCardElement(card);
+        if (!cardEl.classList.contains('card')) throw new Error('Missing card class');
+        if (!cardEl.classList.contains('rarity-rare')) throw new Error('Missing rarity class');
+      }),
+      
+      suite.test('createPlaceholderElement() creates placeholder', async () => {
+        const { createPlaceholderElement } = await import('./js/rendering/card-factory.js');
+        const placeholder = createPlaceholderElement('42');
+        if (!placeholder.classList.contains('card-placeholder')) throw new Error('Wrong class');
+        if (placeholder.textContent !== '#42') throw new Error('Wrong text');
+      }),
+      
+      suite.test('applyBadges() adds new-card class', async () => {
+        const { applyBadges } = await import('./js/rendering/card-factory.js');
+        const el = document.createElement('div');
+        applyBadges(el, { isNew: true });
+        if (!el.classList.contains('new-card')) throw new Error('Badge not applied');
+      }),
+      
+      suite.test('applyEffects() adds godpack class', async () => {
+        const { applyEffects } = await import('./js/rendering/card-factory.js');
+        const el = document.createElement('div');
+        applyEffects(el, { isGodPack: true });
+        if (!el.classList.contains('godpack')) throw new Error('Effect not applied');
+      }),
+      
+      suite.test('toggleFlip() changes transform', async () => {
+        const { toggleFlip } = await import('./js/rendering/card-factory.js');
+        const inner = document.createElement('div');
+        inner.style.transform = 'rotateY(0deg)';
+        toggleFlip(inner);
+        if (!inner.style.transform.includes('180')) throw new Error('Flip failed');
+      }),
+    ]);
+    
+    // ===== CARD MODAL TESTS =====
+    
+    suite.group('Card Modal Module', [
+      suite.test('Module exports showCardModal', async () => {
+        const { showCardModal } = await import('./js/rendering/card-modal.js');
+        if (typeof showCardModal !== 'function') throw new Error('Not exported');
+      }),
+      
+      suite.test('Module exports closeModal', async () => {
+        const { closeModal } = await import('./js/rendering/card-modal.js');
+        if (typeof closeModal !== 'function') throw new Error('Not exported');
+      }),
+      
+      suite.test('Module exports isModalOpen', async () => {
+        const { isModalOpen } = await import('./js/rendering/card-modal.js');
+        if (typeof isModalOpen !== 'function') throw new Error('Not exported');
+      }),
+    ]);
+    
+    // ===== PACK MODAL TESTS =====
+    
+    suite.group('Pack Modal Module', [
+      suite.test('createGodPackHeader() returns HTML', async () => {
+        const { createGodPackHeader } = await import('./js/rendering/pack-modal.js');
+        const html = createGodPackHeader();
+        if (!html.includes('GOD PACK')) throw new Error('Wrong HTML');
+        if (!html.includes('🌟')) throw new Error('Missing emoji');
+      }),
+      
+      suite.test('createModalViews() returns HTML', async () => {
+        const { createModalViews } = await import('./js/rendering/pack-modal.js');
+        const html = createModalViews();
+        if (!html.includes('singleCardView')) throw new Error('Missing single view');
+        if (!html.includes('allCardsView')) throw new Error('Missing all view');
+      }),
+      
+      suite.test('separateCardsByType() groups cards', async () => {
+        const { separateCardsByType } = await import('./js/rendering/pack-modal.js');
+        const pack = [
+          { name: 'A', isBonus: false, isSecret: false },
+          { name: 'B', isBonus: true, isSecret: false },
+          { name: 'C', isBonus: false, isSecret: true }
+        ];
+        const result = separateCardsByType(pack);
+        if (result.regular.length !== 1) throw new Error('Wrong regular count');
+        if (result.bonus.length !== 1) throw new Error('Wrong bonus count');
+        if (result.secret.length !== 1) throw new Error('Wrong secret count');
+      }),
+      
+      suite.test('Module exports showPackModal', async () => {
+        const { showPackModal } = await import('./js/rendering/pack-modal.js');
+        if (typeof showPackModal !== 'function') throw new Error('Not exported');
+      }),
+    ]);
+    
+    // ===== PACK REVEALER TESTS =====
+    
+    suite.group('Pack Revealer Module', [
+      suite.test('PackRevealer class exists', async () => {
+        const { PackRevealer } = await import('./js/rendering/pack-revealer.js');
+        if (!PackRevealer) throw new Error('Class not exported');
+      }),
+      
+      suite.test('PackRevealer initializes correctly', async () => {
+        const { PackRevealer } = await import('./js/rendering/pack-revealer.js');
+        const cards = [{ name: 'A' }, { name: 'B' }];
+        const revealer = new PackRevealer(
+          document.createElement('div'),
+          document.createElement('div'),
+          document.createElement('div'),
+          cards
+        );
+        if (revealer.currentIndex !== 0) throw new Error('Wrong initial index');
+        if (revealer.complete !== false) throw new Error('Should not be complete');
+      }),
+      
+      suite.test('PackRevealer.isComplete() returns boolean', async () => {
+        const { PackRevealer } = await import('./js/rendering/pack-revealer.js');
+        const revealer = new PackRevealer(
+          document.createElement('div'),
+          document.createElement('div'),
+          document.createElement('div'),
+          []
+        );
+        if (typeof revealer.isComplete() !== 'boolean') throw new Error('Wrong return type');
+      }),
+      
+      suite.test('PackRevealer.getState() returns state object', async () => {
+        const { PackRevealer } = await import('./js/rendering/pack-revealer.js');
+        const revealer = new PackRevealer(
+          document.createElement('div'),
+          document.createElement('div'),
+          document.createElement('div'),
+          [{ name: 'A' }]
+        );
+        const state = revealer.getState();
+        if (typeof state.currentIndex !== 'number') throw new Error('Missing currentIndex');
+        if (typeof state.totalCards !== 'number') throw new Error('Missing totalCards');
+        if (typeof state.complete !== 'boolean') throw new Error('Missing complete');
+      }),
+    ]);
+    
+    // ===== BACKWARDS COMPATIBILITY TESTS =====
+    
+    suite.group('Backwards Compatibility (card-renderer.js)', [
+      suite.test('card-renderer.js re-exports createCardElement', async () => {
+        const { createCardElement } = await import('./js/card-renderer.js');
+        if (typeof createCardElement !== 'function') throw new Error('Not re-exported');
+      }),
+      
+      suite.test('card-renderer.js re-exports createPlaceholderElement', async () => {
+        const { createPlaceholderElement } = await import('./js/card-renderer.js');
+        if (typeof createPlaceholderElement !== 'function') throw new Error('Not re-exported');
+      }),
+      
+      suite.test('card-renderer.js re-exports decorateCard', async () => {
+        const { decorateCard } = await import('./js/card-renderer.js');
+        if (typeof decorateCard !== 'function') throw new Error('Not re-exported');
+      }),
+      
+      suite.test('card-renderer.js re-exports showCardModal', async () => {
+        const { showCardModal } = await import('./js/card-renderer.js');
+        if (typeof showCardModal !== 'function') throw new Error('Not re-exported');
+      }),
+      
+      suite.test('card-renderer.js re-exports showPackModal', async () => {
+        const { showPackModal } = await import('./js/card-renderer.js');
+        if (typeof showPackModal !== 'function') throw new Error('Not re-exported');
+      }),
+      
+      suite.test('card-renderer.js re-exports PackRevealer', async () => {
+        const { PackRevealer } = await import('./js/card-renderer.js');
+        if (!PackRevealer) throw new Error('Not re-exported');
+      }),
+    ]);
+    
+    // ===== EVENT HANDLERS =====
+    
+    document.getElementById('runAll').onclick = () => suite.runAll();
+    
+    // Auto-run on load
+    setTimeout(() => suite.runAll(), 500);
+  </script>
+</body>
+</html>

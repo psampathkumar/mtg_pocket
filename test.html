@@ -249,18 +249,17 @@
   </div>
 
   <script type="module">
+    // ===== FIXED: Import from Phase 1 modules instead of deprecated utils.js =====
+    import { device } from './js/effects/device-detector.js';
+    
     // Device Detection First
     window.addEventListener('load', () => {
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      const hasGyro = typeof DeviceOrientationEvent !== 'undefined';
-      
       document.getElementById('platform').textContent = navigator.platform;
       document.getElementById('userAgent').textContent = navigator.userAgent.substring(0, 50) + '...';
-      document.getElementById('touchSupport').textContent = hasTouch ? '✅ Yes' : '❌ No';
-      document.getElementById('gyroSupport').textContent = hasGyro ? '✅ Available' : '❌ Not Available';
+      document.getElementById('touchSupport').textContent = device.hasTouch ? '✅ Yes' : '❌ No';
+      document.getElementById('gyroSupport').textContent = device.hasGyro ? '✅ Available' : '❌ Not Available';
       document.getElementById('screenSize').textContent = `${window.innerWidth}x${window.innerHeight}`;
-      document.getElementById('deviceType').textContent = isMobile ? '📱 Mobile' : '🖥️ Desktop';
+      document.getElementById('deviceType').textContent = device.isMobile ? '📱 Mobile' : '🖥️ Desktop';
     });
 
     // Test Suite Framework
@@ -405,40 +404,58 @@
     // ===== DEVICE DETECTION TESTS =====
     suite.group('Device Detection', [
       suite.test('Detects mobile devices', async () => {
-        const { detectDevice } = await import('./js/utils.js').catch(() => ({ detectDevice: null }));
-        // This will be implemented in the refactor
-        console.log('Device detection test - placeholder');
+        if (typeof device.isMobile !== 'boolean') throw new Error('Device detection failed');
       }, { quick: true, mobile: true }),
       
       suite.test('Detects touch capability', async () => {
-        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+        const hasTouch = device.hasTouch;
         if (typeof hasTouch !== 'boolean') throw new Error('Touch detection failed');
       }, { quick: true, mobile: true }),
       
       suite.test('Detects gyroscope availability', async () => {
-        const hasGyro = typeof DeviceOrientationEvent !== 'undefined';
+        const hasGyro = device.hasGyro;
         if (typeof hasGyro !== 'boolean') throw new Error('Gyro detection failed');
       }, { quick: true, mobile: true }),
     ]);
     
-    // ===== EXISTING MODULE TESTS =====
-    suite.group('Module Loading', [
-      suite.test('Utils module loads', async () => {
-        const module = await import('./js/utils.js');
+    // ===== PHASE 1 MODULE TESTS =====
+    suite.group('Phase 1 Module Loading', [
+      suite.test('Device detector module loads', async () => {
+        const module = await import('./js/effects/device-detector.js');
+        if (!module.device) throw new Error('device not exported');
+      }, { quick: true }),
+      
+      suite.test('Rarity module loads', async () => {
+        const module = await import('./js/game-logic/rarity.js');
+        if (typeof module.rollRarity !== 'function') throw new Error('rollRarity not exported');
+      }, { quick: true }),
+      
+      suite.test('Image loader module loads', async () => {
+        const module = await import('./js/ui/image-loader.js');
+        if (typeof module.getCardImages !== 'function') throw new Error('getCardImages not exported');
+      }, { quick: true }),
+      
+      suite.test('Holographic module loads', async () => {
+        const module = await import('./js/effects/holographic.js');
         if (typeof module.enableTilt !== 'function') throw new Error('enableTilt not exported');
+      }, { quick: true }),
+      
+      suite.test('Helpers module loads', async () => {
+        const module = await import('./js/core/helpers.js');
+        if (typeof module.formatTime !== 'function') throw new Error('formatTime not exported');
       }, { quick: true }),
     ]);
     
     // ===== MOBILE INTERACTION TESTS =====
     suite.group('Mobile Interaction Tests', [
       suite.test('Touch events are supported', async () => {
-        if (!('ontouchstart' in window) && navigator.maxTouchPoints === 0) {
+        if (!device.hasTouch && navigator.maxTouchPoints === 0) {
           throw new Error('No touch support detected - run on mobile device');
         }
       }, { mobile: true }),
       
       suite.test('Gyroscope permission can be requested', async () => {
-        if (typeof DeviceOrientationEvent === 'undefined') {
+        if (!device.hasGyro) {
           throw new Error('DeviceOrientationEvent not available');
         }
         
