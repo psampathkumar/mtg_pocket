@@ -35,7 +35,7 @@ export function enableTilt(element, cardData = {}) {
   // Store reference for cleanup
   element._holoInputHandler = inputHandler;
   
-  console.log(device.shouldUseGyroscope() ? '📱 Gyroscope (45° max)' : '🖱️ Pointer (15° max)');
+  console.log(device.isMobile ? '📱 Glare-only touch' : '🖱️ Pointer tilt (15° max)');
 }
 
 /**
