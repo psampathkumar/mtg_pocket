@@ -21,7 +21,7 @@ import {
   calculateCollectionStats, 
   calculatePercentage 
 } from './core/helpers.js';
-import { createCardElement, createPlaceholderElement } from './card-renderer.js';
+import { createCardElement, createPlaceholderElement, showCardModal } from './card-renderer.js';
 
 // ===== COLLECTION RENDERING =====
 
@@ -76,7 +76,7 @@ function renderSecretsCollection(container, ownedCards) {
     });
   
   masterpieceList.forEach(card => {
-    container.appendChild(createCardElement(card));
+    container.appendChild(createCardElement(card, showCardModal));
   });
 }
 
@@ -91,7 +91,7 @@ function renderSpotlightCollection(container, ownedByName) {
     const ownedSpotlight = variants.find(v => v.spotlight === true);
     
     if (ownedSpotlight) {
-      container.appendChild(createCardElement(ownedSpotlight));
+      container.appendChild(createCardElement(ownedSpotlight, showCardModal));
     } else {
       container.appendChild(createPlaceholderElement(card.collector_number));
     }
@@ -111,7 +111,7 @@ function renderFullArtCollection(container, ownedCards) {
     });
   
   fullArtList.forEach(card => {
-    container.appendChild(createCardElement(card));
+    container.appendChild(createCardElement(card, showCardModal));
   });
 }
 
@@ -127,7 +127,7 @@ function renderAllCollection(container, ownedByName, ownedCards) {
     const regularCard = variants.find(v => v.fullart === false);
     
     if (regularCard) {
-      container.appendChild(createCardElement(regularCard));
+      container.appendChild(createCardElement(regularCard, showCardModal));
     } else {
       container.appendChild(createPlaceholderElement(card.collector_number));
     }
@@ -142,7 +142,7 @@ function renderAllCollection(container, ownedByName, ownedCards) {
       return numA - numB;
     });
   fullArtList.forEach(card => {
-    container.appendChild(createCardElement(card));
+    container.appendChild(createCardElement(card, showCardModal));
   });
   
   // Story spotlight cards
@@ -154,7 +154,7 @@ function renderAllCollection(container, ownedByName, ownedCards) {
       return numA - numB;
     });
   spotlightList.forEach(card => {
-    container.appendChild(createCardElement(card));
+    container.appendChild(createCardElement(card, showCardModal));
   });
   
   // Masterpiece cards
@@ -166,7 +166,7 @@ function renderAllCollection(container, ownedByName, ownedCards) {
       return numA - numB;
     });
   masterpieceList.forEach(card => {
-    container.appendChild(createCardElement(card));
+    container.appendChild(createCardElement(card, showCardModal));
   });
 }
 
@@ -183,7 +183,7 @@ function renderRarityCollection(container, ownedByName, rarity) {
     const regularCard = variants.find(v => v.fullart === false);
     
     if (regularCard) {
-      container.appendChild(createCardElement(regularCard));
+      container.appendChild(createCardElement(regularCard, showCardModal));
     } else {
       container.appendChild(createPlaceholderElement(card.collector_number));
     }

@@ -99,3 +99,34 @@
   z-index: 2;
   pointer-events: none;
 }
+
+/* ===== NEW / STORY BADGES ===== */
+.new-card::after {
+  content: 'NEW';
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: #ffd700;
+  color: #000;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: clamp(0.65rem, 2vw, 0.75rem);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.story-card::before {
+  content: 'STORY';
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: #3498db;
+  color: #fff;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: clamp(0.65rem, 2vw, 0.75rem);
+  z-index: 10;
+  pointer-events: none;
+}
