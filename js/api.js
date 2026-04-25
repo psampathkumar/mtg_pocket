@@ -139,7 +139,7 @@ export async function fetchSetCards(setCode) {
  * @returns {Promise<Array>} - Array of full-art card objects
  */
 export async function fetchFullArtCards(setCode) {
-  const url = `${SCRYFALL_API_BASE}/cards/search?q=set:${setCode}+game:paper+(is:extended+OR+is:fullart)&unique=cards`;
+  const url = `${SCRYFALL_API_BASE}/cards/search?q=set:${setCode}+game:paper+(+is:fullart+OR+is:showcase+)&unique=cards`;
   
   try {
     const data = await fetchAllPages(url);

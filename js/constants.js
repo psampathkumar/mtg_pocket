@@ -25,9 +25,9 @@ export const RARITY_WEIGHTS = {
 
 // Cumulative thresholds for rarity roll
 export const RARITY_THRESHOLDS = {
-  mythic: 3,       // 0-2.99%
-  rare: 10,        // 3-9.99%
-  uncommon: 30     // 10-29.99%
+  mythic: 5,       // 0-5%
+  rare: 20,        // 5-20%
+  uncommon: 50     // 20-50%
   // common: everything else (30-100%)
 };
 
